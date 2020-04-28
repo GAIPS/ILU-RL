@@ -28,8 +28,8 @@ def model(inpt, num_actions, scope, reuse=False):
 class DQN(object):
 
     def __init__(self,
-                n_actions,
-                ql_params,
+                params,
+                name,
                 log_dir=None,
                 checkpoints_dir=None,
                 load_path=None
@@ -38,22 +38,27 @@ class DQN(object):
             DQN agent.
         """
 
+        print(params.actions)
+        print(params.states)
+
+        self.name = name
+
         # Whether learning stopped.
         self.stop = False
 
-        self.ql_params = ql_params
+        self.params = params
 
         # Parameters.
-        self.model = model
-        self.lr = 5e-4
-        self.gamma = 0.8
-        self.buffer_size = 20000
-        self.batch_size = 64
-        self.exp_initial_p = 1.0
-        self.exp_final_p = 0.02
-        self.exp_schedule_timesteps = 40000
-        self.learning_starts = 2000
-        self.target_net_update_interval = 2000
+        self.model = model # TODO
+        self.lr = params.lr
+        self.gamma = params.gamma
+        self.buffer_size = params.buffer_size
+        self.batch_size = params.batch_size
+        self.exp_initial_p = params.exp_initial_p
+        self.exp_final_p = params.exp_final_p
+        self.exp_schedule_timesteps = params.exp_schedule_timesteps
+        self.learning_starts = params.exp_schedule_timesteps
+        self.target_net_update_interval = params.target_net_update_interval
 
         self.checkpoints_dir = checkpoints_dir
         self.checkpoints_freq = 5000
@@ -61,14 +66,14 @@ class DQN(object):
         self.log_dir = log_dir
 
         # Observation space.
-        self.obs_space = Box(low=np.array([0.0, 0.0, 0.0, 0.0]),
-                             high=np.array([20.0, 30.0, 20.0, 30.0]),
+        self.obs_space = Box(low=np.array([0.0]*params.states.rank),
+                             high=np.array([np.inf]*params.states.rank),
                              dtype=np.float64)
         def make_obs_ph(name):
             return ObservationInput(self.obs_space, name=name)
 
         # Action space.
-        self.num_actions = n_actions
+        self.num_actions = params.actions.depth # TODO
 
         self.action, self.train, self.update_target, self.debug = deepq.build_train(
             make_obs_ph=make_obs_ph,
@@ -141,7 +146,7 @@ class DQN(object):
 
         self.explored.append(explored[0])
 
-        return (action[0],)
+        return action[0]
 
     def update(self, s, a, r, s1):
 
@@ -149,8 +154,6 @@ class DQN(object):
 
             s = np.array(list(s))
             s1 = np.array(list(s1))
-            a = a[0]
-            r = r[0]
 
             self.replay_buffer.add(s, a, r, s1, 0.0)
 

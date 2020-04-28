@@ -3,10 +3,10 @@ from copy import deepcopy
 import numpy as np
 
 from ilurl.core.params import Bounds
+import ilurl.loaders.parsers as parsers
 
 from ilurl.core.ql.agent import QL
-
-import ilurl.loaders.parsers as parsers
+from ilurl.core.dqn.agent import DQN
 
 AGENT_TYPES = ('QL', 'DQN')
 
@@ -16,8 +16,13 @@ class AgentsWrapper(object):
                 mdp_params,
                 agent_type):
 
-        # Load agent parameters.
-        ql_params = parsers.parse_ql_params()
+        if agent_type not in AGENT_TYPES:
+            raise ValueError(f'''
+                Agent type must be in {AGENT_TYPES}.
+                Got {agent_type} type instead.''')
+
+        # Load agent parameters from config file.
+        agent_params = parsers.parse_agent_params(agent_type)
 
         # Create agents.
         agents = {}
@@ -29,28 +34,29 @@ class AgentsWrapper(object):
         # TODO: assumes each agent controls 1 intersection
         for tid in mdp_params.phases_per_traffic_light.keys():
 
-            ql_params_ = deepcopy(ql_params)
+            agent_params_ = deepcopy(agent_params)
 
+            # Action space.
             actions_depth = mdp_params.num_actions[tid]
-            ql_params_.actions = Bounds(1, actions_depth)
+            agent_params_.actions = Bounds(1, actions_depth) # TODO
 
+            # State space.
             num_phases = mdp_params.phases_per_traffic_light[tid]
             states_rank = num_phases * num_variables
             states_depth = len(mdp_params.category_counts) + 1
-            ql_params_.states = Bounds(states_rank, states_depth)
-            
+            agent_params_.states = Bounds(states_rank, states_depth)
+
+            # Agents factory.
             if agent_type == 'QL':
-                agents[tid] = QL(ql_params_, name=tid)
+                agents[tid] = QL(agent_params_, name=tid)
             elif agent_type == 'DQN':
-                pass
+                agents[tid] = DQN(agent_params_, name=tid)
             else:
                 raise ValueError(f'''
                 Agent type must be in {AGENT_TYPES}.
                 Got {agent_type} type instead.''')
 
         self.agents = agents
-
-        self.ql_params = ql_params
 
     def act(self, state):
 

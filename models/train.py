@@ -189,7 +189,7 @@ def main(train_config=None):
 
     # TODO: make this an argument.
     # Maybe join with tls_type?
-    additional_params['agent_type'] = 'QL'
+    additional_params['agent_type'] = 'DQN'
     env_args = {
         'evaluate': True,
         'additional_params': additional_params

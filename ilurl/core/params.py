@@ -46,6 +46,7 @@ ADDITIONAL_PARAMS = {
      "switch": 900
 }
 
+
 class MDPParams:
     """
         Holds general problem formulation params (MDP).
@@ -253,7 +254,7 @@ class MDPParams:
 
 class QLParams:
     """
-        Base Q-learning parameters
+        Base Q-learning parameters.
     """
 
     def __init__(
@@ -306,7 +307,7 @@ class QLParams:
             the size of the batches sampled from the replay buffer.
 
         * replay_buffer_warm_up: int
-            replay buffer warm-up steps, i.e. the number of update
+            replay buffer warm-up steps, i.e. the number of
             steps before the learning starts.
 
         REFERENCES:
@@ -350,6 +351,103 @@ class QLParams:
             raise ValueError('''The ineq replay_buffer_warm_up
                     >= 0 must hold. Got replay_buffer_warm_up = {}
                     '''.format(replay_buffer_warm_up))
+
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+
+class DQNParams:
+    """
+        Base Deep Q-network parameters.
+    """
+
+    def __init__(
+            self,
+            # TODO model
+            lr=5e-4,
+            gamma=0.8,
+            buffer_size=20000,
+            batch_size=64,
+            exp_initial_p=1.0,
+            exp_final_p=0.02,
+            exp_schedule_timesteps=40000,
+            learning_starts=2000,
+            target_net_update_interval=2000,
+        ):
+        """Instantiate Deep Q-network parameters.
+
+        PARAMETERS
+        ----------
+        * lr: float
+            learning rate.
+
+        * gamma: float
+            the discount rate.
+
+        * buffer_size: int
+            the size of the replay buffer.
+
+        * batch_size: int
+            the size of the batches sampled from the replay buffer.
+
+        * exp_initial_p: float
+            initial exploration rate.
+
+        * exp_final_p: float
+            final exploration rate.
+
+        * exp_schedule_timesteps: int
+            exploration decay interval i.e. the number of steps it takes to
+            decay exp_initial_p to exp_final_p.
+
+        * learning_starts: int
+            the number of steps before the learning starts.
+
+        * target_net_update_interval: int
+            target network updates interval.
+
+        """
+        kwargs = locals()
+
+        if lr <= 0 or lr >= 1:
+            raise ValueError('''The ineq 0 < lr < 1 must hold.
+                    Got lr = {}.'''.format(lr))
+
+        if gamma <= 0 or gamma > 1:
+            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
+                    Got gamma = {}.'''.format(gamma))
+
+        if exp_initial_p < 0 or exp_initial_p > 1:
+            raise ValueError('''The ineq 0 < exp_initial_p < 1 must hold.
+                    Got exp_initial_p = {}.'''.format(exp_initial_p))
+
+        if exp_final_p < 0 or exp_final_p > 1:
+            raise ValueError('''The ineq 0 < exp_final_p < 1 must hold.
+                    Got exp_final_p = {}.'''.format(exp_final_p))
+
+        if exp_schedule_timesteps < 0:
+            raise ValueError('''The ineq 0 < exp_schedule_timesteps.
+                    Got exp_schedule_timesteps = {}.'''.format(exp_schedule_timesteps))
+
+        if buffer_size <= 0:
+            raise ValueError('''The ineq buffer_size > 0
+                    must hold. Got buffer_size = {}
+                    '''.format(buffer_size))
+
+        if batch_size <= 0 \
+            or batch_size > buffer_size:
+            raise ValueError('''The ineq buffer_size >=
+                    batch_size > 0 must hold.
+                    Got batch_size = {}
+                    '''.format(batch_size))
+
+        if learning_starts < 0:
+            raise ValueError('''The ineq 0 <= learning_starts.
+                    Got learning_starts = {}.'''.format(learning_starts))
+
+        if target_net_update_interval <= 0:
+            raise ValueError('''The ineq 0 < target_net_update_interval.
+                    Got target_net_update_interval = {}.'''.format(target_net_update_interval))
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)
