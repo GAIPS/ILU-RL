@@ -47,22 +47,52 @@ ADDITIONAL_PARAMS = {
 }
 
 class MDPParams:
+    """
+        Holds general problem formulation params (MDP).
+    """
 
     def __init__(self,
                 num_actions,
                 phases_per_traffic_light,
                 states=('speed', 'count'),
-                discretize_state_space=True,
-                normalize_state_space=True,
-                category_counts=[8.56, 13.00],
-                category_speeds=[2.28, 5.50],
+                discretize_state_space=True,    # TODO
+                normalize_state_space=True,     # TODO
+                category_counts=[8.56, 13.00],  # TODO
+                category_speeds=[2.28, 5.50],   # TODO
                 reward={'type': 'target_velocity',
                         'additional_params': {
                             'target_velocity': 1.0
                         }
                 }
             ):
+        """Instantiate MDP params.
 
+        PARAMETERS
+        ----------
+        * num_actions: dict
+            a dictionary containing the number of actions per
+            intersection. The outer keys are tls_ids.
+
+        * phases_per_traffic_light: dict
+            a dictionary containing the number of phases per 
+            intersection. The outer keys are tls_ids.
+
+        * states: ('speed', 'count')
+            the features to be used as state space representation.
+
+        * discretize_state_space: bool
+            if True the state space will be categorized. TODO
+
+        * normalize_state_space: bool
+            if True the state space normalization will be applied. TODO
+
+        * category_counts: TODO
+
+        * category_speeds: TODO
+
+        * reward: namedtuple (see Reward definition above)
+
+        """
         kwargs = locals()
 
         for attr, value in kwargs.items():
@@ -99,14 +129,18 @@ class MDPParams:
     def categorize_space(self, observation_space):
         """Converts readings e.g averages, counts into integers
 
-        Params:
-        ------
+        PARAMETERS
+        ----------
             * observation_space: a list of lists
                 level 1 -- number of intersections controlled
                 level 2 -- number of phases e.g 2
                 level 3 -- number of variables
-        Usage:
-        -----
+
+        RETURNS
+        -------
+
+        EXAMPLE
+        -------
             # 1 tls, 2 phases, 2 variables
             > reading = [[[14.2, 3], [0, 10]]]
             > categories = categorize_space(reading)
@@ -136,21 +170,21 @@ class MDPParams:
         return categorized_space
 
     def split_space(self, observation_space):
-        """Splits different variables into tuple
+        """Splits different variables into tuple.
         
-        Params:
-        ------- 
+        PARAMETERS
+        ----------
         * observation_space: list of lists
             nested 3 level list such that;
             The second level represents it's phases; e.g
             north-south and east-west. And the last level represents
             the variables withing labels e.g `speed` and `count`.
 
-        Returns:
+        RETURNS
         -------
             * flatten space
-            
-        Example:
+
+        EXAMPLE
         -------
         > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
         > splits = split_space(observation_space)
@@ -170,21 +204,21 @@ class MDPParams:
         return splits
 
     def flatten_space(self, observation_space):
-        """Linearizes hierarchial state representation
+        """Linearizes hierarchial state representation.
         
-        Params:
-        ------
+        PARAMETERS
+        ----------
             * observation_space: list of lists
             nested 2 level list such that;
             The second level represents it's phases; e.g
             north-south and east-west. And the last level represents
             the variables withing labels e.g `speed` and `count`.
 
-        Returns:
+        RETURNS
         -------
             * flattened_space: a list
             
-        Example:
+        EXAMPLE
         -------
         > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
         > flattened = flatten_space(observation_space)
@@ -224,60 +258,56 @@ class QLParams:
 
     def __init__(
             self,
-            epsilon=3e-2,
+            # Warning (alpha): a schedule is being used so
+            # this parameter makes no difference.
             alpha=5e-1,
+            # Warning (epsilon): a schedule is being used
+            # so this parameter makes no difference.
+            epsilon=3e-2,
             gamma=0.9,
             c=2,
             initial_value=0,
-            rewards={
-                'type': 'weighted_average',
-                'costs': None
-            },
             choice_type='eps-greedy',
             replay_buffer=False,
             replay_buffer_size=500,
             replay_buffer_batch_size=64,
             replay_buffer_warm_up=200,
         ):
-        """Instantiate base traffic light.
+        """Instantiate Q-learning parameters.
 
         PARAMETERS
         ----------
-        * epsilon: is the chance to adopt a random action instead of
-                  a greedy action [1].
+        * alpha: float
+            the learning rate the weight given to new knowledge [1].
 
-        * alpha: is the learning rate the weight given to new
-                 knowledge [1].
+        * epsilon: float
+            the chance to adopt a random action instead of a greedy
+            action [1].
 
-        * gamma: is the discount rate for value function [1].
+        * gamma: float
+            the discount rate [1].
 
-        * c: upper confidence bound (ucb) exploration constant.
-        * rewards: namedtuple
-                    see above
+        * c: int
+            upper confidence bound (UCB) exploration constant.
 
-        * phases_per_traffic_light: list<int>
-            number of phases per intersection
-            
-        * states: namedtuple
-            Create discrete categorizations from continous variables
-            ( e.g states )
-            SEE Bounds above
-            * rank: int
-                Number of variable dimensions
+        * choice_type: ('eps-greedy', 'optimistic', 'ucb')
+            type of exploration strategy.
 
-            * depth: int
-                Number of categories
+        * initial_value: float
+            Q-table initialization value.
 
-        * num_actions: dict
+        * replay_buffer: bool
+            if True batch learning will be used (Dyna-Q).
 
-        * category_counts: list of floats
-                values to breakdown into classes;
-                if normalize then must be in (0, 1)
+        * replay_buffer_size: int
+            the size of the replay buffer.
 
-        * category_speeds: list of floats
-                values to breakdown into classes:
-                if normalize then must be in (0, 1)
+        * replay_buffer_batch_size: int
+            the size of the batches sampled from the replay buffer.
 
+        * replay_buffer_warm_up: int
+            replay buffer warm-up steps, i.e. the number of update
+            steps before the learning starts.
 
         REFERENCES:
         ----------
@@ -288,25 +318,41 @@ class QLParams:
 
         if alpha <= 0 or alpha >= 1:
             raise ValueError('''The ineq 0 < alpha < 1 must hold.
-                    got alpha = {}'''.format(alpha))
-
-        if gamma <= 0 or gamma > 1:
-            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
-                    got gamma = {}'''.format(gamma))
+                    Got alpha = {}.'''.format(alpha))
 
         if epsilon < 0 or epsilon > 1:
             raise ValueError('''The ineq 0 < epsilon < 1 must hold.
-                    got epsilon = {}'''.format(epsilon))
+                    Got epsilon = {}.'''.format(epsilon))
+
+        if gamma <= 0 or gamma > 1:
+            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
+                    Got gamma = {}.'''.format(gamma))
 
         if choice_type not in CHOICE_TYPES:
             raise ValueError(
-                f'''Choice type should be in {CHOICE_TYPES} got {choice_type}'''
+                f'''Choice type should be in {CHOICE_TYPES}
+                    Got choice_type = {choice_type}.'''
             )
 
+        if replay_buffer_size <= 0:
+            raise ValueError('''The ineq replay_buffer_size > 0
+                    must hold. Got replay_buffer_size = {}
+                    '''.format(replay_buffer_size))
+
+        if replay_buffer_batch_size <= 0 \
+            or replay_buffer_batch_size > replay_buffer_size:
+            raise ValueError('''The ineq replay_buffer_size >=
+                    replay_buffer_batch_size > 0 must hold.
+                    Got replay_buffer_batch_size = {}
+                    '''.format(replay_buffer_batch_size))
+
+        if replay_buffer_warm_up < 0:
+            raise ValueError('''The ineq replay_buffer_warm_up
+                    >= 0 must hold. Got replay_buffer_warm_up = {}
+                    '''.format(replay_buffer_warm_up))
 
         for attr, value in kwargs.items():
-            if attr not in ('self', 'states', 'rewards'):
-                setattr(self, attr, value)
+            setattr(self, attr, value)
 
 
 class InFlows(flow_params.InFlows):

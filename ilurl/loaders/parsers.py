@@ -20,8 +20,8 @@ def str2bool(v, exception=None):
 
 def parse_ql_params():
     """
-        Parses Q-learning parameters from config file located at
-        'CONFIG_PATH' and returns a ilurl.core.params.QLParams
+        Parses Q-learning parameters (ql_args) from config file located
+        at 'CONFIG_PATH' and returns a ilurl.core.params.QLParams
         object with the parsed parameters.
     """
 
