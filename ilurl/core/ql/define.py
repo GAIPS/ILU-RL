@@ -3,6 +3,7 @@
 __author__ = "Guilherme Varela"
 __date__ = "2019-07-25"
 from itertools import product as prod
+import numpy as np
 
 
 def dpq_tls(state_rank, state_dim,
@@ -29,7 +30,8 @@ def dpq_tls(state_rank, state_dim,
 
     """
     state_space = catspace(state_rank, state_dim)
-    action_space = catspace(action_rank, action_dim)
+    num_actions = len(catspace(action_rank, action_dim))
+    action_space = np.arange(0, num_actions)
     return dpq(state_space, action_space,
                initial_value=initial_value)
 

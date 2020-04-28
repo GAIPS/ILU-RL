@@ -111,10 +111,10 @@ class Experiment:
         self.env = env
         self.train = train
         self.dir_path = Path(dir_path) if dir_path is not None else None
-        # fails gracifully if an environment with no cycle time
+        # fails gracefully if an environment with no cycle time
         # is provided
         self.cycle = getattr(env, 'cycle_time', None)
-        self.save_step = getattr(env, 'cycle_time', 1) / sim_step
+        self.save_step = getattr(env, 'cycle_time', 1)
         self.log_info = log_info
         self.log_info_interval = log_info_interval
         self.save_agent = save_agent
@@ -202,11 +202,7 @@ class Experiment:
                 observation_spaces.append(
                     list(self.env.get_observation_space()))
 
-                try:
-                    rewards.append([round(r, 4) for r in reward])
-                except Exception:
-                    import pdb
-                    pdb.set_trace()
+                rewards.append(reward)
 
                 vehs.append(np.nanmean(veh_i).round(4))
                 vels.append(np.nanmean(vel_i).round(4))
@@ -226,9 +222,9 @@ class Experiment:
                     info_dict["observation_spaces"] = observation_spaces
                     info_dict["rl_actions"] = list(self.env.actions_log.values())
                     info_dict["states"] = list(self.env.states_log.values())
-                    info_dict["explored"] = getattr(self.env.agent, 'explored', None)
-                    info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
-                    info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
+                    #info_dict["explored"] = getattr(self.env.agent, 'explored', None)
+                    #info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
+                    #info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
 
                     with file_path.open('w') as fj:
                         t = Thread(target=json.dump(info_dict, fj))
@@ -240,11 +236,9 @@ class Experiment:
             if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
                 filename = \
                     f'{self.env.network.name}.Q.1-{agent_updates_counter}.pickle'
-                
-                t = Thread(
-                    target=self.env.dump(self.dir_path.as_posix(),
-                                         filename, attr_name='Q')
-                )
+
+                t = Thread(target=self.env.dump(self.dir_path.as_posix(),
+                            filename, attr_name='Q'))
                 t.start()
 
         info_dict["rewards"] = rewards
@@ -253,9 +247,9 @@ class Experiment:
         info_dict["observation_spaces"] = observation_spaces
         info_dict["rl_actions"] = list(self.env.actions_log.values())
         info_dict["states"] = list(self.env.states_log.values())
-        info_dict["explored"] = getattr(self.env.agent, 'explored', None)
-        info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
-        info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
+        #info_dict["explored"] = getattr(self.env.agent, 'explored', None)
+        #info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
+        #info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
 
         self.env.terminate()
 

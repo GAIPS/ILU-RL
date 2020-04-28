@@ -29,35 +29,201 @@ STATE_FEATURES = ('speed', 'count') #, 'flow', 'queue'
 '''
 Bounds = namedtuple('Bounds', 'rank depth')
 
-''' Rewards : namedtuple
+''' Reward : namedtuple
         Settings needed to perform reward computation
 
     * type: string
         A reward computation type in REWARD_TYPES
 
-    * costs: tuple or None
-        A tuple having size states depth representing
-        the cost for each speed category. Larger is worse.
+    * additional parameters: dict or None
+        A dict containing additional parameters.
 
 '''
-Rewards = namedtuple('Rewards', 'type costs')
+Reward = namedtuple('Reward', 'type additional_params')
 
 ADDITIONAL_PARAMS = {
     # every `switch` seconds concentrate flow in one direction
      "switch": 900
 }
 
-class QLParams:
-    """Base Q-learning parameters
+class MDPParams:
 
-      Provides also common behaviour functions
-      for environments and rewards (e.g categorize_state,
-      split_state)
+    def __init__(self,
+                num_actions,
+                phases_per_traffic_light,
+                states=('speed', 'count'),
+                discretize_state_space=True,
+                normalize_state_space=True,
+                category_counts=[8.56, 13.00],
+                category_speeds=[2.28, 5.50],
+                reward={'type': 'target_velocity',
+                        'additional_params': {
+                            'target_velocity': 1.0
+                        }
+                }
+            ):
+
+        kwargs = locals()
+
+        for attr, value in kwargs.items():
+            if attr not in ('self', 'states', 'rewards'):
+                setattr(self, attr, value)
+
+        # State space:
+        if 'states' in kwargs:
+            states_tuple = kwargs['states']
+            for name in states_tuple:
+                if name not in STATE_FEATURES:
+                    raise ValueError(f'''
+                        {name} must be in {STATE_FEATURES}
+                    ''')
+            self.states_labels = states_tuple
+
+        # Reward function.
+        reward = kwargs['reward']
+        if reward['type'] not in REWARD_TYPES:
+            raise ValueError(f'''
+                Reward type must be in {REWARD_TYPES}. Got {reward['type']}
+            type''')
+        else:
+            self.set_reward(reward['type'], reward['additional_params'])
+
+        if self.normalize_state_space:
+            if max(self.category_speeds) > 1:
+                raise ValueError('If `normalize` flag is set categories'
+                                    'must be between 0 and 1')
+
+    def set_reward(self, type, additional_params):
+        self.reward = Reward(type, additional_params)
+
+    def categorize_space(self, observation_space):
+        """Converts readings e.g averages, counts into integers
+
+        Params:
+        ------
+            * observation_space: a list of lists
+                level 1 -- number of intersections controlled
+                level 2 -- number of phases e.g 2
+                level 3 -- number of variables
+        Usage:
+        -----
+            # 1 tls, 2 phases, 2 variables
+            > reading = [[[14.2, 3], [0, 10]]]
+            > categories = categorize_space(reading)
+            > categories
+            > [[2, 0], [0, 3]]
+        """
+
+        labels = list(self.states_labels)
+
+        categorized_space = {}
+        # first loop is for intersections
+        for tls_id in observation_space.keys():
+            inters_space = observation_space[tls_id]
+            # second loop is for phases
+            categorized_intersection = []
+            for phase_space in inters_space:
+                # third loop is for variables
+                categorized_phases = []
+                for i, label in enumerate(labels):
+                    val = phase_space[i]
+                    category = getattr(self, f'_categorize_{label}')(val)
+                    categorized_phases.append(category)
+                categorized_intersection.append(categorized_phases)
+            categorized_space[tls_id] = categorized_intersection
+            
+        
+        return categorized_space
+
+    def split_space(self, observation_space):
+        """Splits different variables into tuple
+        
+        Params:
+        ------- 
+        * observation_space: list of lists
+            nested 3 level list such that;
+            The second level represents it's phases; e.g
+            north-south and east-west. And the last level represents
+            the variables withing labels e.g `speed` and `count`.
+
+        Returns:
+        -------
+            * flatten space
+            
+        Example:
+        -------
+        > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
+        > splits = split_space(observation_space)
+        > splits
+        > [[13.3, 15.7], [2.7, 1.9]]
+
+        """
+        num_labels = len(self.states_labels)
+
+        splits = []
+        for label in range(num_labels):
+            components = []
+            for phases in observation_space:
+                components.append(phases[label])
+            splits.append(components)
+
+        return splits
+
+    def flatten_space(self, observation_space):
+        """Linearizes hierarchial state representation
+        
+        Params:
+        ------
+            * observation_space: list of lists
+            nested 2 level list such that;
+            The second level represents it's phases; e.g
+            north-south and east-west. And the last level represents
+            the variables withing labels e.g `speed` and `count`.
+
+        Returns:
+        -------
+            * flattened_space: a list
+            
+        Example:
+        -------
+        > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
+        > flattened = flatten_space(observation_space)
+        > flattened
+        > [13.3, 2.7, 15.7, 1.9]
+
+        """
+        out = {}
+
+        for tls_id in observation_space.keys():
+            tls_obs = observation_space[tls_id]
+
+            flattened = [obs_value for phases in tls_obs
+                        for obs_value in phases]
+
+            out[tls_id] = tuple(flattened)
+
+        return out
+
+    def _categorize_speed(self, speed):
+        """
+            Converts a float speed into a category (integer).
+        """
+        return np.digitize(speed, bins=self.category_speeds).tolist()
+
+    def _categorize_count(self, count):
+        """
+            Converts a float count into a category (integer).
+        """
+        return np.digitize(count, bins=self.category_counts).tolist()
+
+
+class QLParams:
+    """
+        Base Q-learning parameters
     """
 
     def __init__(
             self,
-            agent_id,
             epsilon=3e-2,
             alpha=5e-1,
             gamma=0.9,
@@ -67,18 +233,12 @@ class QLParams:
                 'type': 'weighted_average',
                 'costs': None
             },
-            phases_per_traffic_light=[2],
-            states=('speed', 'count'),
-            num_actions=2,
             choice_type='eps-greedy',
-            category_counts=[8.56, 13.00],
-            category_speeds=[2.28, 5.50],
-            normalize=False,
             replay_buffer=False,
             replay_buffer_size=500,
             replay_buffer_batch_size=64,
             replay_buffer_warm_up=200,
-    ):
+        ):
         """Instantiate base traffic light.
 
         PARAMETERS
@@ -108,7 +268,7 @@ class QLParams:
             * depth: int
                 Number of categories
 
-        * num_actions: integer
+        * num_actions: dict
 
         * category_counts: list of floats
                 values to breakdown into classes;
@@ -147,205 +307,6 @@ class QLParams:
         for attr, value in kwargs.items():
             if attr not in ('self', 'states', 'rewards'):
                 setattr(self, attr, value)
-
-        # State space.
-        if 'states' in kwargs:
-            states_tuple = kwargs['states']
-            for name in states_tuple:
-                if name not in STATE_FEATURES:
-                    raise ValueError(f'''
-                        {name} must be in {STATE_FEATURES}
-                    ''')
-            self.set_states(states_tuple)
-
-        # Action space.
-        if 'num_actions' in kwargs:
-            self.set_actions(kwargs['num_actions'])
-
-        # Rewards.
-        rewards = kwargs['rewards']
-        if 'type' not in rewards:
-            raise ValueError('''``type` must be provided in reward types''')
-
-        elif rewards['type'] not in REWARD_TYPES:
-            raise ValueError(f'''
-                Rewards must be in {REWARD_TYPES} got {rewards['type']}
-            ''')
-        elif rewards['type'] == 'costs':
-            if rewards['costs'] is None:
-                raise ValueError(
-                    '''Cost must not be None each state depth (tier)
-                      must have a cost got {} {} '''.format(
-                        self.state.depth, len(rewards['costs'])))
-            elif len(rewards['costs']) != self.states.depth:
-                raise ValueError('''Cost each state depth (tier)
-                      must have a cost got {} {} '''.format(
-                    self.state.depth, len(rewards['costs'])))
-        self.set_rewards(rewards['type'], rewards['costs'])
-
-        if self.normalize:
-            if max(category_speeds) > 1:
-                raise ValueError('If `normalize` flag is set categories'
-                                    'must be between 0 and 1')
-
-    def set_states(self, states_tuple):
-        self.states_labels = states_tuple
-        rank = sum(self.phases_per_traffic_light) * len(states_tuple)
-        depth = len(self.category_counts) + 1
-        self.states = Bounds(rank, depth)
-
-    def set_actions(self, num_actions):
-        rank = len(self.phases_per_traffic_light)
-        depth = num_actions
-        self.actions = Bounds(rank, depth)
-
-    def set_rewards(self, type, costs):
-        self.rewards = Rewards(type, costs)
-
-    
-    def categorize_space(self, observation_space):
-        """Converts readings e.g averages, counts into integers
-
-        Params:
-        ------
-            * observation_space: a list of lists
-                level 1 -- number of intersections controlled
-                level 2 -- number of phases e.g 2
-                level 3 -- numer of variables
-        Usage:
-        -----
-            # 1 tls, 2 phases, 2 variables
-            > reading = [[[14.2, 3], [0, 10]]]
-            > categories = categorize_space(reading)
-            > categories
-            > [[2, 0], [0, 3]]
-        """
-
-        labels = list(self.states_labels)
-
-        categorized_space = []
-        # first loop is for intersections
-        for inters_space in observation_space:
-            # second loop is for phases
-            categorized_intersections = []
-            for phase_space in inters_space:
-                # third loop is for variables
-                categorized_phases = []
-                for i, label in enumerate(labels):
-                    val = phase_space[i]
-                    category = getattr(self, f'_categorize_{label}')(val)
-                    categorized_phases.append(category)
-                categorized_intersections.append(categorized_phases)
-            categorized_space.append(categorized_intersections)
-            
-        
-        return categorized_space
-
-    def split_space(self, observation_space):
-        """Splits different variables into tuple
-        
-        Params:
-        ------- 
-        * observation_space: list of lists
-            nested 3 level list such that;
-            The second level represents it's phases; e.g
-            north-south and east-west. And the last level represents
-            the variables withing labels e.g `speed` and `count`.
-
-        Returns:
-        -------
-            * flatten space
-            
-        Example:
-        -------
-        > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
-        > splits = split_space(observation_space)
-        > splits
-        > [[13.3, 15.7], [2.7, 1.9]]
-
-        """
-        num_labels = len(self.states_labels)
-
-        splits = []
-        for label in range(num_labels):
-            components = []
-            for inters_space in observation_space:
-                for phases in inters_space:
-                    components.append(phases[label])
-            splits.append(components)
-
-        return splits
-
-    def flatten_space(self, observation_space):
-        """Linearizes hierarchial state representation
-        
-        Params:
-        ------
-            * observation_space: list of lists
-            nested 2 level list such that;
-            The second level represents it's phases; e.g
-            north-south and east-west. And the last level represents
-            the variables withing labels e.g `speed` and `count`.
-
-        Returns:
-        -------
-            * flattened_space: a list
-            
-        Example:
-        -------
-        > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
-        > flattened = flatten_space(observation_space)
-        > flattened
-        > [13.3, 2.7, 15.7, 1.9]
-
-        """
-        flattened = [obs_value for inters in observation_space
-                     for phases in inters for obs_value in phases]
-
-        return flattened
-
-    def _categorize_speed(self, speed):
-        """
-            Converts a float speed into a category (integer).
-        """
-        return np.digitize(speed, bins=self.category_speeds).tolist()
-
-    def _categorize_count(self, count):
-        """
-            Converts a float count into a category (integer).
-        """
-        return np.digitize(count, bins=self.category_counts).tolist()
-
-    # def _categorize_flow(self, flow_per_cycle):
-    #     """Converts float flow into a category
-    # 
-    #         UPDATES:
-    #         -------
-    #         2017-09-27 histogram analysis sugest the following
-    #         breakdowns for the quantiles of 20% and 75% for
-    #         the varable flow_per_cyle
-    #     """
-    #     if flow_per_cycle > .5067: # Top 25% data-points
-    #         return 2
-    # 
-    #     if flow_per_cycle > .2784:  # Average 20% -- 75%  data-points
-    #         return 1
-    #     return 0  # Bottom 20% data-points
-
-    # def _categorize_queue(self, queue_per_cycle):
-    #     """Converts float queue into a category
-    # 
-    #         UPDATES:
-    #         -------
-    #         2017-09-27 histogram analysis sugest the following
-    #         breakdowns for the quantiles of 20% and 75% for
-    #         the varable queue_per_cyle
-    #     """
-    #     if queue_per_cycle > .2002:  # Top 25% data-points
-    #         return 2
-    #     if queue_per_cycle > .1042:  # Average 20% -- 75%  data-points
-    #         return 1
-    #     return 0  # Bottom 20% data-points
 
 
 class InFlows(flow_params.InFlows):

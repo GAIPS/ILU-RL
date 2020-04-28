@@ -106,7 +106,7 @@ if __name__ == '__main__':
     network.name = args.experiment + '.eval'
 
     # Agent.
-    from ilurl.core.ql.dpq import DPQ
+    from ilurl.core.ql.agents import QL
 
     ql_params = QLParams(**params['ql_args'])
     QL_agent = DPQ(ql_params)

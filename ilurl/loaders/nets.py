@@ -208,7 +208,7 @@ def get_tls_custom(network_id, baseline=False):
 
     if not os.path.isfile(tls_config_file):
         raise FileNotFoundError("tls_config.json file not provided "
-                "for network {0}.".format(network.network_id))
+                "for network {0}.".format(network_id))
 
     with open(tls_config_file, 'r') as f:
         cfgs = json.load(f)

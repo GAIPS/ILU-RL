@@ -9,7 +9,7 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-08'
 import json
-from  os import environ
+from os import environ
 from pathlib import Path
 
 import numpy as np
@@ -23,7 +23,7 @@ from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
 from ilurl.core.experiment import Experiment
 from ilurl.core.params import QLParams
-import ilurl.core.ql.dpq as ql
+from ilurl.core.params import MDPParams
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
 
@@ -32,7 +32,7 @@ from ilurl.loaders.nets import get_tls_custom
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
-CONFIG_PATH = ILURL_PATH / 'configs'
+CONFIG_PATH = ILURL_PATH / 'config'
 
 def get_arguments(config_file):
 
@@ -50,10 +50,6 @@ def get_arguments(config_file):
     flags.add('--network', '-n', type=str, nargs='?', dest='network',
               default='intersection',
               help='Network to be simulated')
-
-    flags.add('--experiment-buffer', '-b', dest='replay_buffer', type=str2bool,
-              default=True, nargs='?',
-              help='Turn on/off replay buffer')
 
     flags.add('--experiment-time', '-t', dest='time', type=int,
               default=90000, nargs='?',
@@ -88,17 +84,13 @@ def get_arguments(config_file):
               default=False, nargs='?',
               help='Renders the simulation')
 
-    flags.add('--sumo-step', '-s',
-              dest='step', type=float, default=1, nargs='?',
-              help='Simulation\'s step size which is a fraction from horizon')
-
     flags.add('--sumo-emission', '-e',
               dest='emission', type=str2bool, default=False, nargs='?',
               help='Saves emission data from simulation on /data/emissions')
 
-    flags.add('--sumo-tls-type', '-y',
-              dest='tls_type', type=str, choices=('actuated', 'controlled', 'static', 'random'),
-              default='controlled', nargs='?',
+    flags.add('--tls-type', '-y',
+              dest='tls_type', type=str, choices=('controlled', 'actuated',
+              'static', 'random'), default='controlled', nargs='?',
               help='Saves emission data from simulation on /data/emissions')
 
     flags.add('--inflows-switch', '-W', dest='switch',
@@ -106,6 +98,7 @@ def get_arguments(config_file):
               help='''Assign higher probability of spawning a vehicle
                    every other hour on opposite sides''')
 
+    # TODO: Remove this.
     flags.add('--env-normalize', dest='normalize',
               type=str2bool, default=True, nargs='?',
               help='''If true will normalize grid and target''')
@@ -136,12 +129,9 @@ def print_arguments(args):
 
     print('\tSUMO render: {0}'.format(args.render))
     print('\tSUMO emission: {0}'.format(args.emission))
-    print('\tSUMO step: {0}'.format(args.step))
-    print('\tSUMO tl_type: {0}'.format(args.tls_type))
+    print('\tSUMO tls_type: {0}'.format(args.tls_type))
 
     print('\tInflows switch: {0}\n'.format(args.switch))
-
-    print('\tReplay buffer: {0}\n'.format(args.replay_buffer))
 
     print('\tNormalize state-space (speeds): {0}\n'.format(args.normalize))
 
@@ -154,7 +144,7 @@ def main(train_config=None):
     inflows_type = 'switch' if flags.switch else 'lane'
 
     # Load cycle time and TLS programs.
-    baseline = flags.tls_type == 'actuated'
+    baseline = (flags.tls_type == 'actuated')
     cycle_time, programs = get_tls_custom(flags.network, baseline=baseline)
 
     network_args = {
@@ -175,11 +165,10 @@ def main(train_config=None):
         experiment_path.mkdir()
     print(f'Experiment: {str(experiment_path)}')
 
-
     sumo_args = {
         'render': flags.render,
         'print_warnings': False,
-        'sim_step': flags.step,
+        'sim_step': 1, # step = 1 by default.
         'restart_instance': True
     }
 
@@ -193,24 +182,27 @@ def main(train_config=None):
         sumo_args['emission_path'] = experiment_path.as_posix()
     sim_params = SumoParams(**sumo_args)
 
-
     additional_params = {}
     additional_params.update(ADDITIONAL_ENV_PARAMS)
-    additional_params['target_velocity'] = 1.0 if normalize else 20
     additional_params['cycle_time'] = cycle_time
-    additional_params['tl_type'] = flags.tls_type
+    additional_params['tls_type'] = flags.tls_type
+
+    # TODO: make this an argument.
+    # Maybe join with tls_type?
+    additional_params['agent_type'] = 'QL'
     env_args = {
         'evaluate': True,
         'additional_params': additional_params
     }
     env_params = EnvParams(**env_args)
 
-    # Agent.
-    phases_per_tls = [len(network.tls_phases[t]) for t in network.tls_ids]
-    agent_id = 'DPQ' if len(network.tls_ids) == 1 else 'MAIQ'
+    # Number of phases per traffic light.
+    phases_per_tls = {tid: len(network.tls_phases[tid])
+                    for tid in network.tls_ids}
 
-    # Assumes all agents have the same number of actions.
-    num_actions = len(programs[network.tls_ids[0]])
+    # Number of actions per traffic light.
+    num_actions = {tid: len(programs[tid])
+                    for tid in network.tls_ids}
 
     category_counts = [5, 10, 15, 20, 25, 30]
     if normalize:
@@ -218,39 +210,32 @@ def main(train_config=None):
     else:
         category_speeds = [2, 3, 4, 5, 6, 7]
 
-    ql_args = {
-                'agent_id': agent_id,
-                'epsilon': 0.10,
-                'alpha': 0.50,
-                'gamma': 0.90,
-                'states': ('speed', 'count'),
-                'rewards': {'type': 'target_velocity',
-                         'costs': None},
-                'phases_per_traffic_light': phases_per_tls,
+    # TODO: save mdp params
+    mdp_args = {
                 'num_actions': num_actions,
-                'choice_type': 'eps-greedy',
+                'phases_per_traffic_light': phases_per_tls,
+                'states': ('speed', 'count'),
                 'category_counts': category_counts,
                 'category_speeds': category_speeds,
-                'normalize': normalize,
-                'replay_buffer': flags.replay_buffer,
-                'replay_buffer_size': 500,
-                'replay_buffer_batch_size': 64,
-                'replay_buffer_warm_up': 200,
+                'normalize_state_space': normalize,
+                'discretize_state_space': True,
+                'reward': {'type': 'target_velocity',
+                    'additional_params': {
+                        'target_velocity': 1.0
+                    }
+                }
     }
-    ql_params = QLParams(**ql_args)
-
-    cls_agent = getattr(ql, ql_params.agent_id)
-    QL_agent = cls_agent(ql_params)
+    mdp_params = MDPParams(**mdp_args)
 
     env = TrafficLightEnv(
         env_params=env_params,
         sim_params=sim_params,
-        agent=QL_agent,
         network=network,
-        TLS_programs=programs
+        TLS_programs=programs,
+        mdp_params=mdp_params,
     )
 
-    # Override possible inconsistent params
+    # Override possible inconsistent params.
     if flags.tls_type not in ('controlled',):
         env.stop = True
         flags.save_agent = False
@@ -271,7 +256,6 @@ def main(train_config=None):
     parameters['network_args'] = network_args
     parameters['sumo_args'] = sumo_args
     parameters['env_args'] = env_args
-    parameters['ql_args'] = ql_args
     parameters['programs'] = programs
 
     filename = \
@@ -281,9 +265,7 @@ def main(train_config=None):
     with params_path.open('w') as f:
         json.dump(parameters, f)
 
-    info_dict = exp.run(
-        int(flags.time / flags.step)
-    )
+    info_dict = exp.run(flags.time)
 
     # Save train log.
     filename = \

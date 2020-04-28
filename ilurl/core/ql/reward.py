@@ -9,67 +9,77 @@ REWARD_TYPES = ('fix', 'weighted_average', 'score', 'target_velocity')
 
 
 class RewardCalculator(object):
-    def __init__(self, env_params, ql_params):
-        self.type = ql_params.rewards.type
-        if self.type == 'target_velocity': 
-            if 'target_velocity' not in env_params.additional_params:
-                raise ValueError('''
-                    target_velocity must be provided on env_params
-                    ''')
 
+    def __init__(self, mdp_params):
+
+        self.type = mdp_params.reward.type
+
+        if self.type == 'target_velocity': 
+            if 'target_velocity' not in \
+                 mdp_params.reward.additional_params.keys():
+                raise ValueError('''
+                    target_velocity must be provided on reward
+                    additional params''')
             else:
                 # target mean velocity
                 self.target_velocity = \
-                    env_params.additional_params['target_velocity']
-        self.costs = ql_params.rewards.costs
-        self.categorize = lambda x: ql_params.categorize_space(x)
-        self.split = lambda x: ql_params.split_space(x)
-        self.labels = ql_params.states_labels
-        self.phases_per_traffic_light = \
-            ql_params.phases_per_traffic_light
+                    mdp_params.reward.additional_params['target_velocity']
+
+        #self.categorize = lambda x: mdp_params.categorize_space(x)
+        self.split = lambda x: mdp_params.split_space(x)
+        self.labels = mdp_params.states_labels
+        #self.phases_per_traffic_light = \
+        #    mdp_params.phases_per_traffic_light
 
     def calculate(self, observation_space):
         if self.type in ('fix', ):
+            raise NotImplementedError
             # makes as compution based on discrete levels
-            speeds, counts = self.split(self.categorize(observation_space))
-            return reward_fix(speeds, counts, self.costs)
+            # speeds, counts = self.split(self.categorize(observation_space))
+            # return reward_fix(speeds, counts, self.costs)
 
         elif self.type in ('weighted_average', ):
+            raise NotImplementedError
             # weighted average
-            speeds, counts = self.split(observation_space)
-            if counts is not None:
-                K = sum(counts)
-                if K == 0.0:
-                    return 0.0
+            # speeds, counts = self.split(observation_space)
+            # if counts is not None:
+            #     K = sum(counts)
+            #     if K == 0.0:
+            #         return 0.0
 
             # generalize for n agents
-            rewards = []
-            i = 0
-            for num_phases in self.phases_per_traffic_light:
-                ind = slice(i, i + num_phases)
+            # rewards = []
+            # i = 0
+            # for num_phases in self.phases_per_traffic_light:
+            #     ind = slice(i, i + num_phases)
 
-                reward = \
-                    sum([s * c for s, c in zip(speeds[ind], counts[ind])]) / K
-                rewards.append(reward)
-                i += num_phases * len(self.labels)
-                return rewards
+            #     reward = \
+            #         sum([s * c for s, c in zip(speeds[ind], counts[ind])]) / K
+            #     rewards.append(reward)
+            #     i += num_phases * len(self.labels)
+            #     return rewards
 
         elif self.type in ('target_velocity',):
-            # get this target velocity from environment
-            speeds, counts = self.split(observation_space)
 
-            # generalize for n agents
-            rewards = []
-            i = 0
-            for num_phases in self.phases_per_traffic_light:
-                ind = slice(i, i + num_phases)
-                max_cost = \
-                    np.array([self.target_velocity] * num_phases)
+            rewards = {}
 
-                reward = \
-                    -np.maximum(max_cost - speeds[ind], 0).dot(counts[ind])
-                rewards.append(reward)
-                i += num_phases
+            for tid in observation_space.keys():
+
+                obs = observation_space[tid]
+
+                speeds, counts = self.split(obs)
+
+                if sum(counts) <= 0:
+                    reward = 0
+                else:
+
+                    max_cost = \
+                        np.array([self.target_velocity] * len(speeds))
+
+                    reward = \
+                        -np.maximum(max_cost - speeds, 0).dot(counts)
+
+                rewards[tid] = reward
 
             return rewards
 

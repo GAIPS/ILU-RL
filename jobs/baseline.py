@@ -1,7 +1,7 @@
 """Baseline:
 
     * uses train script for setting up experiment
-    * has to have a command line `tl_type`: `actuated`, `static`
+    * has to have a command line `tls_type`: `actuated`, `static`
 
 
 TODO: Include config for evaluation

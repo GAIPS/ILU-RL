@@ -10,9 +10,9 @@ from ilurl.core.ql.update import dpq_update
 
 from ilurl.core.ql.replay_buffer import ReplayBuffer
 
-class DPQ(object, metaclass=MetaAgentQ):
+class QL(object): #, metaclass=MetaAgentQ):
 
-    def __init__(self, ql_params):
+    def __init__(self, ql_params, name):
         """
         Q-Learning agent
 
@@ -28,6 +28,8 @@ class DPQ(object, metaclass=MetaAgentQ):
             [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
             
         """
+
+        self.name = name
 
         # Store Q-learning parameters.
         self.ql_params = ql_params
@@ -195,8 +197,7 @@ class DPQ(object, metaclass=MetaAgentQ):
         self._stop = stop
 
 
-class MAIQ(object, metaclass=MetaAgentQ):
-    """MAIQ is the individual combination of Q agents"""
+""" class MAIQ(object, metaclass=MetaAgentQ):
     
     def __init__(self, ql_params):
 
@@ -303,7 +304,6 @@ class MAIQ(object, metaclass=MetaAgentQ):
 
     @property
     def stop(self):
-        """all or nothing stops"""
         stops = [_QL_agent.stop for _QL_agent in self._QL_agents]
         return all(stops)
 
@@ -312,3 +312,4 @@ class MAIQ(object, metaclass=MetaAgentQ):
         for _QL_agent in self._QL_agents:
             _QL_agent.stop = stop
         return stop
+ """
