@@ -31,7 +31,7 @@ class AgentsWrapper(object):
 
         # TODO: Afterwards this needs to come from a config file 
         # telling what each agent is controlling.
-        # TODO: assumes each agent controls 1 intersection
+        # TODO: ATM it assumes each agent controls 1 intersection.
         for tid in mdp_params.phases_per_traffic_light.keys():
 
             agent_params_ = deepcopy(agent_params)
@@ -62,18 +62,21 @@ class AgentsWrapper(object):
 
         choices = {}
 
-        for tid in self.agents.keys():
-            agent = self.agents[tid]
+        for tid, agent in self.agents.items():
             choices[tid] = agent.act(state[tid])
 
         return choices
 
     def update(self, s, a, r, s1):
 
-        for tid in self.agents.keys():
-            agent = self.agents[tid]
+        for tid, agent in self.agents.items():
             s_, a_, r_, s1_ = s[tid], a[tid], r[tid], s1[tid]
             agent.update(s_, a_, r_, s1_)
+
+    def save_checkpoint(self, path):
+
+        for agent in self.agents.values():
+            agent.save_checkpoint(path)
 
     """ @property
     def Q(self):

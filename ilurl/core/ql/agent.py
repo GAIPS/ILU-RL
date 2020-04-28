@@ -1,38 +1,38 @@
-"""Implementation of dynamic programming TD methods with function approximation"""
-from copy import deepcopy
+import os
+import pickle
 import numpy as np
+from threading import Thread
 
 from ilurl.utils.meta import MetaAgentQ
-from ilurl.core.params import QLParams, Bounds
+from ilurl.core.params import QLParams
 from ilurl.core.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.core.ql.define import dpq_tls
 from ilurl.core.ql.update import dpq_update
 
 from ilurl.core.ql.replay_buffer import ReplayBuffer
 
-class QL(object): #, metaclass=MetaAgentQ):
+class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
+    """
+        Q-learning agent.
+    """
 
     def __init__(self, ql_params, name):
-        """
-        Q-Learning agent
+        """Instantiate Q-Learning agent.
 
+        PARAMETERS
         ----------
-        * epsilon: small positive number representing the change of
-                    the agent taking a random action [1].
-        * alpha: positive number between 0 and 1 representing the
-                    update rate [1].
-        * gamma: positive number between 0 and 1 representing the
-                    discount rate for the rewards [1].
 
-        References:
+        * ql_params: ilurl.core.params.QLParams object
+            Q-learning agent parameters
+
+        * name: str
+
+        REFERENCES
+
             [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
             
         """
-
         self.name = name
-
-        # Store Q-learning parameters.
-        self.ql_params = ql_params
 
         self.stop = False
 
@@ -177,15 +177,33 @@ class QL(object): #, metaclass=MetaAgentQ):
                     dpq_update(self.gamma, lr, self.Q, s, a, r, s1)
 
             self.updates_counter += 1
-                
 
-    @property
+    def save_checkpoint(self, path):
+        """
+        Save model's weights.
+
+        PARAMETERS
+        ----------
+        * path: str 
+            path to save directory.
+
+        """
+        os.makedirs(f"{path}/checkpoints", exist_ok=True)
+
+        checkpoint_file = "{0}/checkpoints/{1}-{2}.pickle".format(
+            path, self.name, self.updates_counter)
+
+        with open(checkpoint_file, 'wb') as f:
+            t = Thread(target=pickle.dump(self.Q, f))
+            t.start()
+
+    """ @property
     def Q(self):
         return self._Q
 
     @Q.setter
     def Q(self, Q):
-        self._Q = Q
+        self._Q = Q """
 
     @property
     def stop(self):
@@ -195,121 +213,3 @@ class QL(object): #, metaclass=MetaAgentQ):
     @stop.setter
     def stop(self, stop):
         self._stop = stop
-
-
-""" class MAIQ(object, metaclass=MetaAgentQ):
-    
-    def __init__(self, ql_params):
-
-        QL_agents = []
-        state_slices = []
-        action_slices = []
-        num_variables = len(ql_params.states_labels)
-        states_depth = ql_params.states.depth
-        actions_depth = ql_params.actions.depth
-        
-        state_rank = 0
-        action_rank = 0
-        for num_phases in ql_params.phases_per_traffic_light:
-
-            ql_params_ = deepcopy(ql_params)
-            ql_params_.phases_per_traffic_light = [num_phases]
-            ql_params_.states = Bounds(num_phases * num_variables, states_depth)
-            ql_params_.actions = Bounds(1, actions_depth)
-            QL_agents.append(DPQ(ql_params_))
-
-            state_slice = slice(state_rank, state_rank + num_phases * num_variables)
-            state_slices.append(state_slice)
-
-            action_slice = slice(action_rank, action_rank + ql_params_.actions.rank)
-            action_slices.append(action_slice)
-
-            state_rank += num_phases * num_variables
-            action_rank += ql_params_.actions.rank
-
-        self._QL_agents = QL_agents
-        self._action = action_slices
-        self._state = state_slices
-        self.ql_params = ql_params
-
-    def act(self, state):
-        def si(x):
-            return self._individual_state(state, x)
-
-        choices = [
-            _QL_agent.act(si(i)) for i, _QL_agent in enumerate(self._QL_agents)
-        ]
-        choosen = tuple([ichoice for choice in choices for ichoice in choice])
-        return choosen
-
-    def _individual_state(self, state, i):
-        return state[self._state[i]]
-
-    def _individual_action(self, action, i):
-        return action[self._action[i]]
-
-    # decorator <mapping> might aliviate?
-    # generator <iteration> might aliviate?
-    # def _individual_act(self, state):
-    #     def si(x):
-    #         return self._individual_state(state, x)
-
-    #     return tuple([
-    #         self._QL_agents[i].act(si(i))
-    #         for i in range(self._QL_agents[i])])
-
-    def update(self, s, a, r, s1):
-
-            def si(x):
-                return self._individual_state(s, x)
-
-            def si1(x):
-                return self._individual_state(s1, x)
-
-            def ai(x):
-                return self._individual_action(a, x)
-
-            for i, QL_agent in enumerate(self._QL_agents):
-                QL_agent.update(si(i), ai(i), r[i], si1(i))
-
-    @property
-    def Q(self):
-        self._Q = {i: _QL_agent.Q
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-
-        return self._Q
-
-    @Q.setter
-    def Q(self, Q):
-        for i, Qi in Q.items():
-              self._QL_agents[i].Q = Qi
-
-    @property
-    def explored(self):
-        self._explored = {i: _QL_agent.explored
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-        return self._explored
-
-    @property
-    def visited_states(self):
-        self._visited_states = {i: _QL_agent.visited_states
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-        return self._visited_states
-
-    @property
-    def Q_distances(self):
-        self._Q_distances = {i: _QL_agent.Q_distances
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-        return self._Q_distances
-
-    @property
-    def stop(self):
-        stops = [_QL_agent.stop for _QL_agent in self._QL_agents]
-        return all(stops)
-
-    @stop.setter
-    def stop(self, stop):
-        for _QL_agent in self._QL_agents:
-            _QL_agent.stop = stop
-        return stop
- """

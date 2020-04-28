@@ -16,23 +16,15 @@ import datetime
 import json
 import logging
 from os import environ
-import tempfile
 import time
-from collections import defaultdict
 from threading import Thread
 
 from tqdm import tqdm
 
 import numpy as np
-from flow.core.util import emission_to_csv
 
 # TODO: Track those anoying warning
 warnings.filterwarnings('ignore')
-
-# TODO: Generalize for any parameter
-ILURL_PATH = Path(environ['ILURL_HOME'])
-
-EMISSION_PATH = ILURL_PATH / 'data/emissions/'
 
 class Experiment:
     """
@@ -77,7 +69,7 @@ class Experiment:
 
     def __init__(self,
                 env,
-                dir_path=EMISSION_PATH,
+                exp_path,
                 train=True,
                 log_info=False,
                 log_info_interval=20,
@@ -89,7 +81,7 @@ class Experiment:
         ----------
         env : flow.envs.Env
             the environment object the simulator will run
-        dir_path : int
+        exp_path : str
             path to dump experiment results
         train : bool
             whether to train agent
@@ -103,14 +95,13 @@ class Experiment:
             save RL agent interval (in number of agent-update steps)
 
         """
-        sim_step = env.sim_params.sim_step
-        # guarantees that the enviroment has stopped
+        # Guarantees that the enviroment has stopped.
         if not train:
             env.stop = True
 
         self.env = env
         self.train = train
-        self.dir_path = Path(dir_path) if dir_path is not None else None
+        self.exp_path = Path(exp_path) if exp_path is not None else None
         # fails gracefully if an environment with no cycle time
         # is provided
         self.cycle = getattr(env, 'cycle_time', None)
@@ -119,6 +110,7 @@ class Experiment:
         self.log_info_interval = log_info_interval
         self.save_agent = save_agent
         self.save_agent_interval = save_agent_interval
+        print(self.save_agent_interval)
 
         logging.info(" Starting experiment {} at {}".format(
             env.network.name, str(datetime.datetime.utcnow())))
@@ -210,11 +202,12 @@ class Experiment:
                 vel_i = []
 
                 agent_updates_counter += 1
+                print(agent_updates_counter)
                 # Save train log.
                 if self.log_info and \
                     (agent_updates_counter % self.log_info_interval == 0):
 
-                    file_path = self.dir_path / f"{self.env.network.name}.train.json"
+                    file_path = self.exp_path / f"{self.env.network.name}.train.json"
 
                     info_dict["rewards"] = rewards
                     info_dict["velocities"] = vels
@@ -234,12 +227,16 @@ class Experiment:
                 break
 
             if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
-                filename = \
-                    f'{self.env.network.name}.Q.1-{agent_updates_counter}.pickle'
 
-                t = Thread(target=self.env.dump(self.dir_path.as_posix(),
-                            filename, attr_name='Q'))
-                t.start()
+                print('SAVED')
+                self.env.agents.save_checkpoint(self.exp_path)
+
+                # filename = \
+                #    f'{self.env.network.name}.Q.1-{agent_updates_counter}.pickle'
+
+                # t = Thread(target=self.env.dump(self.exp_path.as_posix(),
+                #             filename, attr_name='Q'))
+                # t.start()
 
         info_dict["rewards"] = rewards
         info_dict["velocities"] = vels
@@ -261,6 +258,6 @@ class Experiment:
         return self.step_counter % self.save_step == 0
 
     def _is_save_q_table_step(self, counter):
-        if counter % self.save_agent_interval == 0:
-            return self.train and hasattr(self.env, 'dump') and self.dir_path
+        if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
+            return self.train and hasattr(self.env, 'dump') and self.exp_path
         return False

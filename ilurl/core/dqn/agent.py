@@ -15,7 +15,7 @@ from baselines.deepq.replay_buffer import ReplayBuffer
 from baselines.deepq.utils import ObservationInput
 from baselines.common.schedules import LinearSchedule
 
-
+# TODO: allow for arbitrary network architecture.
 def model(inpt, num_actions, scope, reuse=False):
     """This model takes as input an observation and returns values of all actions."""
     with tf.variable_scope(scope, reuse=reuse):
@@ -26,27 +26,27 @@ def model(inpt, num_actions, scope, reuse=False):
 
 
 class DQN(object):
+    """
+        DQN agent.
+    """
 
-    def __init__(self,
-                params,
-                name,
-                log_dir=None,
-                checkpoints_dir=None,
-                load_path=None
-                ):
+    def __init__(self, params, name):
+                #log_dir=None,
+                #load_path=None):
+        """Instantiate DQN agent.
+
+        PARAMETERS
+        ----------
+        * params: ilurl.core.params.DQNParams object.
+            object containing DQN parameters.
+
+        * name: str
+
         """
-            DQN agent.
-        """
-
-        print(params.actions)
-        print(params.states)
-
         self.name = name
 
         # Whether learning stopped.
         self.stop = False
-
-        self.params = params
 
         # Parameters.
         self.model = model # TODO
@@ -57,13 +57,8 @@ class DQN(object):
         self.exp_initial_p = params.exp_initial_p
         self.exp_final_p = params.exp_final_p
         self.exp_schedule_timesteps = params.exp_schedule_timesteps
-        self.learning_starts = params.exp_schedule_timesteps
+        self.learning_starts = params.learning_starts
         self.target_net_update_interval = params.target_net_update_interval
-
-        self.checkpoints_dir = checkpoints_dir
-        self.checkpoints_freq = 5000
-        self.load_path = load_path
-        self.log_dir = log_dir
 
         # Observation space.
         self.obs_space = Box(low=np.array([0.0]*params.states.rank),
@@ -102,13 +97,13 @@ class DQN(object):
         self.update_target()
 
         # Load model if load_path is set.
-        if self.load_path is not None:
-            load_variables(self.load_path)
+        # if self.load_path is not None:
+        #     load_variables(self.load_path)
 
         # Setup tensorboard.
-        if self.log_dir is not None:
-            logger.configure(dir=self.log_dir,
-                            format_strs=['csv', 'tensorboard'])
+        # if self.log_dir is not None:
+        #     logger.configure(dir=self.log_dir,
+        #                     format_strs=['csv', 'tensorboard'])
 
         # Boolean list that stores whether actions
         # were randomly picked (exploration) or not.
@@ -129,13 +124,13 @@ class DQN(object):
         """
         Specify the actions to be performed by the RL agent(s).
 
-        Parameters
+        PARAMETERS
         ----------
-        s: tuple with state representation
+        * s: tuple
+            state representation.
 
         """
-
-        s = np.array(list(s))
+        s = np.array(s)
 
         if self.stop:
             action, explored = self.action(s[None],
@@ -149,11 +144,28 @@ class DQN(object):
         return action[0]
 
     def update(self, s, a, r, s1):
+        """
+        Performs a learning update step.
 
+        PARAMETERS
+        ----------
+        * s: tuple 
+            state representation.
+
+        * a: int
+            action.
+
+        * r: float
+            reward.
+
+        * s1: tuple
+            state representation.
+
+        """
         if not self.stop:
 
-            s = np.array(list(s))
-            s1 = np.array(list(s1))
+            s = np.array(s)
+            s1 = np.array(s1)
 
             self.replay_buffer.add(s, a, r, s1, 0.0)
 
@@ -166,23 +178,40 @@ class DQN(object):
                         dones,
                         np.ones_like(rewards))
                 
-                td_error = np.mean(td_errors)
-                logger.record_tabular("td_error", td_error)
+                # td_error = np.mean(td_errors)
+                # logger.record_tabular("td_error", td_error)
 
             if self.updates_counter % self.target_net_update_interval == 0:
                 self.update_target()
 
-            logger.record_tabular("step", self.updates_counter)
-            logger.record_tabular("expl_eps",
-                                self.exploration.value(self.updates_counter))
-            logger.dump_tabular()
+            # logger.record_tabular("step", self.updates_counter)
+            # logger.record_tabular("expl_eps",
+            #                     self.exploration.value(self.updates_counter))
+            # logger.dump_tabular()
 
-            if (self.checkpoints_dir is not None and 
-                self.updates_counter > self.learning_starts and
-                self.updates_counter % self.checkpoints_freq == 0):
-                checkpoint_file = '{0}checkpoint-{1}'.format(self.checkpoints_dir, 
-                                                            self.updates_counter)
-                logger.log('Saved model to {}'.format(checkpoint_file))
-                save_variables(checkpoint_file)
+            #if (self.checkpoints_dir is not None and 
+            #    self.updates_counter > self.learning_starts and
+            #    self.updates_counter % self.checkpoints_freq == 0):
+            #    checkpoint_file = '{0}checkpoint-{1}'.format(self.checkpoints_dir, 
+            #                                                self.updates_counter)
+            #    logger.log('Saved model to {}'.format(checkpoint_file))
+            #    save_variables(checkpoint_file)
 
             self.updates_counter += 1
+
+    def save_checkpoint(self, path):
+        """
+        Save model's weights.
+
+        PARAMETERS
+        ----------
+        * path: str 
+            path to save directory.
+
+        """
+        if (self.updates_counter > self.learning_starts):
+            checkpoint_file = '{0}/checkpoints/{1}-{2}'.format(path,
+                                                        self.name,
+                                                        self.updates_counter)
+            logger.log('Saved model to {}'.format(checkpoint_file))
+            save_variables(checkpoint_file)

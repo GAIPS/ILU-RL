@@ -105,7 +105,8 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         # Object that handles RL agents logic.
         agent_type = env_params.additional_params.get('agent_type')
-        self.agents = AgentsWrapper(mdp_params, agent_type=agent_type)
+        self.agents = AgentsWrapper(mdp_params,
+                                    agent_type=agent_type)
 
         # Reward function.
         self.reward_calculator = RewardCalculator(self.mdp_params)

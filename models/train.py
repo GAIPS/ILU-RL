@@ -141,17 +141,16 @@ def main(train_config=None):
     flags = get_arguments(train_config)
     print_arguments(flags)
 
-    inflows_type = 'switch' if flags.switch else 'lane'
-
     # Load cycle time and TLS programs.
     baseline = (flags.tls_type == 'actuated')
     cycle_time, programs = get_tls_custom(flags.network, baseline=baseline)
 
+    inflows_type = 'switch' if flags.switch else 'lane'
     network_args = {
         'network_id': flags.network,
         'horizon': flags.time,
         'demand_type': inflows_type,
-        'insertion_probability': 0.1,
+        'insertion_probability': 0.1, # TODO: this needs to be network dependant
     }
     if flags.tls_type == 'actuated':
         network_args['tls'] = programs
@@ -168,7 +167,7 @@ def main(train_config=None):
     sumo_args = {
         'render': flags.render,
         'print_warnings': False,
-        'sim_step': 1, # step = 1 by default.
+        'sim_step': 1,  # step = 1 by default.
         'restart_instance': True
     }
 
@@ -189,7 +188,7 @@ def main(train_config=None):
 
     # TODO: make this an argument.
     # Maybe join with tls_type?
-    additional_params['agent_type'] = 'DQN'
+    additional_params['agent_type'] = 'QL'
     env_args = {
         'evaluate': True,
         'additional_params': additional_params
@@ -198,10 +197,10 @@ def main(train_config=None):
 
     # Number of phases per traffic light.
     phases_per_tls = {tid: len(network.tls_phases[tid])
-                    for tid in network.tls_ids}
+                    for tid in network.tls_ids} # TODO: move this to env?
 
     # Number of actions per traffic light.
-    num_actions = {tid: len(programs[tid])
+    num_actions = {tid: len(programs[tid]) # TODO: move this to env?
                     for tid in network.tls_ids}
 
     category_counts = [5, 10, 15, 20, 25, 30]
@@ -212,8 +211,8 @@ def main(train_config=None):
 
     # TODO: save mdp params
     mdp_args = {
-                'num_actions': num_actions,
-                'phases_per_traffic_light': phases_per_tls,
+                'num_actions': num_actions,                 # this is not a user parameter
+                'phases_per_traffic_light': phases_per_tls, # this is not a user parameter
                 'states': ('speed', 'count'),
                 'category_counts': category_counts,
                 'category_speeds': category_speeds,
@@ -232,8 +231,8 @@ def main(train_config=None):
         sim_params=sim_params,
         network=network,
         TLS_programs=programs,
-        mdp_params=mdp_params,
-    )
+        mdp_params=mdp_params
+        )
 
     # Override possible inconsistent params.
     if flags.tls_type not in ('controlled',):
@@ -243,7 +242,7 @@ def main(train_config=None):
 
     exp = Experiment(
             env=env,
-            dir_path=experiment_path.as_posix(),
+            exp_path=experiment_path.as_posix(),
             train=True,
             log_info=flags.log_info,
             log_info_interval=flags.log_info_interval,
@@ -257,20 +256,20 @@ def main(train_config=None):
     parameters['sumo_args'] = sumo_args
     parameters['env_args'] = env_args
     parameters['programs'] = programs
-
     filename = \
             f"{env.network.name}.params.json"
-
     params_path = experiment_path / filename 
     with params_path.open('w') as f:
         json.dump(parameters, f)
 
+    # Run the experiment.
     info_dict = exp.run(flags.time)
 
     # Save train log.
     filename = \
             f"{env.network.name}.train.json"
 
+    # Store train log.
     result_path = experiment_path / filename
     with result_path.open('w') as f:
         json.dump(info_dict, f)
@@ -278,7 +277,8 @@ def main(train_config=None):
     return str(experiment_path)
 
 if __name__ == '__main__':
-    train_path = CONFIG_PATH / 'train.config'
-    train_config = configparser.ConfigParser()
-    train_config.read(str(train_path))
-    main(train_config)
+    #train_path = CONFIG_PATH / 'train.config' # TODO: the config is not working...
+    #train_config = configparser.ConfigParser()
+    #train_config.read(str(train_path))
+    #main(train_config)
+    main(train_config=None)
