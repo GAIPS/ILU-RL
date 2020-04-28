@@ -77,7 +77,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
                  network,
                  TLS_programs,
                  mdp_params,
-                 #ql_params,
                  simulator='traci'):
 
         super(TrafficLightEnv, self).__init__(env_params,
