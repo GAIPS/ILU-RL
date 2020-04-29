@@ -46,6 +46,8 @@ def parse_ql_params():
     ql_args = agents_config['ql_args']
 
     ql_params = QLParams(
+                    lr_decay_power_coef=float(ql_args['lr_decay_power_coef']),
+                    eps_decay_power_coef=float(ql_args['eps_decay_power_coef']),
                     gamma=float(ql_args['gamma']),
                     choice_type=ql_args['choice_type'],
                     replay_buffer=str2bool(ql_args['replay_buffer']),

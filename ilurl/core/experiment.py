@@ -110,7 +110,6 @@ class Experiment:
         self.log_info_interval = log_info_interval
         self.save_agent = save_agent
         self.save_agent_interval = save_agent_interval
-        print(self.save_agent_interval)
 
         logging.info(" Starting experiment {} at {}".format(
             env.network.name, str(datetime.datetime.utcnow())))
@@ -161,9 +160,6 @@ class Experiment:
                 return None
 
         info_dict = {}
-        info_dict["id"] = self.env.network.name
-        info_dict["cycle"] = self.cycle
-        info_dict["save_step"] = self.save_step
 
         vels = []
         vehs = []
@@ -174,6 +170,10 @@ class Experiment:
         vel_i = []
 
         agent_updates_counter = 0
+
+        # Setup agent loggers (tensorboard).
+        if self.log_info:
+            self.env.agents.setup_logs(self.exp_path)
 
         state = self.env.reset()
 
@@ -202,7 +202,6 @@ class Experiment:
                 vel_i = []
 
                 agent_updates_counter += 1
-                print(agent_updates_counter)
                 # Save train log.
                 if self.log_info and \
                     (agent_updates_counter % self.log_info_interval == 0):
@@ -213,8 +212,8 @@ class Experiment:
                     info_dict["velocities"] = vels
                     info_dict["vehicles"] = vehs
                     info_dict["observation_spaces"] = observation_spaces
-                    info_dict["rl_actions"] = list(self.env.actions_log.values())
-                    info_dict["states"] = list(self.env.states_log.values())
+                    #info_dict["rl_actions"] = list(self.env.actions_log.values())
+                    #info_dict["states"] = list(self.env.states_log.values())
                     #info_dict["explored"] = getattr(self.env.agent, 'explored', None)
                     #info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
                     #info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
@@ -227,23 +226,14 @@ class Experiment:
                 break
 
             if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
-
-                print('SAVED')
                 self.env.agents.save_checkpoint(self.exp_path)
-
-                # filename = \
-                #    f'{self.env.network.name}.Q.1-{agent_updates_counter}.pickle'
-
-                # t = Thread(target=self.env.dump(self.exp_path.as_posix(),
-                #             filename, attr_name='Q'))
-                # t.start()
 
         info_dict["rewards"] = rewards
         info_dict["velocities"] = vels
         info_dict["vehicles"] = vehs
         info_dict["observation_spaces"] = observation_spaces
-        info_dict["rl_actions"] = list(self.env.actions_log.values())
-        info_dict["states"] = list(self.env.states_log.values())
+        #info_dict["rl_actions"] = list(self.env.actions_log.values())
+        #info_dict["states"] = list(self.env.states_log.values())
         #info_dict["explored"] = getattr(self.env.agent, 'explored', None)
         #info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
         #info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)

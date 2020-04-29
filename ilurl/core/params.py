@@ -68,7 +68,7 @@ class MDPParams:
             ):
         """Instantiate MDP params.
 
-        PARAMETERS
+        Parameters:
         ----------
         * num_actions: dict
             a dictionary containing the number of actions per
@@ -114,8 +114,8 @@ class MDPParams:
         reward = kwargs['reward']
         if reward['type'] not in REWARD_TYPES:
             raise ValueError(f'''
-                Reward type must be in {REWARD_TYPES}. Got {reward['type']}
-            type''')
+                Reward type must be in {REWARD_TYPES}.
+                Got {reward['type']} type''')
         else:
             self.set_reward(reward['type'], reward['additional_params'])
 
@@ -130,17 +130,17 @@ class MDPParams:
     def categorize_space(self, observation_space):
         """Converts readings e.g averages, counts into integers
 
-        PARAMETERS
+        Parameters:
         ----------
             * observation_space: a list of lists
                 level 1 -- number of intersections controlled
                 level 2 -- number of phases e.g 2
                 level 3 -- number of variables
 
-        RETURNS
+        Returns:
         -------
 
-        EXAMPLE
+        Example:
         -------
             # 1 tls, 2 phases, 2 variables
             > reading = [[[14.2, 3], [0, 10]]]
@@ -173,7 +173,7 @@ class MDPParams:
     def split_space(self, observation_space):
         """Splits different variables into tuple.
         
-        PARAMETERS
+        Parameters:
         ----------
         * observation_space: list of lists
             nested 3 level list such that;
@@ -181,11 +181,11 @@ class MDPParams:
             north-south and east-west. And the last level represents
             the variables withing labels e.g `speed` and `count`.
 
-        RETURNS
+        Returns:
         -------
             * flatten space
 
-        EXAMPLE
+        Example:
         -------
         > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
         > splits = split_space(observation_space)
@@ -207,7 +207,7 @@ class MDPParams:
     def flatten_space(self, observation_space):
         """Linearizes hierarchial state representation.
         
-        PARAMETERS
+        Parameters:
         ----------
             * observation_space: list of lists
             nested 2 level list such that;
@@ -215,11 +215,11 @@ class MDPParams:
             north-south and east-west. And the last level represents
             the variables withing labels e.g `speed` and `count`.
 
-        RETURNS
+        Returns:
         -------
             * flattened_space: a list
             
-        EXAMPLE
+        Example:
         -------
         > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
         > flattened = flatten_space(observation_space)
@@ -259,12 +259,8 @@ class QLParams:
 
     def __init__(
             self,
-            # Warning (alpha): a schedule is being used so
-            # this parameter makes no difference.
-            alpha=5e-1,
-            # Warning (epsilon): a schedule is being used
-            # so this parameter makes no difference.
-            epsilon=3e-2,
+            lr_decay_power_coef=0.66,
+            eps_decay_power_coef=1.0,
             gamma=0.9,
             c=2,
             initial_value=0,
@@ -276,14 +272,18 @@ class QLParams:
         ):
         """Instantiate Q-learning parameters.
 
-        PARAMETERS
+        Parameters:
         ----------
-        * alpha: float
-            the learning rate the weight given to new knowledge [1].
+        * lr_decay_power_coef: float
+            the learning rate decay power coefficient value, i.e. the 
+            learning rate is calculated using the following expression:
+                Power schedule (input x): 1 / ((1 + x)**lr_decay_power_coef)
 
-        * epsilon: float
-            the chance to adopt a random action instead of a greedy
-            action [1].
+        * eps_decay_power_coef: float
+            the epsilon decay decay power coefficient value, i.e. the
+            epsilon (chance do take a random action) is calculated
+            using the following expression:
+                Power schedule (input x): 1 / ((1 + x)**eps_decay_power_coef)
 
         * gamma: float
             the discount rate [1].
@@ -310,20 +310,22 @@ class QLParams:
             replay buffer warm-up steps, i.e. the number of
             steps before the learning starts.
 
-        REFERENCES:
+        References:
         ----------
             [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
 
         """
         kwargs = locals()
 
-        if alpha <= 0 or alpha >= 1:
-            raise ValueError('''The ineq 0 < alpha < 1 must hold.
-                    Got alpha = {}.'''.format(alpha))
+        if lr_decay_power_coef <= 0:
+            raise ValueError('''The ineq 0 < lr_decay_power_coef must hold.
+                    Got lr_decay_power_coef = {}.'''.format(
+                        lr_decay_power_coef))
 
-        if epsilon < 0 or epsilon > 1:
-            raise ValueError('''The ineq 0 < epsilon < 1 must hold.
-                    Got epsilon = {}.'''.format(epsilon))
+        if eps_decay_power_coef <= 0:
+            raise ValueError('''The ineq 0 < eps_decay_power_coef.
+                    Got eps_decay_power_coef = {}.'''.format(
+                        eps_decay_power_coef))
 
         if gamma <= 0 or gamma > 1:
             raise ValueError('''The ineq 0 < gamma <= 1 must hold.
@@ -376,7 +378,7 @@ class DQNParams:
         ):
         """Instantiate Deep Q-network parameters.
 
-        PARAMETERS
+        Parameters:
         ----------
         * lr: float
             learning rate.
@@ -397,8 +399,8 @@ class DQNParams:
             final exploration rate.
 
         * exp_schedule_timesteps: int
-            exploration decay interval i.e. the number of steps it takes to
-            decay exp_initial_p to exp_final_p.
+            exploration decay interval i.e. the number of steps
+            it takes to decay exp_initial_p to exp_final_p.
 
         * learning_starts: int
             the number of steps before the learning starts.
@@ -427,7 +429,8 @@ class DQNParams:
 
         if exp_schedule_timesteps < 0:
             raise ValueError('''The ineq 0 < exp_schedule_timesteps.
-                    Got exp_schedule_timesteps = {}.'''.format(exp_schedule_timesteps))
+                    Got exp_schedule_timesteps = {}.'''.format(
+                        exp_schedule_timesteps))
 
         if buffer_size <= 0:
             raise ValueError('''The ineq buffer_size > 0
@@ -447,7 +450,8 @@ class DQNParams:
 
         if target_net_update_interval <= 0:
             raise ValueError('''The ineq 0 < target_net_update_interval.
-                    Got target_net_update_interval = {}.'''.format(target_net_update_interval))
+                    Got target_net_update_interval = {}.'''.format(
+                        target_net_update_interval))
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)
@@ -457,7 +461,8 @@ class InFlows(flow_params.InFlows):
     """InFlow: plus load & dump functionality"""
 
     @classmethod
-    def make(cls, network_id, horizon, demand_type, label, initial_config=None):
+    def make(cls, network_id, horizon,
+            demand_type, label, initial_config=None):
 
         inflows = cls(network_id, horizon, demand_type,
                       initial_config=initial_config)

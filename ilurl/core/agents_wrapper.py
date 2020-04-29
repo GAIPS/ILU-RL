@@ -68,15 +68,17 @@ class AgentsWrapper(object):
         return choices
 
     def update(self, s, a, r, s1):
-
         for tid, agent in self.agents.items():
             s_, a_, r_, s1_ = s[tid], a[tid], r[tid], s1[tid]
             agent.update(s_, a_, r_, s1_)
 
     def save_checkpoint(self, path):
-
         for agent in self.agents.values():
             agent.save_checkpoint(path)
+
+    def setup_logs(self, path):
+        for agent in self.agents.values():
+            agent.setup_logger(path)
 
     """ @property
     def Q(self):

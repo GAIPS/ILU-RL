@@ -1,4 +1,7 @@
+import os
 import numpy as np
+
+from ilurl.utils.meta import MetaAgent
 
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
@@ -7,7 +10,7 @@ from gym.spaces.box import Box
 
 import baselines.common.tf_util as U
 
-from baselines import logger
+from baselines.logger import Logger, TensorBoardOutputFormat
 from baselines import deepq
 from baselines.common.tf_util import load_variables, save_variables
 from baselines.deepq.deepq import ActWrapper
@@ -25,7 +28,7 @@ def model(inpt, num_actions, scope, reuse=False):
         return out
 
 
-class DQN(object):
+class DQN(object, metaclass=MetaAgent):
     """
         DQN agent.
     """
@@ -49,7 +52,7 @@ class DQN(object):
         self.stop = False
 
         # Parameters.
-        self.model = model # TODO
+        self.model = model # TODO: allow for arbitrary network architecture.
         self.lr = params.lr
         self.gamma = params.gamma
         self.buffer_size = params.buffer_size
@@ -100,20 +103,15 @@ class DQN(object):
         # if self.load_path is not None:
         #     load_variables(self.load_path)
 
-        # Setup tensorboard.
-        # if self.log_dir is not None:
-        #     logger.configure(dir=self.log_dir,
-        #                     format_strs=['csv', 'tensorboard'])
+        # Tensorboard logger.
+        self.logger = None
 
-        # Boolean list that stores whether actions
-        # were randomly picked (exploration) or not.
-        self.explored = []
-
+        # Updates counter.
         self.updates_counter = 0
 
     @property
     def stop(self):
-        """Stops exploring"""
+        """Stops learning."""
         return self._stop
 
     @stop.setter
@@ -124,7 +122,7 @@ class DQN(object):
         """
         Specify the actions to be performed by the RL agent(s).
 
-        PARAMETERS
+        Parameters:
         ----------
         * s: tuple
             state representation.
@@ -133,13 +131,10 @@ class DQN(object):
         s = np.array(s)
 
         if self.stop:
-            action, explored = self.action(s[None],
-                              stochastic=False)
+            action, _ = self.action(s[None], stochastic=False)
         else:
-            action, explored = self.action(s[None],
+            action, _ = self.action(s[None],
                               update_eps=self.exploration.value(self.updates_counter))
-
-        self.explored.append(explored[0])
 
         return action[0]
 
@@ -147,7 +142,7 @@ class DQN(object):
         """
         Performs a learning update step.
 
-        PARAMETERS
+        Parameters:
         ----------
         * s: tuple 
             state representation.
@@ -177,25 +172,24 @@ class DQN(object):
                         obses_tp1,
                         dones,
                         np.ones_like(rewards))
-                
-                # td_error = np.mean(td_errors)
-                # logger.record_tabular("td_error", td_error)
 
+                if self.logger:
+                    self.logger.logkv("td_error", np.mean(td_errors))
+
+            # Update target network.
             if self.updates_counter % self.target_net_update_interval == 0:
                 self.update_target()
 
-            # logger.record_tabular("step", self.updates_counter)
-            # logger.record_tabular("expl_eps",
-            #                     self.exploration.value(self.updates_counter))
-            # logger.dump_tabular()
+            # Tensorboard log.
+            if self.logger:
+                self.logger.logkv("action", a)
+                self.logger.logkv("reward", r)
+                self.logger.logkv("step", self.updates_counter)
+                self.logger.logkv("lr", self.lr)
+                self.logger.logkv("expl_eps",
+                                    self.exploration.value(self.updates_counter))                    
 
-            #if (self.checkpoints_dir is not None and 
-            #    self.updates_counter > self.learning_starts and
-            #    self.updates_counter % self.checkpoints_freq == 0):
-            #    checkpoint_file = '{0}checkpoint-{1}'.format(self.checkpoints_dir, 
-            #                                                self.updates_counter)
-            #    logger.log('Saved model to {}'.format(checkpoint_file))
-            #    save_variables(checkpoint_file)
+                self.logger.dumpkvs()
 
             self.updates_counter += 1
 
@@ -203,7 +197,7 @@ class DQN(object):
         """
         Save model's weights.
 
-        PARAMETERS
+        Parameters:
         ----------
         * path: str 
             path to save directory.
@@ -213,5 +207,20 @@ class DQN(object):
             checkpoint_file = '{0}/checkpoints/{1}-{2}'.format(path,
                                                         self.name,
                                                         self.updates_counter)
-            logger.log('Saved model to {}'.format(checkpoint_file))
             save_variables(checkpoint_file)
+
+    def setup_logger(self, path):
+        """
+        Setup train logger (tensorboard).
+ 
+        Parameters:
+        ----------
+        * path: str 
+            path to log directory.
+
+        """
+        os.makedirs(f"{path}/train_logs", exist_ok=True)
+
+        log_file = f'{path}/train_logs/{self.name}'
+        tb_logger = TensorBoardOutputFormat(log_file)
+        self.logger = Logger(dir=path, output_formats=[tb_logger])

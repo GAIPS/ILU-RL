@@ -188,7 +188,7 @@ def main(train_config=None):
 
     # TODO: make this an argument.
     # Maybe join with tls_type?
-    additional_params['agent_type'] = 'QL'
+    additional_params['agent_type'] = 'DQN'
     env_args = {
         'evaluate': True,
         'additional_params': additional_params
@@ -217,7 +217,7 @@ def main(train_config=None):
                 'category_counts': category_counts,
                 'category_speeds': category_speeds,
                 'normalize_state_space': normalize,
-                'discretize_state_space': True,
+                'discretize_state_space': False,
                 'reward': {'type': 'target_velocity',
                     'additional_params': {
                         'target_velocity': 1.0

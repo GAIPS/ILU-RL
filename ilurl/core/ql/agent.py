@@ -3,15 +3,16 @@ import pickle
 import numpy as np
 from threading import Thread
 
-from ilurl.utils.meta import MetaAgentQ
-from ilurl.core.params import QLParams
+from ilurl.utils.meta import MetaAgent
 from ilurl.core.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.core.ql.define import dpq_tls
 from ilurl.core.ql.update import dpq_update
 
-from ilurl.core.ql.replay_buffer import ReplayBuffer
+from baselines.deepq.replay_buffer import ReplayBuffer
+from baselines.logger import Logger, TensorBoardOutputFormat
+from baselines.common.schedules import PowerSchedule
 
-class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
+class QL(object, metaclass=MetaAgent):
     """
         Q-learning agent.
     """
@@ -19,7 +20,7 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
     def __init__(self, ql_params, name):
         """Instantiate Q-Learning agent.
 
-        PARAMETERS
+        Parameters:
         ----------
 
         * ql_params: ilurl.core.params.QLParams object
@@ -27,19 +28,22 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
 
         * name: str
 
-        REFERENCES
+        References:
+        ----------
 
-            [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
+        [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
             
         """
         self.name = name
 
+        # Whether learning stopped.
         self.stop = False
 
         # Learning rate.
-        self.alpha = ql_params.alpha
+        self.learning_rate = PowerSchedule(
+                        power_coef=ql_params.lr_decay_power_coef)
 
-        # Action choice.
+        # Exploration strategy.
         self.choice_type = ql_params.choice_type
 
         # Discount factor.
@@ -57,32 +61,23 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
                                             ql_params.actions.depth,
                                             0)
 
-        # Boolean list that stores whether actions
-        # were randomly picked (exploration) or not.
-        self.explored = []
-
-        # Boolean list that stores the newly visited states.
-        self.visited_states = []
-
-        # Float list that stores the distance between
-        # Q-tables between updates.
-        self.Q_distances = []
-
         # Epsilon-greedy (exploration rate).
         if self.choice_type in ('eps-greedy',):
-            self.epsilon = ql_params.epsilon
+            self.exploration = PowerSchedule(
+                        power_coef=ql_params.eps_decay_power_coef)
 
         # UCB (extra-stuff).
         if self.choice_type in ('ucb',):
-            self.c = ql_params.c
-            self.decision_counter = 0
-            self.actions_counter = {
-                state: {
-                    action: 1.0
-                    for action in actions
-                }
-                for state, actions in self.Q.items()
-            }
+            raise NotImplementedError
+            # self.c = ql_params.c
+            # self.decision_counter = 0
+            # self.actions_counter = {
+            #     state: {
+            #         action: 1.0
+            #         for action in actions
+            #     }
+            #     for state, actions in self.Q.items()
+            # }
 
         # Replay buffer.
         self.replay_buffer = ql_params.replay_buffer
@@ -92,49 +87,80 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
 
             self.memory = ReplayBuffer(ql_params.replay_buffer_size)
 
+        # Tensorboard logger.
+        self.logger = None
+
         # Updates counter.
         self.updates_counter = 0
 
+    @property
+    def stop(self):
+        """Stops learning."""
+        return self._stop
+
+    @stop.setter
+    def stop(self, stop):
+        self._stop = stop
+
     def act(self, s):
+        """
+        Specify the actions to be performed by the RL agent(s).
+
+        Parameters:
+        ----------
+        * s: tuple
+            state representation.
+
+        """
         if self.stop:
             # Argmax greedy choice.
             actions, values = zip(*self.Q[s].items())
-            choosen, exp = choice_eps_greedy(actions, values, 0)
-            self.explored.append(exp)
+            choosen, _ = choice_eps_greedy(actions, values, 0)
         else:
             
             if self.choice_type in ('eps-greedy',):
                 actions, values = zip(*self.Q[s].items())
 
                 num_state_visits = sum(self.state_action_counter[s].values())
-                eps = 1 / (1 + num_state_visits)
 
-                choosen, exp = choice_eps_greedy(actions, values, eps)
-                self.explored.append(exp)
+                eps = self.exploration.value(num_state_visits)
+                choosen, _ = choice_eps_greedy(actions, values, eps)
 
             elif self.choice_type in ('optimistic',):
                 raise NotImplementedError
 
             elif self.choice_type in ('ucb',):
-                self.decision_counter += 1 if not self.stop else 0
-                choosen = choice_ucb(self.Q[s].items(),
-                                     self.c,
-                                     self.decision_counter,
-                                     self.actions_counter[s])
-                self.actions_counter[s][choosen] += 1 if not self.stop else 0
+                raise NotImplementedError
+                # self.decision_counter += 1 if not self.stop else 0
+                # choosen = choice_ucb(self.Q[s].items(),
+                #                      self.c,
+                #                      self.decision_counter,
+                #                      self.actions_counter[s])
+                # self.actions_counter[s][choosen] += 1 if not self.stop else 0
             else:
                 raise NotImplementedError
 
         return choosen
 
     def update(self, s, a, r, s1):
+        """
+        Performs a learning update step.
 
-        # Track the visited states.
-        if sum(self.state_action_counter[s].values()) == 0:
-            self.visited_states.append(s)
-        else:
-            self.visited_states.append(None)
+        Parameters:
+        ----------
+        * s: tuple 
+            state representation.
 
+        * a: int
+            action.
+
+        * r: float
+            reward.
+
+        * s1: tuple
+            state representation.
+
+        """
         if not self.stop:
 
             if self.replay_buffer:
@@ -144,37 +170,42 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
             self.state_action_counter[s][a] += 1
 
             # Calculate learning rate.
-            lr = 1 / np.power(1 + self.state_action_counter[s][a], 2/3)
+            lr = self.learning_rate.value(self.state_action_counter[s][a])
 
             Q_old = self.Q[s][a]
 
             # Q-learning update.
-            try:
-                r = sum(r)
-            except TypeError:
-                pass
             dpq_update(self.gamma, lr, self.Q, s, a, r, s1)
 
-            # Calculate Q-tables distance.
+            # Calculate Q-table update distance.
             dist = np.abs(Q_old - self.Q[s][a])
-            self.Q_distances.append(dist)
 
             if self.replay_buffer and self.updates_counter > self.warm_up:
 
-                samples = self.memory.sample(self.batch_size)
+                s_samples, a_samples, r_samples, s1_samples, _ = self.memory.sample(
+                                                                self.batch_size)
 
                 for sample in range(self.batch_size):
-                    s = tuple(samples[0][sample])
-                    a = (samples[1][sample][0],)
-                    r = samples[2][sample]
-                    s1 = tuple(samples[3][sample])
+                    s_ = tuple(s_samples[sample])
+                    a_ = a_samples[sample]
+                    r_ = r_samples[sample]
+                    s1_ = tuple(s1_samples[sample])
 
                     # Q-learning update.
-                    try:
-                        r = sum(r)
-                    except TypeError:
-                        pass
-                    dpq_update(self.gamma, lr, self.Q, s, a, r, s1)
+                    dpq_update(self.gamma, lr, self.Q, s_, a_, r_, s1_)
+
+            # Tensorboard log.
+            if self.logger:
+                self.logger.logkv("action", a)
+                self.logger.logkv("reward", r)
+                self.logger.logkv("step", self.updates_counter)
+                self.logger.logkv("lr", lr)
+                self.logger.logkv("expl_eps", self.exploration.value(
+                    sum(self.state_action_counter[s].values())-1))
+
+                self.logger.logkv("q_dist", dist)
+
+                self.logger.dumpkvs()
 
             self.updates_counter += 1
 
@@ -182,7 +213,7 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
         """
         Save model's weights.
 
-        PARAMETERS
+        Parameters:
         ----------
         * path: str 
             path to save directory.
@@ -197,19 +228,18 @@ class QL(object): #, metaclass=MetaAgentQ): # TODO: make agents metaclass
             t = Thread(target=pickle.dump(self.Q, f))
             t.start()
 
-    """ @property
-    def Q(self):
-        return self._Q
+    def setup_logger(self, path):
+        """
+        Setup train logger (tensorboard).
+ 
+        Parameters:
+        ----------
+        * path: str 
+            path to log directory.
 
-    @Q.setter
-    def Q(self, Q):
-        self._Q = Q """
+        """
+        os.makedirs(f"{path}/train_logs", exist_ok=True)
 
-    @property
-    def stop(self):
-        """Stops exploring"""
-        return self._stop
-
-    @stop.setter
-    def stop(self, stop):
-        self._stop = stop
+        log_file = f'{path}/train_logs/{self.name}'
+        tb_logger = TensorBoardOutputFormat(log_file)
+        self.logger = Logger(dir=path, output_formats=[tb_logger])
