@@ -34,7 +34,6 @@ class DQN(object, metaclass=MetaAgent):
     """
 
     def __init__(self, params, name):
-                #log_dir=None,
                 #load_path=None):
         """Instantiate DQN agent.
 
