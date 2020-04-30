@@ -207,7 +207,6 @@ def main(train_config=None):
     parameters['network_args'] = network_args
     parameters['sumo_args'] = sumo_args
     parameters['env_args'] = env_args
-    #parameters['programs'] = programs
     filename = \
             f"{env.network.name}.params.json"
     params_path = experiment_path / filename 
@@ -229,8 +228,7 @@ def main(train_config=None):
     return str(experiment_path)
 
 if __name__ == '__main__':
-    #train_path = CONFIG_PATH / 'train.config' # TODO: the config is not working...
-    #train_config = configparser.ConfigParser()
-    #train_config.read(str(train_path))
-    #main(train_config)
-    main(train_config=None)
+    train_path = CONFIG_PATH / 'train.config'
+    train_config = configparser.ConfigParser()
+    train_config.read(str(train_path))
+    main(train_config)
