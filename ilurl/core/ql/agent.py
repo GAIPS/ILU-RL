@@ -1,4 +1,5 @@
 import os
+import dill
 import pickle
 import numpy as np
 from threading import Thread
@@ -221,12 +222,31 @@ class QL(object, metaclass=MetaAgent):
         """
         os.makedirs(f"{path}/checkpoints", exist_ok=True)
 
-        checkpoint_file = "{0}/checkpoints/{1}-{2}.pickle".format(
+        checkpoint_file = "{0}/checkpoints/{1}-{2}.chkpt".format(
             path, self.name, self.updates_counter)
 
         with open(checkpoint_file, 'wb') as f:
             t = Thread(target=pickle.dump(self.Q, f))
             t.start()
+
+    def load_checkpoint(self, chkpts_dir_path, chkpt_num):
+        """
+        Loads model's weights from file.
+ 
+        Parameters:
+        ----------
+        * chkpts_dir_path: str
+            path to checkpoint's directory.
+
+        * chkpt_num: int
+            the number of the checkpoint to load.
+
+        """
+        chkpt_path = '{0}/{1}-{2}.chkpt'.format(chkpts_dir_path,
+                                                    self.name,
+                                                    chkpt_num)
+        with open(chkpt_path, 'rb') as f:
+            self.Q =  dill.load(f)
 
     def setup_logger(self, path):
         """

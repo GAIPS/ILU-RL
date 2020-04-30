@@ -20,6 +20,7 @@ class MetaAgent(type):
         * a: int
             selected action
 
+
     * update: Performs a learning update step.
 
         Parameters:
@@ -36,12 +37,14 @@ class MetaAgent(type):
         * s1: tuple
             state representation.
     
+
     * stop: Stops agent's learning.
 
         Parameters:
         ----------
         * stop: bool
             if True agent's learning process is stopped.
+
 
     * save_checkpoint: Saves agent's weights into the
                         provided folder path.
@@ -50,6 +53,18 @@ class MetaAgent(type):
         ----------
         * path: str
             path to save directory.
+
+
+    *load_checkpoint: Loads model's weights from file.
+ 
+        Parameters:
+        ----------
+        * chkpts_dir_path: str
+            path to checkpoint's directory.
+
+        * chkpt_num: int
+            the number of the checkpoint to load.
+
 
     * setup_logger: Setup train logger (tensorboard).
 
@@ -70,6 +85,7 @@ class MetaAgent(type):
                            'update',
                            'stop',
                            'save_checkpoint',
+                           'load_checkpoint',
                            'setup_logger')
         for attr in agent_q_methods:
             if attr not in body:

@@ -34,7 +34,6 @@ class DQN(object, metaclass=MetaAgent):
     """
 
     def __init__(self, params, name):
-                #load_path=None):
         """Instantiate DQN agent.
 
         PARAMETERS
@@ -203,10 +202,29 @@ class DQN(object, metaclass=MetaAgent):
 
         """
         if (self.updates_counter > self.learning_starts):
-            checkpoint_file = '{0}/checkpoints/{1}-{2}'.format(path,
+            checkpoint_file = '{0}/checkpoints/{1}-{2}.chkpt'.format(path,
                                                         self.name,
                                                         self.updates_counter)
             save_variables(checkpoint_file)
+
+    def load_checkpoint(self, chkpts_dir_path, chkpt_num):
+        """
+        Loads model's weights from file.
+ 
+        Parameters:
+        ----------
+        * chkpts_dir_path: str
+            path to checkpoint's directory.
+
+        * chkpt_num: int
+            the number of the checkpoint to load.
+
+        """
+        chkpt_path = '{0}/{1}-{2}.chkpt'.format(chkpts_dir_path,
+                                                    self.name,
+                                                    chkpt_num)
+
+        load_variables(chkpt_path)
 
     def setup_logger(self, path):
         """

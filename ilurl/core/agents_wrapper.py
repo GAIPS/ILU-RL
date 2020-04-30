@@ -11,6 +11,9 @@ from ilurl.core.dqn.agent import DQN
 AGENT_TYPES = ('QL', 'DQN')
 
 class AgentsWrapper(object):
+    """
+        Multi-agent system wrapper.
+    """
 
     def __init__(self, 
                 mdp_params,
@@ -58,6 +61,16 @@ class AgentsWrapper(object):
 
         self.agents = agents
 
+    @property
+    def stop(self):
+        stops = [agent.stop for agent in self.agent]
+        return all(stops)
+
+    @stop.setter
+    def stop(self, stop):
+        for agent in self.agents:
+            agent.stop = stop
+
     def act(self, state):
 
         choices = {}
@@ -73,50 +86,43 @@ class AgentsWrapper(object):
             agent.update(s_, a_, r_, s1_)
 
     def save_checkpoint(self, path):
+        """
+        Save models' weights.
+
+        Parameters:
+        ----------
+        * path: str 
+            path to save directory.
+
+        """
         for agent in self.agents.values():
             agent.save_checkpoint(path)
 
+    def load_checkpoint(self, chkpts_dir_path, chkpt_num):
+        """
+        Loads models' weights from files.
+ 
+        Parameters:
+        ----------
+        * chkpts_dir_path: str
+            path to checkpoints' directory.
+
+        * chkpt_num: int
+            the number of the checkpoints to load.
+
+        """
+        for agent in self.agents.values():
+            agent.load_checkpoint(chkpts_dir_path, chkpt_num)
+
     def setup_logs(self, path):
+        """
+        Setup train loggers (tensorboard).
+ 
+        Parameters:
+        ----------
+        * path: str 
+            path to log directory.
+
+        """
         for agent in self.agents.values():
             agent.setup_logger(path)
-
-    """ @property
-    def Q(self):
-        self._Q = {i: _QL_agent.Q
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-
-        return self._Q
-
-    @Q.setter
-    def Q(self, Q):
-        for i, Qi in Q.items():
-              self._QL_agents[i].Q = Qi
-
-    @property
-    def explored(self):
-        self._explored = {i: _QL_agent.explored
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-        return self._explored
-
-    @property
-    def visited_states(self):
-        self._visited_states = {i: _QL_agent.visited_states
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-        return self._visited_states
-
-    @property
-    def Q_distances(self):
-        self._Q_distances = {i: _QL_agent.Q_distances
-                   for i, _QL_agent in enumerate(self._QL_agents)}
-        return self._Q_distances
-
-    @property
-    def stop(self):
-        stops = [_QL_agent.stop for _QL_agent in self._QL_agents]
-        return all(stops)
-
-    @stop.setter
-    def stop(self, stop):
-        for _QL_agent in self._QL_agents:
-            _QL_agent.stop = stop
-        return stop """
