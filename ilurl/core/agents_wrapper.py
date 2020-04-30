@@ -63,7 +63,7 @@ class AgentsWrapper(object):
 
     @property
     def stop(self):
-        stops = [agent.stop for agent in self.agent]
+        stops = [agent.stop for agent in self.agents]
         return all(stops)
 
     @stop.setter
