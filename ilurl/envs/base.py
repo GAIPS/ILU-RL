@@ -17,6 +17,8 @@ from ilurl.core.ql.reward import RewardCalculator
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 
+import ilurl.loaders.parsers as parsers
+
 from ilurl.core.agents_wrapper import AgentsWrapper
 
 ILURL_HOME = os.environ['ILURL_HOME']
@@ -75,14 +77,15 @@ class TrafficLightEnv(AccelEnv, Serializer):
                  env_params,
                  sim_params,
                  network,
-                 TLS_programs,
-                 mdp_params,
                  simulator='traci'):
 
         super(TrafficLightEnv, self).__init__(env_params,
                                               sim_params,
                                               network,
                                               simulator=simulator)
+
+        # Load MDP parameters from file (train.config[mdg_args]).
+        mdp_params = parsers.parse_mdp_params()
 
         # TODO: Allow for mixed networks with actuated,
         # controlled and static traffic light configurations.
@@ -92,10 +95,10 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.static = (self.tls_type == 'static')
 
         # Cycle time.
-        self.cycle_time = env_params.additional_params['cycle_time']
+        self.cycle_time = network.cycle_time
 
-        # Programs (timings).
-        self.programs = TLS_programs
+        # TLS programs.
+        self.programs = network.programs
 
         # Keeps the internal value of sim step.
         self.sim_step = sim_params.sim_step
@@ -105,6 +108,8 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         # Object that handles RL agents logic.
         agent_type = env_params.additional_params.get('agent_type')
+        mdp_params.phases_per_traffic_light = network.phases_per_tls
+        mdp_params.num_actions = network.num_signal_plans_per_tls
         self.agents = AgentsWrapper(mdp_params,
                                     agent_type=agent_type)
 

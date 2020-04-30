@@ -53,8 +53,6 @@ class MDPParams:
     """
 
     def __init__(self,
-                num_actions,
-                phases_per_traffic_light,
                 states=('speed', 'count'),
                 discretize_state_space=True,    # TODO
                 normalize_state_space=True,     # TODO
@@ -70,14 +68,6 @@ class MDPParams:
 
         Parameters:
         ----------
-        * num_actions: dict
-            a dictionary containing the number of actions per
-            intersection. The outer keys are tls_ids.
-
-        * phases_per_traffic_light: dict
-            a dictionary containing the number of phases per 
-            intersection. The outer keys are tls_ids.
-
         * states: ('speed', 'count')
             the features to be used as state space representation.
 

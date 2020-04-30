@@ -22,7 +22,6 @@ from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
 from ilurl.core.experiment import Experiment
-from ilurl.core.params import QLParams
 from ilurl.core.params import MDPParams
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
@@ -98,11 +97,6 @@ def get_arguments(config_file):
               help='''Assign higher probability of spawning a vehicle
                    every other hour on opposite sides''')
 
-    # TODO: Remove this.
-    flags.add('--env-normalize', dest='normalize',
-              type=str2bool, default=True, nargs='?',
-              help='''If true will normalize grid and target''')
-
     return flags.parse_args()
 
 
@@ -133,17 +127,11 @@ def print_arguments(args):
 
     print('\tInflows switch: {0}\n'.format(args.switch))
 
-    print('\tNormalize state-space (speeds): {0}\n'.format(args.normalize))
-
 
 def main(train_config=None):
 
     flags = get_arguments(train_config)
     print_arguments(flags)
-
-    # Load cycle time and TLS programs.
-    baseline = (flags.tls_type == 'actuated')
-    cycle_time, programs = get_tls_custom(flags.network, baseline=baseline)
 
     inflows_type = 'switch' if flags.switch else 'lane'
     network_args = {
@@ -151,12 +139,10 @@ def main(train_config=None):
         'horizon': flags.time,
         'demand_type': inflows_type,
         'insertion_probability': 0.1, # TODO: this needs to be network dependant
+        'tls_type': flags.tls_type
     }
-    if flags.tls_type == 'actuated':
-        network_args['tls'] = programs
 
     network = Network(**network_args)
-    normalize = flags.normalize
 
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
@@ -167,7 +153,7 @@ def main(train_config=None):
     sumo_args = {
         'render': flags.render,
         'print_warnings': False,
-        'sim_step': 1,  # step = 1 by default.
+        'sim_step': 1, # step = 1 by default.
         'restart_instance': True
     }
 
@@ -183,7 +169,6 @@ def main(train_config=None):
 
     additional_params = {}
     additional_params.update(ADDITIONAL_ENV_PARAMS)
-    additional_params['cycle_time'] = cycle_time
     additional_params['tls_type'] = flags.tls_type
 
     # TODO: make this an argument.
@@ -195,43 +180,10 @@ def main(train_config=None):
     }
     env_params = EnvParams(**env_args)
 
-    # Number of phases per traffic light.
-    phases_per_tls = {tid: len(network.tls_phases[tid])
-                    for tid in network.tls_ids} # TODO: move this to env?
-
-    # Number of actions per traffic light.
-    num_actions = {tid: len(programs[tid]) # TODO: move this to env?
-                    for tid in network.tls_ids}
-
-    category_counts = [5, 10, 15, 20, 25, 30]
-    if normalize:
-        category_speeds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
-    else:
-        category_speeds = [2, 3, 4, 5, 6, 7]
-
-    # TODO: save mdp params
-    mdp_args = {
-                'num_actions': num_actions,                 # this is not a user parameter
-                'phases_per_traffic_light': phases_per_tls, # this is not a user parameter
-                'states': ('speed', 'count'),
-                'category_counts': category_counts,
-                'category_speeds': category_speeds,
-                'normalize_state_space': normalize,
-                'discretize_state_space': True,
-                'reward': {'type': 'target_velocity',
-                    'additional_params': {
-                        'target_velocity': 1.0
-                    }
-                }
-    }
-    mdp_params = MDPParams(**mdp_args)
-
     env = TrafficLightEnv(
         env_params=env_params,
         sim_params=sim_params,
         network=network,
-        TLS_programs=programs,
-        mdp_params=mdp_params
         )
 
     # Override possible inconsistent params.
@@ -255,7 +207,7 @@ def main(train_config=None):
     parameters['network_args'] = network_args
     parameters['sumo_args'] = sumo_args
     parameters['env_args'] = env_args
-    parameters['programs'] = programs
+    #parameters['programs'] = programs
     filename = \
             f"{env.network.name}.params.json"
     params_path = experiment_path / filename 

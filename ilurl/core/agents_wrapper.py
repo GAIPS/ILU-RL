@@ -24,7 +24,7 @@ class AgentsWrapper(object):
                 Agent type must be in {AGENT_TYPES}.
                 Got {agent_type} type instead.''')
 
-        # Load agent parameters from config file.
+        # Load agent parameters from config file (train.config).
         agent_params = parsers.parse_agent_params(agent_type)
 
         # Create agents.

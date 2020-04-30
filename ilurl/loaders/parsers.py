@@ -1,9 +1,11 @@
+import json
 from os import environ
 from pathlib import Path
+from ast import literal_eval
 
 import configparser
 
-from ilurl.core.params import QLParams, DQNParams
+from ilurl.core.params import QLParams, DQNParams, MDPParams
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
@@ -84,3 +86,27 @@ def parse_dqn_params():
     )
 
     return dqn_params 
+
+def parse_mdp_params():
+    """
+        Parses MDP parameters (mdp_args) from config file located
+        at 'TRAIN_CONFIG_PATH' and returns a ilurl.core.params.MDPParams
+        object with the parsed parameters.
+    """
+
+    # Load config file with parameters.
+    agents_config = configparser.ConfigParser()
+    agents_config.read(str(TRAIN_CONFIG_PATH))
+
+    mdp_args = agents_config['mdp_args']
+
+    mdp_params = MDPParams(
+                    states=literal_eval(mdp_args['states']),
+                    category_counts=json.loads(mdp_args['category_counts']),
+                    category_speeds=json.loads(mdp_args['category_speeds']),
+                    normalize_state_space=str2bool(mdp_args['normalize_state_space']),
+                    discretize_state_space=str2bool(mdp_args['discretize_state_space']),
+                    reward=literal_eval(mdp_args['reward'])
+    )
+
+    return mdp_params 

@@ -165,7 +165,7 @@ class QL(object, metaclass=MetaAgent):
         if not self.stop:
 
             if self.replay_buffer:
-                self.memory.add(s,a,r,s1,0.0)
+                self.memory.add(s, a, r, s1, 0.0)
 
             # Update (state, action) counter.
             self.state_action_counter[s][a] += 1
