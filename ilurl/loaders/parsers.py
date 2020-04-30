@@ -6,7 +6,7 @@ import configparser
 from ilurl.core.params import QLParams, DQNParams
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
-CONFIG_PATH = ILURL_PATH / 'config/agents.config'
+TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
 
 def str2bool(v, exception=None):
     if isinstance(v, bool):
@@ -35,13 +35,13 @@ def parse_agent_params(agent_type):
 def parse_ql_params():
     """
         Parses Q-learning parameters (ql_args) from config file located
-        at 'CONFIG_PATH' and returns a ilurl.core.params.QLParams
+        at 'TRAIN_CONFIG_PATH' and returns a ilurl.core.params.QLParams
         object with the parsed parameters.
     """
 
     # Load config file with parameters.
     agents_config = configparser.ConfigParser()
-    agents_config.read(str(CONFIG_PATH))
+    agents_config.read(str(TRAIN_CONFIG_PATH))
 
     ql_args = agents_config['ql_args']
 
@@ -61,13 +61,13 @@ def parse_ql_params():
 def parse_dqn_params():
     """
         Parses Deep Q-Network parameters (dqn_args) from config file located
-        at 'CONFIG_PATH' and returns a ilurl.core.params.DQNParams
+        at 'TRAIN_CONFIG_PATH' and returns a ilurl.core.params.DQNParams
         object with the parsed parameters.
     """
 
     # Load config file with parameters.
     agents_config = configparser.ConfigParser()
-    agents_config.read(str(CONFIG_PATH))
+    agents_config.read(str(TRAIN_CONFIG_PATH))
 
     dqn_args = agents_config['dqn_args']
 
