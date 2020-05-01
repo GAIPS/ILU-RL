@@ -108,7 +108,7 @@ def str2bool(v, exception=None):
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
-        raise ArgumentTypeError('boolean value expected')
+        raise ArgumentTypeError('Boolean value expected')
 
 def print_arguments(args):
 
@@ -207,23 +207,12 @@ def main(train_config=None):
     parameters['network_args'] = network_args
     parameters['sumo_args'] = sumo_args
     parameters['env_args'] = env_args
-    filename = \
-            f"{env.network.name}.params.json"
-    params_path = experiment_path / filename 
+    params_path = experiment_path / "params.json" 
     with params_path.open('w') as f:
         json.dump(parameters, f)
 
     # Run the experiment.
-    info_dict = exp.run(flags.time)
-
-    # Save train log.
-    filename = \
-            f"{env.network.name}.train.json"
-
-    # Store train log.
-    result_path = experiment_path / filename
-    with result_path.open('w') as f:
-        json.dump(info_dict, f)
+    exp.run(flags.time)
 
     return str(experiment_path)
 

@@ -76,7 +76,7 @@ class AgentsWrapper(object):
         choices = {}
 
         for tid, agent in self.agents.items():
-            choices[tid] = agent.act(state[tid])
+            choices[tid] = int(agent.act(state[tid]))
 
         return choices
 

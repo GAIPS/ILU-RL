@@ -195,8 +195,7 @@ class Experiment:
 
             if self._is_save_step():
 
-                observation_spaces.append(
-                    list(self.env.get_observation_space()))
+                observation_spaces.append(self.env.get_observation_space())
 
                 rewards.append(reward)
 
@@ -206,21 +205,21 @@ class Experiment:
                 vel_i = []
 
                 agent_updates_counter += 1
-                # Save train log.
+
+                # Save train log (data is aggregated per traffic signal).
                 if self.log_info and \
                     (agent_updates_counter % self.log_info_interval == 0):
-
-                    file_path = self.exp_path / f"{self.env.network.name}.train.json"
 
                     info_dict["rewards"] = rewards
                     info_dict["velocities"] = vels
                     info_dict["vehicles"] = vehs
                     info_dict["observation_spaces"] = observation_spaces
-                    #info_dict["rl_actions"] = list(self.env.actions_log.values())
-                    #info_dict["states"] = list(self.env.states_log.values())
+                    info_dict["actions"] = [a for a in self.env.actions_log.values()]
+                    info_dict["states"] = [s for s in self.env.states_log.values()]
 
-                    with file_path.open('w') as fj:
-                        t = Thread(target=json.dump(info_dict, fj))
+                    train_log_path = self.exp_path / "train_log.json"
+                    with train_log_path.open('w') as f:
+                        t = Thread(target=json.dump(info_dict, f))
                         t.start()
 
             if done and stop_on_teleports:
@@ -229,12 +228,18 @@ class Experiment:
             if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
                 self.env.agents.save_checkpoint(self.exp_path)
 
+        # Save train log (data is aggregated per traffic signal).
         info_dict["rewards"] = rewards
         info_dict["velocities"] = vels
         info_dict["vehicles"] = vehs
         info_dict["observation_spaces"] = observation_spaces
-        #info_dict["rl_actions"] = list(self.env.actions_log.values())
-        #info_dict["states"] = list(self.env.states_log.values())
+        info_dict["actions"] = [a for a in self.env.actions_log.values()]
+        info_dict["states"] = [s for s in self.env.states_log.values()]
+
+        train_log_path = self.exp_path / "train_log.json"
+        with train_log_path.open('w') as f:
+            t = Thread(target=json.dump(info_dict, f))
+            t.start()
 
         self.env.terminate()
 

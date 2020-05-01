@@ -122,22 +122,13 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # if self.tls_type != "actuated":
         self._reset()
 
-    """@property
+    @property
     def stop(self):
         pass
 
     @stop.setter
     def stop(self, stop):
         self.agents.stop = stop
-
-    @delegate_property
-    def Q(self):
-        pass
-
-    # to do make a delegate setter property
-    @Q.setter
-    def Q(self, Q):
-        self.agent.Q = Q """
 
     # TODO: generalize delegation
     @delegate_property
