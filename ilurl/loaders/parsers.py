@@ -43,7 +43,6 @@ def parse_agent_params():
 
     # Read agent type: 'QL' or 'DQN'.
     agent_type = train_config['agent_type']['agent_type']
-    print(agent_type)
 
     if agent_type not in AGENT_TYPES:
             raise ValueError(f'''
