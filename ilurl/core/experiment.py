@@ -177,7 +177,11 @@ class Experiment:
 
         state = self.env.reset()
 
-        for _ in tqdm(range(num_steps)):                
+        for step in tqdm(range(num_steps)):
+
+            # WARNING: This is not synchronized with agents' cycle time.
+            if step % 86400 == 0 and agent_updates_counter != 0: # 24 hours
+                self.env.reset()
 
             state, reward, done, _ = self.env.step(rl_actions(state))
 
