@@ -7,6 +7,8 @@ import configparser
 
 from ilurl.core.params import QLParams, DQNParams, MDPParams
 
+AGENT_TYPES = ('QL', 'DQN')
+
 ILURL_PATH = Path(environ['ILURL_HOME'])
 TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
 
@@ -20,32 +22,51 @@ def str2bool(v, exception=None):
     else:
         raise ValueError('Boolean value expected.')
 
-def parse_agent_params(agent_type):
+def parse_agent_params():
     """
-        Parses agent paramters config file.
+        Parses agent parameters config file.
+        Loads agent type (e.g. 'QL' or 'DQN') from
+        train.config file and the respective parameters.
+
+        Returns:
+        -------
+        * agent_type: str
+            the type of the agent (e.g. 'QL' or 'DQN')
+
+        * agent_params: ilurl.core.params object
+            object containing the agent's parameters
+
     """
+    # Load parameters form train.config.
+    train_config = configparser.ConfigParser()
+    train_config.read(str(TRAIN_CONFIG_PATH))
+
+    # Read agent type: 'QL' or 'DQN'.
+    agent_type = train_config['agent_type']['agent_type']
+    print(agent_type)
+
+    if agent_type not in AGENT_TYPES:
+            raise ValueError(f'''
+                Agent type must be in {AGENT_TYPES}.
+                Got {agent_type} type instead.''')
 
     if agent_type == 'QL':
-        agent_params = parse_ql_params()
+        agent_params = parse_ql_params(train_config)
     elif agent_type == 'DQN':
-        agent_params = parse_dqn_params()
+        agent_params = parse_dqn_params(train_config)
     else:
         raise ValueError('Unkown agent type.')
 
-    return agent_params
+    return agent_type, agent_params
 
-def parse_ql_params():
+def parse_ql_params(train_config):
     """
         Parses Q-learning parameters (ql_args) from config file located
         at 'TRAIN_CONFIG_PATH' and returns a ilurl.core.params.QLParams
         object with the parsed parameters.
     """
 
-    # Load config file with parameters.
-    agents_config = configparser.ConfigParser()
-    agents_config.read(str(TRAIN_CONFIG_PATH))
-
-    ql_args = agents_config['ql_args']
+    ql_args = train_config['ql_args']
 
     ql_params = QLParams(
                     lr_decay_power_coef=float(ql_args['lr_decay_power_coef']),
@@ -60,18 +81,14 @@ def parse_ql_params():
 
     return ql_params
 
-def parse_dqn_params():
+def parse_dqn_params(train_config):
     """
         Parses Deep Q-Network parameters (dqn_args) from config file located
         at 'TRAIN_CONFIG_PATH' and returns a ilurl.core.params.DQNParams
         object with the parsed parameters.
     """
 
-    # Load config file with parameters.
-    agents_config = configparser.ConfigParser()
-    agents_config.read(str(TRAIN_CONFIG_PATH))
-
-    dqn_args = agents_config['dqn_args']
+    dqn_args = train_config['dqn_args']
 
     dqn_params = DQNParams(
                     lr= float(dqn_args['lr']),

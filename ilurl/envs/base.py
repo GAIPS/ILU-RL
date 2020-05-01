@@ -107,11 +107,9 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.mdp_params = mdp_params
 
         # Object that handles RL agents logic.
-        agent_type = env_params.additional_params.get('agent_type')
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
-        self.agents = AgentsWrapper(mdp_params,
-                                    agent_type=agent_type)
+        self.agents = AgentsWrapper(mdp_params)
 
         # Reward function.
         self.reward_calculator = RewardCalculator(self.mdp_params)

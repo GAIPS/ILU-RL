@@ -16,16 +16,10 @@ class AgentsWrapper(object):
     """
 
     def __init__(self, 
-                mdp_params,
-                agent_type):
-
-        if agent_type not in AGENT_TYPES:
-            raise ValueError(f'''
-                Agent type must be in {AGENT_TYPES}.
-                Got {agent_type} type instead.''')
+                mdp_params):
 
         # Load agent parameters from config file (train.config).
-        agent_params = parsers.parse_agent_params(agent_type)
+        agent_type, agent_params = parsers.parse_agent_params()
 
         # Create agents.
         agents = {}

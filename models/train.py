@@ -22,12 +22,8 @@ from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
 from ilurl.core.experiment import Experiment
-from ilurl.core.params import MDPParams
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
-
-# TODO: move this inside networks
-from ilurl.loaders.nets import get_tls_custom
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
@@ -66,18 +62,19 @@ def get_arguments(config_file):
 
     flags.add('--experiment-save-agent', '-a', dest='save_agent',
               type=str2bool, default=False, nargs='?',
-              help='Whether to save RL-agent parameters throughout training')
+              help='''Whether to save RL-agent parameters (checkpoints)
+                    throughout training.''')
 
     flags.add('--experiment-save-agent-interval', dest='save_agent_interval',
               type=int, default=500, nargs='?',
               help='''[ONLY APPLIES IF --experiment-save-agent is TRUE]
-              Save agent interval (in agent update steps)''')
+              Save agent interval (in agent update steps).''')
 
     flags.add('--experiment-seed', '-d', dest='seed', type=int,
               default=None, nargs='?',
               help='''Sets seed value for both rl agent and Sumo.
                      `None` for rl agent defaults to RandomState()
-                     `None` for Sumo defaults to a fixed but arbitrary seed''')
+                     `None` for Sumo defaults to a fixed but arbitrary seed.''')
 
     flags.add('--sumo-render', '-r', dest='render', type=str2bool,
               default=False, nargs='?',
@@ -85,17 +82,18 @@ def get_arguments(config_file):
 
     flags.add('--sumo-emission', '-e',
               dest='emission', type=str2bool, default=False, nargs='?',
-              help='Saves emission data from simulation on /data/emissions')
+              help='Saves emission data from simulation on /data/emissions.')
 
     flags.add('--tls-type', '-y',
               dest='tls_type', type=str, choices=('controlled', 'actuated',
               'static', 'random'), default='controlled', nargs='?',
-              help='Saves emission data from simulation on /data/emissions')
+              help='''SUMO traffic light type: \'controlled\', \'actuated'\',
+                    \'static\' or \'random\'.''')
 
     flags.add('--inflows-switch', '-W', dest='switch',
               type=str2bool, default=False, nargs='?',
               help='''Assign higher probability of spawning a vehicle
-                   every other hour on opposite sides''')
+                   every other hour on opposite sides.''')
 
     return flags.parse_args()
 
@@ -170,10 +168,6 @@ def main(train_config=None):
     additional_params = {}
     additional_params.update(ADDITIONAL_ENV_PARAMS)
     additional_params['tls_type'] = flags.tls_type
-
-    # TODO: make this an argument.
-    # Maybe join with tls_type?
-    additional_params['agent_type'] = 'QL'
     env_args = {
         'evaluate': True,
         'additional_params': additional_params
