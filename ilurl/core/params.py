@@ -46,6 +46,7 @@ ADDITIONAL_PARAMS = {
      "switch": 900
 }
 
+TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 
 class MDPParams:
     """
@@ -442,6 +443,94 @@ class DQNParams:
             raise ValueError('''The ineq 0 < target_net_update_interval.
                     Got target_net_update_interval = {}.'''.format(
                         target_net_update_interval))
+
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+
+class TrainParams:
+    """
+        Base train.py parameters.
+    """
+
+    def __init__(
+            self,
+            network='intersection',
+            experiment_time=900000,
+            experiment_log=False,
+            experiment_log_interval=1000,
+            experiment_save_agent=False,
+            experiment_save_agent_interval=2500,
+            experiment_seed=None,
+            sumo_render=False,
+            sumo_emission=False,
+            tls_type='controlled',
+            inflows_switch=False,
+        ):
+        """Instantiate train parameters.
+
+        Parameters:
+        ----------
+        * network: str
+            Network to be simulated.
+
+        * experiment_time: int
+            Simulation's real world time in seconds.
+
+        * experiment_log: bool
+            Whether to save experiment-related data in a JSON file
+            thoughout training (allowing to live track training).
+            If True tensorboard logs will also be created.
+
+        * experiment_log_interval: int
+            [Only applies if experiment_log is True]
+            Log into JSON file interval (in agent update steps).
+
+        * experiment_save_agent: bool
+            Whether to save RL-agent parameters (checkpoints)
+            throughout training.
+
+        * experiment_save_agent_interval: int
+            [Only applies if experiment_save_agent is True]
+            Save agent interval (in agent update steps).
+
+        * experiment_seed: int or None
+            Sets seed value for both RL agent and SUMO.
+            `None` for rl agent defaults to RandomState()
+            `None` for Sumo defaults to a fixed but arbitrary seed.
+
+        * sumo_render: bool
+            If True renders the simulation.
+
+        * sumo_emission: bool
+            If True saves emission data from simulation on /data/emissions.
+
+        * tls_type: ('controlled', 'static', 'random' or 'actuated')
+            SUMO traffic light type: \'controlled\', \'actuated'\',
+                    \'static\' or \'random\'.
+        
+        * inflows_switch: bool
+            If True assigns higher probability of spawning a vehicle
+                   every other hour on opposite sides.
+
+        """
+        kwargs = locals()
+
+        if experiment_time <= 0:
+            raise ValueError('''The ineq 0 < experiment_time must hold.
+                    Got experiment_time = {}.'''.format(experiment_time))
+
+        if experiment_log_interval <= 0:
+            raise ValueError('''The ineq 0 < experiment_log_interval must hold.
+                    Got experiment_log_interval = {}.'''.format(experiment_log_interval))
+
+        if experiment_save_agent_interval <= 0:
+            raise ValueError('''The ineq 0 < experiment_save_agent_interval < 1 must hold.
+                    Got experiment_save_agent_interval = {}.'''.format(experiment_save_agent_interval))
+
+        if tls_type not in TLS_TYPES:
+            raise ValueError('''The tls_type must be in ('controlled', 'static', 'random', 'actuated').
+                    Got tls_type = {}.'''.format(tls_type))
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)

@@ -5,7 +5,10 @@ from ast import literal_eval
 
 import configparser
 
-from ilurl.core.params import QLParams, DQNParams, MDPParams
+from ilurl.core.params import (QLParams,
+                               DQNParams,
+                               MDPParams,
+                               TrainParams)
 
 AGENT_TYPES = ('QL', 'DQN')
 
@@ -21,6 +24,12 @@ def str2bool(v, exception=None):
         return False
     else:
         raise ValueError('Boolean value expected.')
+
+def isNone(string):
+    if string in ('None', 'none'):
+        return True
+    else:
+        return False
 
 def parse_agent_params():
     """
@@ -111,10 +120,10 @@ def parse_mdp_params():
     """
 
     # Load config file with parameters.
-    agents_config = configparser.ConfigParser()
-    agents_config.read(str(TRAIN_CONFIG_PATH))
+    train_config = configparser.ConfigParser()
+    train_config.read(str(TRAIN_CONFIG_PATH))
 
-    mdp_args = agents_config['mdp_args']
+    mdp_args = train_config['mdp_args']
 
     mdp_params = MDPParams(
                     states=literal_eval(mdp_args['states']),
@@ -125,4 +134,60 @@ def parse_mdp_params():
                     reward=literal_eval(mdp_args['reward'])
     )
 
-    return mdp_params 
+    return mdp_params
+
+def parse_train_params(train_config_path, print_params=False):
+    """
+        If train_config_path is None, parses train.py parameters (train_args)
+        from config file located at 'TRAIN_CONFIG_PATH' and returns a
+        ilurl.core.params.TrainParams object with the parsed parameters.
+        If train_config_path is set then parses the config file from
+        train_config_path path.
+    """
+
+    # Load config file with parameters.
+    train_config = configparser.ConfigParser()
+
+    if train_config_path:
+        train_config.read(str(train_config_path))
+    else:
+        train_config.read(str(TRAIN_CONFIG_PATH))
+
+    train_args = train_config['train_args']
+
+    seed = int(train_args['experiment_seed']) if not isNone(train_args['experiment_seed']) else None
+
+    train_params = TrainParams(
+                    network=train_args['network'],
+                    experiment_time=int(train_args['experiment_time']),
+                    experiment_log=str2bool(train_args['experiment_log']),
+                    experiment_log_interval=int(train_args['experiment_log_interval']),
+                    experiment_save_agent=str2bool(train_args['experiment_save_agent']),
+                    experiment_save_agent_interval=int(train_args['experiment_save_agent_interval']),
+                    experiment_seed=seed,
+                    sumo_render=str2bool(train_args['sumo_render']),
+                    sumo_emission=str2bool(train_args['sumo_emission']),
+                    tls_type=train_args['tls_type'],
+                    inflows_switch=str2bool(train_args['inflows_switch']),
+    )
+
+    if print_params:
+        _print_train_params(train_params)
+
+    return train_params
+
+def _print_train_params(params):
+    print('Arguments (train.py):')
+    print('\tExperiment network: {0}'.format(params.network))
+    print('\tExperiment time: {0}'.format(params.experiment_time))
+    print('\tExperiment seed: {0}'.format(params.experiment_seed))
+    print('\tExperiment log info: {0}'.format(params.experiment_log))
+    print('\tExperiment log info interval: {0}'.format(params.experiment_log_interval))
+    print('\tExperiment save RL agent: {0}'.format(params.experiment_save_agent))
+    print('\tExperiment save RL agent interval: {0}'.format(params.experiment_save_agent_interval))
+
+    print('\tSUMO render: {0}'.format(params.sumo_render))
+    print('\tSUMO emission: {0}'.format(params.sumo_emission))
+    print('\tSUMO tls_type: {0}'.format(params.tls_type))
+
+    print('\tInflows switch: {0}\n'.format(params.inflows_switch))

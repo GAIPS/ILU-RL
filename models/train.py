@@ -14,9 +14,6 @@ from pathlib import Path
 
 import numpy as np
 import random
-import configargparse
-from configargparse import ArgumentTypeError
-import configparser
 
 from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
@@ -25,119 +22,23 @@ from ilurl.core.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
 
+from ilurl.loaders.parsers import parse_train_params
+
 ILURL_PATH = Path(environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
-CONFIG_PATH = ILURL_PATH / 'config'
+# CONFIG_PATH = ILURL_PATH / 'config'
 
-def get_arguments(config_file):
+def main(train_config_path=None):
 
-    if config_file is None:
-        config_file = []
+    train_args = parse_train_params(train_config_path, print_params=True)
 
-    flags = configargparse.ArgParser(
-        default_config_files=config_file,
-        description="""
-            This script runs a traffic light simulation based on
-            custom environment with presets saved on data/networks
-        """
-    )
-
-    flags.add('--network', '-n', type=str, nargs='?', dest='network',
-              default='intersection',
-              help='Network to be simulated')
-
-    flags.add('--experiment-time', '-t', dest='time', type=int,
-              default=90000, nargs='?',
-              help='Simulation\'s real world time in seconds')
-
-    flags.add('--experiment-log', '-l', dest='log_info',
-              type=str2bool, default=False, nargs='?',
-              help='''Whether to save experiment-related data in a JSON file
-                      thoughout training (allowing to live track training)''')
-
-    flags.add('--experiment-log-interval', dest='log_info_interval',
-              type=int, default=200, nargs='?',
-              help='''[ONLY APPLIES IF --experiment-log is TRUE]
-              Log into json file interval (in agent update steps)''')
-
-    flags.add('--experiment-save-agent', '-a', dest='save_agent',
-              type=str2bool, default=False, nargs='?',
-              help='''Whether to save RL-agent parameters (checkpoints)
-                    throughout training.''')
-
-    flags.add('--experiment-save-agent-interval', dest='save_agent_interval',
-              type=int, default=500, nargs='?',
-              help='''[ONLY APPLIES IF --experiment-save-agent is TRUE]
-              Save agent interval (in agent update steps).''')
-
-    flags.add('--experiment-seed', '-d', dest='seed', type=int,
-              default=None, nargs='?',
-              help='''Sets seed value for both rl agent and Sumo.
-                     `None` for rl agent defaults to RandomState()
-                     `None` for Sumo defaults to a fixed but arbitrary seed.''')
-
-    flags.add('--sumo-render', '-r', dest='render', type=str2bool,
-              default=False, nargs='?',
-              help='Renders the simulation')
-
-    flags.add('--sumo-emission', '-e',
-              dest='emission', type=str2bool, default=False, nargs='?',
-              help='Saves emission data from simulation on /data/emissions.')
-
-    flags.add('--tls-type', '-y',
-              dest='tls_type', type=str, choices=('controlled', 'actuated',
-              'static', 'random'), default='controlled', nargs='?',
-              help='''SUMO traffic light type: \'controlled\', \'actuated'\',
-                    \'static\' or \'random\'.''')
-
-    flags.add('--inflows-switch', '-W', dest='switch',
-              type=str2bool, default=False, nargs='?',
-              help='''Assign higher probability of spawning a vehicle
-                   every other hour on opposite sides.''')
-
-    return flags.parse_args()
-
-
-def str2bool(v, exception=None):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise ArgumentTypeError('Boolean value expected')
-
-def print_arguments(args):
-
-    print('\nArguments (models/train.py):')
-    print('\tExperiment network: {0}'.format(args.network))
-    print('\tExperiment time: {0}'.format(args.time))
-    print('\tExperiment seed: {0}'.format(args.seed))
-    print('\tExperiment log info: {0}'.format(args.log_info))
-    print('\tExperiment log info interval: {0}'.format(args.log_info_interval))
-    print('\tExperiment save RL agent: {0}'.format(args.save_agent))
-    print('\tExperiment save RL agent interval: {0}'.format(args.save_agent_interval))
-
-    print('\tSUMO render: {0}'.format(args.render))
-    print('\tSUMO emission: {0}'.format(args.emission))
-    print('\tSUMO tls_type: {0}'.format(args.tls_type))
-
-    print('\tInflows switch: {0}\n'.format(args.switch))
-
-
-def main(train_config=None):
-
-    flags = get_arguments(train_config)
-    print_arguments(flags)
-
-    inflows_type = 'switch' if flags.switch else 'lane'
+    inflows_type = 'switch' if train_args.inflows_switch else 'lane'
     network_args = {
-        'network_id': flags.network,
-        'horizon': flags.time,
+        'network_id': train_args.network,
+        'horizon': train_args.experiment_time,
         'demand_type': inflows_type,
         'insertion_probability': 0.1, # TODO: this needs to be network dependant
-        'tls_type': flags.tls_type
+        'tls_type': train_args.tls_type
     }
 
     network = Network(**network_args)
@@ -149,25 +50,25 @@ def main(train_config=None):
     print(f'Experiment: {str(experiment_path)}')
 
     sumo_args = {
-        'render': flags.render,
+        'render': train_args.sumo_render,
         'print_warnings': False,
         'sim_step': 1, # step = 1 by default.
         'restart_instance': True
     }
 
     # Setup seeds.
-    if flags.seed is not None:
-        random.seed(flags.seed)
-        np.random.seed(flags.seed)
-        sumo_args['seed'] = flags.seed
+    if train_args.experiment_seed is not None:
+        random.seed(train_args.experiment_seed)
+        np.random.seed(train_args.experiment_seed)
+        sumo_args['seed'] = train_args.experiment_seed
 
-    if flags.emission:
+    if train_args.sumo_emission:
         sumo_args['emission_path'] = experiment_path.as_posix()
     sim_params = SumoParams(**sumo_args)
 
     additional_params = {}
     additional_params.update(ADDITIONAL_ENV_PARAMS)
-    additional_params['tls_type'] = flags.tls_type
+    additional_params['tls_type'] = train_args.tls_type
     env_args = {
         'evaluate': True,
         'additional_params': additional_params
@@ -181,19 +82,19 @@ def main(train_config=None):
         )
 
     # Override possible inconsistent params.
-    if flags.tls_type not in ('controlled',):
+    if train_args.tls_type not in ('controlled',):
         env.stop = True
-        flags.save_agent = False
-        flags.save_agent_interval = None
+        train_args.save_agent = False
+        train_args.save_agent_interval = None
 
     exp = Experiment(
             env=env,
             exp_path=experiment_path.as_posix(),
             train=True,
-            log_info=flags.log_info,
-            log_info_interval=flags.log_info_interval,
-            save_agent=flags.save_agent,
-            save_agent_interval=flags.save_agent_interval
+            log_info=train_args.experiment_log,
+            log_info_interval=train_args.experiment_log_interval,
+            save_agent=train_args.experiment_save_agent,
+            save_agent_interval=train_args.experiment_save_agent_interval
      )
 
     # Store parameters.
@@ -206,12 +107,9 @@ def main(train_config=None):
         json.dump(parameters, f)
 
     # Run the experiment.
-    exp.run(flags.time)
+    exp.run(train_args.experiment_time)
 
     return str(experiment_path)
 
 if __name__ == '__main__':
-    train_path = CONFIG_PATH / 'train.config'
-    train_config = configparser.ConfigParser()
-    train_config.read(str(train_path))
-    main(train_config)
+    main()
