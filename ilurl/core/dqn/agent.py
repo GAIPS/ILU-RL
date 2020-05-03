@@ -77,6 +77,7 @@ class DQN(object, metaclass=MetaAgent):
             num_actions=self.num_actions,
             optimizer=tf.train.AdamOptimizer(learning_rate=self.lr),
             gamma=self.gamma,
+            scope=self.name
         )
 
         act_params = {
@@ -96,10 +97,6 @@ class DQN(object, metaclass=MetaAgent):
         # Initialize the parameters and copy them to the target network.
         U.initialize()
         self.update_target()
-
-        # Load model if load_path is set.
-        # if self.load_path is not None:
-        #     load_variables(self.load_path)
 
         # Tensorboard logger.
         self.logger = None
@@ -205,7 +202,7 @@ class DQN(object, metaclass=MetaAgent):
             checkpoint_file = '{0}/checkpoints/{1}-{2}.chkpt'.format(path,
                                                         self.name,
                                                         self.updates_counter)
-            save_variables(checkpoint_file)
+            save_variables(checkpoint_file, scope_name=self.name)
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
         """
@@ -224,7 +221,7 @@ class DQN(object, metaclass=MetaAgent):
                                                     self.name,
                                                     chkpt_num)
 
-        load_variables(chkpt_path)
+        load_variables(chkpt_path, scope_name=self.name)
 
     def setup_logger(self, path):
         """
