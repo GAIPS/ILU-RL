@@ -16,23 +16,15 @@ import datetime
 import json
 import logging
 from os import environ
-import tempfile
 import time
-from collections import defaultdict
 from threading import Thread
 
 from tqdm import tqdm
 
 import numpy as np
-from flow.core.util import emission_to_csv
 
 # TODO: Track those anoying warning
 warnings.filterwarnings('ignore')
-
-# TODO: Generalize for any parameter
-ILURL_PATH = Path(environ['ILURL_HOME'])
-
-EMISSION_PATH = ILURL_PATH / 'data/emissions/'
 
 class Experiment:
     """
@@ -77,7 +69,7 @@ class Experiment:
 
     def __init__(self,
                 env,
-                dir_path=EMISSION_PATH,
+                exp_path,
                 train=True,
                 log_info=False,
                 log_info_interval=20,
@@ -89,7 +81,7 @@ class Experiment:
         ----------
         env : flow.envs.Env
             the environment object the simulator will run
-        dir_path : int
+        exp_path : str
             path to dump experiment results
         train : bool
             whether to train agent
@@ -103,18 +95,17 @@ class Experiment:
             save RL agent interval (in number of agent-update steps)
 
         """
-        sim_step = env.sim_params.sim_step
-        # guarantees that the enviroment has stopped
+        # Guarantees that the enviroment has stopped.
         if not train:
             env.stop = True
 
         self.env = env
         self.train = train
-        self.dir_path = Path(dir_path) if dir_path is not None else None
-        # fails gracifully if an environment with no cycle time
+        self.exp_path = Path(exp_path) if exp_path is not None else None
+        # fails gracefully if an environment with no cycle time
         # is provided
         self.cycle = getattr(env, 'cycle_time', None)
-        self.save_step = getattr(env, 'cycle_time', 1) / sim_step
+        self.save_step = getattr(env, 'cycle_time', 1)
         self.log_info = log_info
         self.log_info_interval = log_info_interval
         self.save_agent = save_agent
@@ -169,9 +160,6 @@ class Experiment:
                 return None
 
         info_dict = {}
-        info_dict["id"] = self.env.network.name
-        info_dict["cycle"] = self.cycle
-        info_dict["save_step"] = self.save_step
 
         vels = []
         vehs = []
@@ -183,9 +171,17 @@ class Experiment:
 
         agent_updates_counter = 0
 
+        # Setup agent loggers (tensorboard).
+        if self.log_info:
+            self.env.agents.setup_logs(self.exp_path)
+
         state = self.env.reset()
 
-        for _ in tqdm(range(num_steps)):                
+        for step in tqdm(range(num_steps)):
+
+            # WARNING: This is not synchronized with agents' cycle time.
+            if step % 86400 == 0 and agent_updates_counter != 0: # 24 hours
+                self.env.reset()
 
             state, reward, done, _ = self.env.step(rl_actions(state))
 
@@ -199,14 +195,9 @@ class Experiment:
 
             if self._is_save_step():
 
-                observation_spaces.append(
-                    list(self.env.get_observation_space()))
+                observation_spaces.append(self.env.get_observation_space())
 
-                try:
-                    rewards.append([round(r, 4) for r in reward])
-                except Exception:
-                    import pdb
-                    pdb.set_trace()
+                rewards.append(reward)
 
                 vehs.append(np.nanmean(veh_i).round(4))
                 vels.append(np.nanmean(vel_i).round(4))
@@ -214,48 +205,41 @@ class Experiment:
                 vel_i = []
 
                 agent_updates_counter += 1
-                # Save train log.
+
+                # Save train log (data is aggregated per traffic signal).
                 if self.log_info and \
                     (agent_updates_counter % self.log_info_interval == 0):
-
-                    file_path = self.dir_path / f"{self.env.network.name}.train.json"
 
                     info_dict["rewards"] = rewards
                     info_dict["velocities"] = vels
                     info_dict["vehicles"] = vehs
                     info_dict["observation_spaces"] = observation_spaces
-                    info_dict["rl_actions"] = list(self.env.actions_log.values())
-                    info_dict["states"] = list(self.env.states_log.values())
-                    info_dict["explored"] = getattr(self.env.agent, 'explored', None)
-                    info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
-                    info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
+                    info_dict["actions"] = [a for a in self.env.actions_log.values()]
+                    info_dict["states"] = [s for s in self.env.states_log.values()]
 
-                    with file_path.open('w') as fj:
-                        t = Thread(target=json.dump(info_dict, fj))
+                    train_log_path = self.exp_path / "train_log.json"
+                    with train_log_path.open('w') as f:
+                        t = Thread(target=json.dump(info_dict, f))
                         t.start()
 
             if done and stop_on_teleports:
                 break
 
             if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
-                filename = \
-                    f'{self.env.network.name}.Q.1-{agent_updates_counter}.pickle'
-                
-                t = Thread(
-                    target=self.env.dump(self.dir_path.as_posix(),
-                                         filename, attr_name='Q')
-                )
-                t.start()
+                self.env.agents.save_checkpoint(self.exp_path)
 
+        # Save train log (data is aggregated per traffic signal).
         info_dict["rewards"] = rewards
         info_dict["velocities"] = vels
         info_dict["vehicles"] = vehs
         info_dict["observation_spaces"] = observation_spaces
-        info_dict["rl_actions"] = list(self.env.actions_log.values())
-        info_dict["states"] = list(self.env.states_log.values())
-        info_dict["explored"] = getattr(self.env.agent, 'explored', None)
-        info_dict["visited_states"] = getattr(self.env.agent, 'visited_states', None)
-        info_dict["Q_distances"] = getattr(self.env.agent, 'Q_distances', None)
+        info_dict["actions"] = [a for a in self.env.actions_log.values()]
+        info_dict["states"] = [s for s in self.env.states_log.values()]
+
+        train_log_path = self.exp_path / "train_log.json"
+        with train_log_path.open('w') as f:
+            t = Thread(target=json.dump(info_dict, f))
+            t.start()
 
         self.env.terminate()
 
@@ -267,6 +251,6 @@ class Experiment:
         return self.step_counter % self.save_step == 0
 
     def _is_save_q_table_step(self, counter):
-        if counter % self.save_agent_interval == 0:
-            return self.train and hasattr(self.env, 'dump') and self.dir_path
+        if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
+            return self.train and hasattr(self.env, 'dump') and self.exp_path
         return False

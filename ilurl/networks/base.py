@@ -18,7 +18,7 @@ from ilurl.utils.properties import lazy_property
 from ilurl.core.params import InFlows, NetParams
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
-                                get_types)
+                                get_types, get_tls_custom)
 
 
 class Network(flownet.Network):
@@ -112,12 +112,15 @@ class Network(flownet.Network):
                  demand_type='lane',
                  insertion_probability=0.1,
                  initial_config=None,
-                 tls=None):
-
+                 tls_type='controlled'):
 
         """Builds a new network from inflows -- the resulting
         vehicle trips will be stochastic use it for training"""
         self.network_id = network_id
+
+        baseline = (tls_type == 'actuated')
+        self.cycle_time, self.programs = get_tls_custom(
+                                network_id, baseline=baseline)
 
         if initial_config is None:
             initial_config = InitialConfig(
@@ -148,7 +151,7 @@ class Network(flownet.Network):
 
         # static program (required for rl)
         tls_logic = TrafficLightParams(baseline=False)
-        if tls is None:
+        if tls_type not in ('actuated', ):
             programs = get_logic(network_id)
             if programs:
                 for prog in programs:
@@ -157,7 +160,7 @@ class Network(flownet.Network):
                     prog['programID'] = int(prog.pop('programID')) + 1
                     tls_logic.add(node_id, **prog)
         else:
-            for tls_id, tls_args in tls.items():
+            for tls_id, tls_args in self.programs.items():
                 tls_logic.add(tls_id, **tls_args)
 
         super(Network, self).__init__(
@@ -476,6 +479,31 @@ class Network(flownet.Network):
         """
         return [n['id'] for n in self.nodes if n['type'] == 'traffic_light']
 
+    @lazy_property
+    def phases_per_tls(self):
+        """Dict containing the number of phases per traffic light.
+
+        Returns
+        -------
+            * phases_per_tls: dict
+
+        """
+        return {tid: len(self.tls_phases[tid])
+                    for tid in self.tls_ids}
+
+    @lazy_property
+    def num_signal_plans_per_tls(self):
+        """Dict containing the number of signal plans available
+        at 'programs' per traffic light.
+
+        Returns
+        -------
+            * num_signal_plans_per_tls: dict
+
+        """
+        return {tid: len(self.programs[tid]) 
+                    for tid in self.tls_ids}
+
     def _add_edges_capacity(self, edges):
         """Updates edges by providing capacity as the max density number of cars
             per edge
@@ -493,7 +521,7 @@ class Network(flownet.Network):
 
         Use case:
         --------
-         Determine the theoritical flow:
+         Determine the theoretical flow:
          q (flow) [cars/h]  = D (density) [cars/km] x V (speed) [km/h]
 
         References:

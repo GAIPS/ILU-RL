@@ -29,126 +29,69 @@ STATE_FEATURES = ('speed', 'count') #, 'flow', 'queue'
 '''
 Bounds = namedtuple('Bounds', 'rank depth')
 
-''' Rewards : namedtuple
+''' Reward : namedtuple
         Settings needed to perform reward computation
 
     * type: string
         A reward computation type in REWARD_TYPES
 
-    * costs: tuple or None
-        A tuple having size states depth representing
-        the cost for each speed category. Larger is worse.
+    * additional parameters: dict or None
+        A dict containing additional parameters.
 
 '''
-Rewards = namedtuple('Rewards', 'type costs')
+Reward = namedtuple('Reward', 'type additional_params')
 
 ADDITIONAL_PARAMS = {
     # every `switch` seconds concentrate flow in one direction
      "switch": 900
 }
 
-class QLParams:
-    """Base Q-learning parameters
+TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 
-      Provides also common behaviour functions
-      for environments and rewards (e.g categorize_state,
-      split_state)
+class MDPParams:
+    """
+        Holds general problem formulation params (MDP).
     """
 
-    def __init__(
-            self,
-            agent_id,
-            epsilon=3e-2,
-            alpha=5e-1,
-            gamma=0.9,
-            c=2,
-            initial_value=0,
-            rewards={
-                'type': 'weighted_average',
-                'costs': None
-            },
-            phases_per_traffic_light=[2],
-            states=('speed', 'count'),
-            num_actions=2,
-            choice_type='eps-greedy',
-            category_counts=[8.56, 13.00],
-            category_speeds=[2.28, 5.50],
-            normalize=False,
-            replay_buffer=False,
-            replay_buffer_size=500,
-            replay_buffer_batch_size=64,
-            replay_buffer_warm_up=200,
-    ):
-        """Instantiate base traffic light.
+    def __init__(self,
+                states=('speed', 'count'),
+                discretize_state_space=True,    # TODO
+                normalize_state_space=True,     # TODO
+                category_counts=[8.56, 13.00],  # TODO
+                category_speeds=[2.28, 5.50],   # TODO
+                reward={'type': 'target_velocity',
+                        'additional_params': {
+                            'target_velocity': 1.0
+                        }
+                }
+            ):
+        """Instantiate MDP params.
 
-        PARAMETERS
+        Parameters:
         ----------
-        * epsilon: is the chance to adopt a random action instead of
-                  a greedy action [1].
+        * states: ('speed', 'count')
+            the features to be used as state space representation.
 
-        * alpha: is the learning rate the weight given to new
-                 knowledge [1].
+        * discretize_state_space: bool
+            if True the state space will be categorized. TODO
 
-        * gamma: is the discount rate for value function [1].
+        * normalize_state_space: bool
+            if True the state space normalization will be applied. TODO
 
-        * c: upper confidence bound (ucb) exploration constant.
-        * rewards: namedtuple
-                    see above
+        * category_counts: TODO
 
-        * phases_per_traffic_light: list<int>
-            number of phases per intersection
-            
-        * states: namedtuple
-            Create discrete categorizations from continous variables
-            ( e.g states )
-            SEE Bounds above
-            * rank: int
-                Number of variable dimensions
+        * category_speeds: TODO
 
-            * depth: int
-                Number of categories
-
-        * num_actions: integer
-
-        * category_counts: list of floats
-                values to breakdown into classes;
-                if normalize then must be in (0, 1)
-
-        * category_speeds: list of floats
-                values to breakdown into classes:
-                if normalize then must be in (0, 1)
-
-
-        REFERENCES:
-        ----------
-            [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
+        * reward: namedtuple (see Reward definition above)
 
         """
         kwargs = locals()
-
-        if alpha <= 0 or alpha >= 1:
-            raise ValueError('''The ineq 0 < alpha < 1 must hold.
-                    got alpha = {}'''.format(alpha))
-
-        if gamma <= 0 or gamma > 1:
-            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
-                    got gamma = {}'''.format(gamma))
-
-        if epsilon < 0 or epsilon > 1:
-            raise ValueError('''The ineq 0 < epsilon < 1 must hold.
-                    got epsilon = {}'''.format(epsilon))
-
-        if choice_type not in CHOICE_TYPES:
-            raise ValueError(
-                f'''Choice type should be in {CHOICE_TYPES} got {choice_type}'''
-            )
-
 
         for attr, value in kwargs.items():
             if attr not in ('self', 'states', 'rewards'):
                 setattr(self, attr, value)
 
-        # State space.
+        # State space:
         if 'states' in kwargs:
             states_tuple = kwargs['states']
             for name in states_tuple:
@@ -156,64 +99,40 @@ class QLParams:
                     raise ValueError(f'''
                         {name} must be in {STATE_FEATURES}
                     ''')
-            self.set_states(states_tuple)
+            self.states_labels = states_tuple
 
-        # Action space.
-        if 'num_actions' in kwargs:
-            self.set_actions(kwargs['num_actions'])
-
-        # Rewards.
-        rewards = kwargs['rewards']
-        if 'type' not in rewards:
-            raise ValueError('''``type` must be provided in reward types''')
-
-        elif rewards['type'] not in REWARD_TYPES:
+        # Reward function.
+        reward = kwargs['reward']
+        if reward['type'] not in REWARD_TYPES:
             raise ValueError(f'''
-                Rewards must be in {REWARD_TYPES} got {rewards['type']}
-            ''')
-        elif rewards['type'] == 'costs':
-            if rewards['costs'] is None:
-                raise ValueError(
-                    '''Cost must not be None each state depth (tier)
-                      must have a cost got {} {} '''.format(
-                        self.state.depth, len(rewards['costs'])))
-            elif len(rewards['costs']) != self.states.depth:
-                raise ValueError('''Cost each state depth (tier)
-                      must have a cost got {} {} '''.format(
-                    self.state.depth, len(rewards['costs'])))
-        self.set_rewards(rewards['type'], rewards['costs'])
+                Reward type must be in {REWARD_TYPES}.
+                Got {reward['type']} type''')
+        else:
+            self.set_reward(reward['type'], reward['additional_params'])
 
-        if self.normalize:
-            if max(category_speeds) > 1:
+        if self.normalize_state_space:
+            if max(self.category_speeds) > 1:
                 raise ValueError('If `normalize` flag is set categories'
                                     'must be between 0 and 1')
 
-    def set_states(self, states_tuple):
-        self.states_labels = states_tuple
-        rank = sum(self.phases_per_traffic_light) * len(states_tuple)
-        depth = len(self.category_counts) + 1
-        self.states = Bounds(rank, depth)
+    def set_reward(self, type, additional_params):
+        self.reward = Reward(type, additional_params)
 
-    def set_actions(self, num_actions):
-        rank = len(self.phases_per_traffic_light)
-        depth = num_actions
-        self.actions = Bounds(rank, depth)
-
-    def set_rewards(self, type, costs):
-        self.rewards = Rewards(type, costs)
-
-    
     def categorize_space(self, observation_space):
         """Converts readings e.g averages, counts into integers
 
-        Params:
-        ------
+        Parameters:
+        ----------
             * observation_space: a list of lists
                 level 1 -- number of intersections controlled
                 level 2 -- number of phases e.g 2
-                level 3 -- numer of variables
-        Usage:
-        -----
+                level 3 -- number of variables
+
+        Returns:
+        -------
+
+        Example:
+        -------
             # 1 tls, 2 phases, 2 variables
             > reading = [[[14.2, 3], [0, 10]]]
             > categories = categorize_space(reading)
@@ -223,11 +142,12 @@ class QLParams:
 
         labels = list(self.states_labels)
 
-        categorized_space = []
+        categorized_space = {}
         # first loop is for intersections
-        for inters_space in observation_space:
+        for tls_id in observation_space.keys():
+            inters_space = observation_space[tls_id]
             # second loop is for phases
-            categorized_intersections = []
+            categorized_intersection = []
             for phase_space in inters_space:
                 # third loop is for variables
                 categorized_phases = []
@@ -235,17 +155,17 @@ class QLParams:
                     val = phase_space[i]
                     category = getattr(self, f'_categorize_{label}')(val)
                     categorized_phases.append(category)
-                categorized_intersections.append(categorized_phases)
-            categorized_space.append(categorized_intersections)
+                categorized_intersection.append(categorized_phases)
+            categorized_space[tls_id] = categorized_intersection
             
         
         return categorized_space
 
     def split_space(self, observation_space):
-        """Splits different variables into tuple
+        """Splits different variables into tuple.
         
-        Params:
-        ------- 
+        Parameters:
+        ----------
         * observation_space: list of lists
             nested 3 level list such that;
             The second level represents it's phases; e.g
@@ -255,7 +175,7 @@ class QLParams:
         Returns:
         -------
             * flatten space
-            
+
         Example:
         -------
         > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
@@ -269,18 +189,17 @@ class QLParams:
         splits = []
         for label in range(num_labels):
             components = []
-            for inters_space in observation_space:
-                for phases in inters_space:
-                    components.append(phases[label])
+            for phases in observation_space:
+                components.append(phases[label])
             splits.append(components)
 
         return splits
 
     def flatten_space(self, observation_space):
-        """Linearizes hierarchial state representation
+        """Linearizes hierarchial state representation.
         
-        Params:
-        ------
+        Parameters:
+        ----------
             * observation_space: list of lists
             nested 2 level list such that;
             The second level represents it's phases; e.g
@@ -299,10 +218,17 @@ class QLParams:
         > [13.3, 2.7, 15.7, 1.9]
 
         """
-        flattened = [obs_value for inters in observation_space
-                     for phases in inters for obs_value in phases]
+        out = {}
 
-        return flattened
+        for tls_id in observation_space.keys():
+            tls_obs = observation_space[tls_id]
+
+            flattened = [obs_value for phases in tls_obs
+                        for obs_value in phases]
+
+            out[tls_id] = tuple(flattened)
+
+        return out
 
     def _categorize_speed(self, speed):
         """
@@ -316,43 +242,306 @@ class QLParams:
         """
         return np.digitize(count, bins=self.category_counts).tolist()
 
-    # def _categorize_flow(self, flow_per_cycle):
-    #     """Converts float flow into a category
-    # 
-    #         UPDATES:
-    #         -------
-    #         2017-09-27 histogram analysis sugest the following
-    #         breakdowns for the quantiles of 20% and 75% for
-    #         the varable flow_per_cyle
-    #     """
-    #     if flow_per_cycle > .5067: # Top 25% data-points
-    #         return 2
-    # 
-    #     if flow_per_cycle > .2784:  # Average 20% -- 75%  data-points
-    #         return 1
-    #     return 0  # Bottom 20% data-points
 
-    # def _categorize_queue(self, queue_per_cycle):
-    #     """Converts float queue into a category
-    # 
-    #         UPDATES:
-    #         -------
-    #         2017-09-27 histogram analysis sugest the following
-    #         breakdowns for the quantiles of 20% and 75% for
-    #         the varable queue_per_cyle
-    #     """
-    #     if queue_per_cycle > .2002:  # Top 25% data-points
-    #         return 2
-    #     if queue_per_cycle > .1042:  # Average 20% -- 75%  data-points
-    #         return 1
-    #     return 0  # Bottom 20% data-points
+class QLParams:
+    """
+        Base Q-learning parameters.
+    """
+
+    def __init__(
+            self,
+            lr_decay_power_coef=0.66,
+            eps_decay_power_coef=1.0,
+            gamma=0.9,
+            c=2,
+            initial_value=0,
+            choice_type='eps-greedy',
+            replay_buffer=False,
+            replay_buffer_size=500,
+            replay_buffer_batch_size=64,
+            replay_buffer_warm_up=200,
+        ):
+        """Instantiate Q-learning parameters.
+
+        Parameters:
+        ----------
+        * lr_decay_power_coef: float
+            the learning rate decay power coefficient value, i.e. the 
+            learning rate is calculated using the following expression:
+                Power schedule (input x): 1 / ((1 + x)**lr_decay_power_coef)
+
+        * eps_decay_power_coef: float
+            the epsilon decay decay power coefficient value, i.e. the
+            epsilon (chance do take a random action) is calculated
+            using the following expression:
+                Power schedule (input x): 1 / ((1 + x)**eps_decay_power_coef)
+
+        * gamma: float
+            the discount rate [1].
+
+        * c: int
+            upper confidence bound (UCB) exploration constant.
+
+        * choice_type: ('eps-greedy', 'optimistic', 'ucb')
+            type of exploration strategy.
+
+        * initial_value: float
+            Q-table initialization value.
+
+        * replay_buffer: bool
+            if True batch learning will be used (Dyna-Q).
+
+        * replay_buffer_size: int
+            the size of the replay buffer.
+
+        * replay_buffer_batch_size: int
+            the size of the batches sampled from the replay buffer.
+
+        * replay_buffer_warm_up: int
+            replay buffer warm-up steps, i.e. the number of
+            steps before the learning starts.
+
+        References:
+        ----------
+            [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
+
+        """
+        kwargs = locals()
+
+        if lr_decay_power_coef <= 0:
+            raise ValueError('''The ineq 0 < lr_decay_power_coef must hold.
+                    Got lr_decay_power_coef = {}.'''.format(
+                        lr_decay_power_coef))
+
+        if eps_decay_power_coef <= 0:
+            raise ValueError('''The ineq 0 < eps_decay_power_coef.
+                    Got eps_decay_power_coef = {}.'''.format(
+                        eps_decay_power_coef))
+
+        if gamma <= 0 or gamma > 1:
+            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
+                    Got gamma = {}.'''.format(gamma))
+
+        if choice_type not in CHOICE_TYPES:
+            raise ValueError(
+                f'''Choice type should be in {CHOICE_TYPES}
+                    Got choice_type = {choice_type}.'''
+            )
+
+        if replay_buffer_size <= 0:
+            raise ValueError('''The ineq replay_buffer_size > 0
+                    must hold. Got replay_buffer_size = {}
+                    '''.format(replay_buffer_size))
+
+        if replay_buffer_batch_size <= 0 \
+            or replay_buffer_batch_size > replay_buffer_size:
+            raise ValueError('''The ineq replay_buffer_size >=
+                    replay_buffer_batch_size > 0 must hold.
+                    Got replay_buffer_batch_size = {}
+                    '''.format(replay_buffer_batch_size))
+
+        if replay_buffer_warm_up < 0:
+            raise ValueError('''The ineq replay_buffer_warm_up
+                    >= 0 must hold. Got replay_buffer_warm_up = {}
+                    '''.format(replay_buffer_warm_up))
+
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+
+class DQNParams:
+    """
+        Base Deep Q-network parameters.
+    """
+
+    def __init__(
+            self,
+            # TODO model
+            lr=5e-4,
+            gamma=0.8,
+            buffer_size=20000,
+            batch_size=64,
+            exp_initial_p=1.0,
+            exp_final_p=0.02,
+            exp_schedule_timesteps=40000,
+            learning_starts=2000,
+            target_net_update_interval=2000,
+        ):
+        """Instantiate Deep Q-network parameters.
+
+        Parameters:
+        ----------
+        * lr: float
+            learning rate.
+
+        * gamma: float
+            the discount rate.
+
+        * buffer_size: int
+            the size of the replay buffer.
+
+        * batch_size: int
+            the size of the batches sampled from the replay buffer.
+
+        * exp_initial_p: float
+            initial exploration rate.
+
+        * exp_final_p: float
+            final exploration rate.
+
+        * exp_schedule_timesteps: int
+            exploration decay interval i.e. the number of steps
+            it takes to decay exp_initial_p to exp_final_p.
+
+        * learning_starts: int
+            the number of steps before the learning starts.
+
+        * target_net_update_interval: int
+            target network updates interval.
+
+        """
+        kwargs = locals()
+
+        if lr <= 0 or lr >= 1:
+            raise ValueError('''The ineq 0 < lr < 1 must hold.
+                    Got lr = {}.'''.format(lr))
+
+        if gamma <= 0 or gamma > 1:
+            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
+                    Got gamma = {}.'''.format(gamma))
+
+        if exp_initial_p < 0 or exp_initial_p > 1:
+            raise ValueError('''The ineq 0 < exp_initial_p < 1 must hold.
+                    Got exp_initial_p = {}.'''.format(exp_initial_p))
+
+        if exp_final_p < 0 or exp_final_p > 1:
+            raise ValueError('''The ineq 0 < exp_final_p < 1 must hold.
+                    Got exp_final_p = {}.'''.format(exp_final_p))
+
+        if exp_schedule_timesteps < 0:
+            raise ValueError('''The ineq 0 < exp_schedule_timesteps.
+                    Got exp_schedule_timesteps = {}.'''.format(
+                        exp_schedule_timesteps))
+
+        if buffer_size <= 0:
+            raise ValueError('''The ineq buffer_size > 0
+                    must hold. Got buffer_size = {}
+                    '''.format(buffer_size))
+
+        if batch_size <= 0 \
+            or batch_size > buffer_size:
+            raise ValueError('''The ineq buffer_size >=
+                    batch_size > 0 must hold.
+                    Got batch_size = {}
+                    '''.format(batch_size))
+
+        if learning_starts < 0:
+            raise ValueError('''The ineq 0 <= learning_starts.
+                    Got learning_starts = {}.'''.format(learning_starts))
+
+        if target_net_update_interval <= 0:
+            raise ValueError('''The ineq 0 < target_net_update_interval.
+                    Got target_net_update_interval = {}.'''.format(
+                        target_net_update_interval))
+
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+
+class TrainParams:
+    """
+        Base train.py parameters.
+    """
+
+    def __init__(
+            self,
+            network='intersection',
+            experiment_time=900000,
+            experiment_log=False,
+            experiment_log_interval=1000,
+            experiment_save_agent=False,
+            experiment_save_agent_interval=2500,
+            experiment_seed=None,
+            sumo_render=False,
+            sumo_emission=False,
+            tls_type='controlled',
+            inflows_switch=False,
+        ):
+        """Instantiate train parameters.
+
+        Parameters:
+        ----------
+        * network: str
+            Network to be simulated.
+
+        * experiment_time: int
+            Simulation's real world time in seconds.
+
+        * experiment_log: bool
+            Whether to save experiment-related data in a JSON file
+            thoughout training (allowing to live track training).
+            If True tensorboard logs will also be created.
+
+        * experiment_log_interval: int
+            [Only applies if experiment_log is True]
+            Log into JSON file interval (in agent update steps).
+
+        * experiment_save_agent: bool
+            Whether to save RL-agent parameters (checkpoints)
+            throughout training.
+
+        * experiment_save_agent_interval: int
+            [Only applies if experiment_save_agent is True]
+            Save agent interval (in agent update steps).
+
+        * experiment_seed: int or None
+            Sets seed value for both RL agent and SUMO.
+            `None` for rl agent defaults to RandomState()
+            `None` for Sumo defaults to a fixed but arbitrary seed.
+
+        * sumo_render: bool
+            If True renders the simulation.
+
+        * sumo_emission: bool
+            If True saves emission data from simulation on /data/emissions.
+
+        * tls_type: ('controlled', 'static', 'random' or 'actuated')
+            SUMO traffic light type: \'controlled\', \'actuated'\',
+                    \'static\' or \'random\'.
+        
+        * inflows_switch: bool
+            If True assigns higher probability of spawning a vehicle
+                   every other hour on opposite sides.
+
+        """
+        kwargs = locals()
+
+        if experiment_time <= 0:
+            raise ValueError('''The ineq 0 < experiment_time must hold.
+                    Got experiment_time = {}.'''.format(experiment_time))
+
+        if experiment_log_interval <= 0:
+            raise ValueError('''The ineq 0 < experiment_log_interval must hold.
+                    Got experiment_log_interval = {}.'''.format(experiment_log_interval))
+
+        if experiment_save_agent_interval <= 0:
+            raise ValueError('''The ineq 0 < experiment_save_agent_interval < 1 must hold.
+                    Got experiment_save_agent_interval = {}.'''.format(experiment_save_agent_interval))
+
+        if tls_type not in TLS_TYPES:
+            raise ValueError('''The tls_type must be in ('controlled', 'static', 'random', 'actuated').
+                    Got tls_type = {}.'''.format(tls_type))
+
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
 
 
 class InFlows(flow_params.InFlows):
     """InFlow: plus load & dump functionality"""
 
     @classmethod
-    def make(cls, network_id, horizon, demand_type, label, initial_config=None):
+    def make(cls, network_id, horizon,
+            demand_type, label, initial_config=None):
 
         inflows = cls(network_id, horizon, demand_type,
                       initial_config=initial_config)

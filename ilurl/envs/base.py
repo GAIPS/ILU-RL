@@ -17,6 +17,10 @@ from ilurl.core.ql.reward import RewardCalculator
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 
+import ilurl.loaders.parsers as parsers
+
+from ilurl.core.agents_wrapper import AgentsWrapper
+
 ILURL_HOME = os.environ['ILURL_HOME']
 
 NETWORKS_PATH = \
@@ -63,20 +67,16 @@ class TrafficLightEnv(AccelEnv, Serializer):
     * switch_time: minimum time a light must be constant before it
                     switches (in seconds). Earlier RL commands are
                     ignored.
-    * tl_type: whether the traffic lights should be actuated by sumo or
+    * tls_type: whether the traffic lights should be actuated by sumo or
                 RL, options are respectively "actuated" and "controlled"
     * discrete: determines whether the action space is meant to be
                 discrete or continuous.
 
     """
-    
     def __init__(self,
                  env_params,
                  sim_params,
-                 agent,
                  network,
-                 TLS_programs,
-                 static=False,
                  simulator='traci'):
 
         super(TrafficLightEnv, self).__init__(env_params,
@@ -84,38 +84,41 @@ class TrafficLightEnv(AccelEnv, Serializer):
                                               network,
                                               simulator=simulator)
 
+        # Load MDP parameters from file (train.config[mdg_args]).
+        mdp_params = parsers.parse_mdp_params()
 
-        # TODO: Allow for mixed networks with actuated, controlled and static
-        # traffic light configurations
-        self.tl_type = env_params.additional_params.get('tl_type')
+        # TODO: Allow for mixed networks with actuated,
+        # controlled and static traffic light configurations.
+        self.tls_type = env_params.additional_params.get('tls_type')
 
-        self.discrete = env_params.additional_params.get("discrete", False)
         # Whether TLS timings are static or controlled by agent.
-        self.static = (self.tl_type == 'static')
+        self.static = (self.tls_type == 'static')
 
         # Cycle time.
-        self.cycle_time = env_params.additional_params['cycle_time']
+        self.cycle_time = network.cycle_time
 
-        # Programs (timings).
-        self.programs = TLS_programs
+        # TLS programs.
+        self.programs = network.programs
 
         # Keeps the internal value of sim step.
         self.sim_step = sim_params.sim_step
 
-        # Time-steps simulation horizon.
-        self.steps = env_params.horizon
+        # Problem formulation params.
+        self.mdp_params = mdp_params
 
-        # if self.tl_type != "actuated":
-        self._reset()
+        # Object that handles RL agents logic.
+        mdp_params.phases_per_traffic_light = network.phases_per_tls
+        mdp_params.num_actions = network.num_signal_plans_per_tls
+        self.agents = AgentsWrapper(mdp_params)
 
-
-        # RL agent.
-        self.agent = agent
-        self.reward_calculator = RewardCalculator(env_params,
-                                                  self.agent.ql_params)
+        # Reward function.
+        self.reward_calculator = RewardCalculator(self.mdp_params)
 
         self.actions_log = {}
         self.states_log = {}
+
+        # if self.tls_type != "actuated":
+        self._reset()
 
     @property
     def stop(self):
@@ -123,16 +126,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
     @stop.setter
     def stop(self, stop):
-        self.agent.stop = stop
-
-    @delegate_property
-    def Q(self):
-        pass
-
-    # to do make a delegate setter property
-    @Q.setter
-    def Q(self, Q):
-        self.agent.Q = Q
+        self.agents.stop = stop
 
     # TODO: generalize delegation
     @delegate_property
@@ -162,20 +156,22 @@ class TrafficLightEnv(AccelEnv, Serializer):
         """
         Updates the observation space.
 
-        Assumes that each traffic light carries a speed sensor. The agent
-        has the traffic light information if the vehicle is as close as 50%
-        the edge's length.
+        Assumes that each traffic light carries a speed sensor.
+        (counts and speeds)
 
         Updates the following data structures:
 
         * incoming: nested dict
-            outer keys: int
+            1st order (outer) keys: int
                     traffic_light_id
-            inner keys: float
-                    frame_id of observations ranging from 0 to duration
+            2nd order keys: int
+                    TLS phase
+            3rd order (inner) keys: float
+                    frame_id of observations ranging from 0 to duration 
             values: list
-                    vehicle speeds at frame or edge
-        """
+                    vehicle ids and speeds for the given TLS, phase and edges
+
+            """
         def observe(components):
             veh_ids = []
             for component in components:
@@ -199,22 +195,23 @@ class TrafficLightEnv(AccelEnv, Serializer):
     def get_observation_space(self):
         """
         Consolidates the observation space.
+        Aggregates all data belonging to a complete cycle.
 
         Update:
         ------
-        observation space is now a 3 level hierachial list
+        observation space is now a 3 level hierarchial dict:
 
-        *   intersection: list
-            the top most represents the traffic lights being
-            controlled by the agent.
+            *   intersection: dict
+                the top most represents the traffic lights
+                (traffic_light_id)
 
-        *   phases: list
-            the second layer represents the phases components
-            for each intersection as of now there are only two phases
+            *   phases: dict
+                the second layer represents the phases components
+                for each intersection/traffic light
 
-        *   variables: list
-            the third and final layer represents the variables
-            being observed by the agent e.g `speeds` or `counts`
+            *   values: list
+                the third and final layer represents the variables
+                being observed by the agent
 
         WARNING:
             when all cars are dispatched the
@@ -232,15 +229,15 @@ class TrafficLightEnv(AccelEnv, Serializer):
         prev = delay(self.duration)
 
         if (prev not in self.memo_observation_space) or self.step_counter <= 2:
-            observations = []
-            normalize = self.agent.ql_params.normalize
+            observations = {}
+            normalize = self.mdp_params.normalize_state_space
             for nid in self.tls_ids:
-                data = []
+                tls_data = []
                 for phase in self.tls_phases[nid]:
                     max_speed, max_count = self.tls_max_capacity[nid][phase]
                     incoming = self.incoming[nid][phase]
                     values = []
-                    for label in self.agent.ql_params.states_labels:
+                    for label in self.mdp_params.states_labels:
 
                         if label in ('count',):
                             counts = self.memo_counts[nid][phase]
@@ -268,8 +265,8 @@ class TrafficLightEnv(AccelEnv, Serializer):
                             raise ValueError(f'`{label}` not implemented')
 
                         values.append(round(value, 2))
-                    data.append(values)
-                observations.append(data)
+                    tls_data.append(values)
+                observations[nid] = tls_data
 
             self.memo_observation_space[prev] = observations
         return self.memo_observation_space[prev]
@@ -284,16 +281,17 @@ class TrafficLightEnv(AccelEnv, Serializer):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        
+        obs = self.get_observation_space()
+
         # Categorize.
-        categorized = \
-            self.agent.ql_params.categorize_space(self.get_observation_space())
-        
+        if self.mdp_params.discretize_state_space:
+            obs = self.mdp_params.categorize_space(obs)
+
         # Flatten.
         flattened = \
-            self.agent.ql_params.flatten_space(categorized)
+            self.mdp_params.flatten_space(obs)
 
-        return tuple(flattened)
+        return flattened
 
     def rl_actions(self, state):
         """
@@ -301,7 +299,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         Params:
         ------
-            state : array_like
+            state : dict
             information on the state of the vehicles, which is provided to the
             agent
         
@@ -313,7 +311,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         """
         if self.duration == 0:
-            action = self.agent.act(tuple(state))
+            action = self.agents.act(state)
         else:
             action = None
 
@@ -338,17 +336,17 @@ class TrafficLightEnv(AccelEnv, Serializer):
         ret = []
         dur = int(self.duration)
 
-        def fn(tn, tid):
+        def fn(tid):
             if (dur == 0 and self.step_counter > 1):
                 return True
 
             if static:
                 return dur in self.tls_durations[tid]
             else:
-                progid = self._current_rl_action()[tn]
+                progid = self._current_rl_action()[tid]
                 return dur in self.programs[tid][progid]
 
-        ret = [fn(*args) for args in enumerate(self.tls_ids)]
+        ret = [fn(tid) for tid in self.tls_ids]
 
         return tuple(ret)
 
@@ -364,13 +362,13 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Update observation space.
         self.update_observation_space()
 
-        if self.tl_type != 'actuated':
+        if self.tls_type != 'actuated':
             if self.duration == 0:
                 # New cycle.
 
                 # Get the number of the current cycle.
                 cycle_number = \
-                    int(self.step_counter / (self.cycle_time / self.sim_step))
+                    int(self.step_counter / self.cycle_time)
 
                 # Get current state.
                 state = self.get_state()
@@ -389,8 +387,8 @@ class TrafficLightEnv(AccelEnv, Serializer):
                     reward = self.compute_reward(None)
                     prev_state = self.states_log[cycle_number - 1]
                     prev_action = self.actions_log[cycle_number - 1]
-                    self.agent.update(prev_state, prev_action, reward, state)
-                
+                    self.agents.update(prev_state, prev_action, reward, state)
+
             self.memo_rewards = {}
             self.memo_observation_space = {}
 
@@ -478,7 +476,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.state_indicator = {}
         for node_id in self.tls_ids:
             num_phases = len(self.tls_phases[node_id])
-            if self.tl_type != 'actuated':
+            if self.tls_type != 'actuated':
                 self.state_indicator[node_id] = 0
                 s0 = self.tls_states[node_id][0]
                 self.k.traffic_light.set_state(node_id=node_id, state=s0)
