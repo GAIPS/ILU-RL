@@ -63,7 +63,7 @@ def get_routes(network_id):
         returns:
         -------
             * routes: list of dictionaries
-            as specified at flow.scenarios.py
+            as specified at flow.networks.py
 
         specs:
         ------
@@ -78,6 +78,10 @@ def get_routes(network_id):
         reference:
         ----------
         flow.networks.base
+
+        update:
+        ------
+        2020-05-06: Before routes were equiprobable.
     """
     # Parse xml to recover all generated routes
     routes = get_generic_element(network_id, 'vehicle/route',
@@ -94,13 +98,20 @@ def get_routes(network_id):
     routes = {k: sorted([r for r in routes if k == r[0]])
               for k in sorted(keys)}
 
-    # convert to equipropable array of tuples:
-    # (routes, probability)
-    routes = OrderedDict({
-        k: [(r, 1 / len(rou)) for r in rou]
-        for k, rou in routes.items()
-    })
-    return routes
+    # weight every route by the min. number of lanes.
+    # convert list of edges into dict
+    edge_lanes = {e['id']: e['numLanes'] for e in get_edges(network_id)}
+    weighted_routes = OrderedDict()
+    for start, paths in routes.items():
+        weight_paths = []
+        weight_source = 0
+        for path in paths:
+            weight = min([edge_lanes[eid] for eid in path])
+            weight_paths.append((path, weight))
+            weight_source += weight
+
+        weighted_routes[start] = [(p, w / weight_source) for p, w in weight_paths]
+    return weighted_routes
 
 
 def get_nodes(network_id):
