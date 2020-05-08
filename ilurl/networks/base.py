@@ -5,15 +5,16 @@ __date__ = '2020-01-10'
 import os
 import operator as op
 from itertools import groupby
+from copy import deepcopy
 
 # Network related parameters
 from flow.core.params import InitialConfig, TrafficLightParams
 from flow.core.params import VehicleParams, SumoCarFollowingParams
-from flow.controllers.routing_controllers import GridRouter
 
 import flow.networks.base as flownet
-# from flow.networks.base import Network as FlowNetwork
 
+
+from ilurl.controllers.routing_controllers import ExpressRouter
 from ilurl.utils.properties import lazy_property
 from ilurl.core.params import InFlows, NetParams
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
@@ -130,7 +131,7 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    routing_controller=(GridRouter, {}),
+                    routing_controller=(ExpressRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
                         decel=7.5,  # avoid collisions at emergency stops
@@ -172,6 +173,7 @@ class Network(flownet.Network):
         self.edges = self.specify_edges(net_params)
         self.connections = self.specify_connections(net_params)
         self.types = self.specify_types(net_params)
+        
 
 
     def specify_nodes(self, net_params):
@@ -228,6 +230,22 @@ class Network(flownet.Network):
 
     def specify_types(self, net_params):
         return get_types(self.network_id)
+
+    def specify_edge_starts(self):
+        "see parent class"
+        return [(e['id'], e['length']) for e in get_edges(self.network_id)]
+
+    @lazy_property
+    def links(self):
+        """Dict version from connections"""
+        conns = deepcopy(self.connections)
+        return {conn.pop('via'): conn for conn in conns if 'via' in conn} 
+
+    @lazy_property
+    def edges2(self):
+        """Edges as dictionary instead of a list"""
+        return {data['id']: {k:v for k, v in data.items() if k != 'id'}
+                for data in self.edges}
 
     @lazy_property
     def tls_approaches(self):
@@ -483,7 +501,7 @@ class Network(flownet.Network):
         Limitations:
         -----------
         * It considers an average number vehicles over all vehicle_types
-        * If vehicle lenght is not provided converts it to lenght 5 default
+        * If vehicle length is not provided converts it to length 5 default
 
         Sumo:
         -----
@@ -504,7 +522,7 @@ class Network(flownet.Network):
         # Summarize over vehicle types
         xs, vs = 0, 0
         for i, veh_type in enumerate(self.vehicles.types):
-            # compute the average vehicle lenght
+            # compute the average vehicle length
             x = veh_type.get('minGap', 2.5) + veh_type.get('length', 5.0)
             v = veh_type.get('maxSpeed', 55.55)
             xs = (x + i * xs) / (i + 1)     # mean of lengths
@@ -512,7 +530,7 @@ class Network(flownet.Network):
 
         # Apply over edges
         for edge in edges:
-            edge['max_capacity'] = (edge['length'] / xs) * edge['numLanes']
+            edge['max_capacity'] = int(edge['length'] / xs) * edge['numLanes']
             # max of mean speeds (max_speed is too conservative)
             edge['max_speed'] = 0.5 * edge.get('speed', vs)
             
