@@ -10,7 +10,8 @@ from collections import defaultdict
 
 # Network related parameters
 from flow.core.params import InitialConfig, TrafficLightParams
-from flow.core.params import VehicleParams, SumoCarFollowingParams
+from flow.core.params import (VehicleParams, SumoCarFollowingParams,
+                                SumoLaneChangeParams)
 
 import flow.networks.base as flownet
 
@@ -137,6 +138,9 @@ class Network(flownet.Network):
                         min_gap=2.5,
                         decel=7.5,  # avoid collisions at emergency stops
                     ),
+                    lane_change_params=SumoLaneChangeParams(
+                        lane_change_mode='strategic'
+                    )
                 )
 
             inflows = InFlows(network_id,
