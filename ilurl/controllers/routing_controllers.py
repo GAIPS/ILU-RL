@@ -14,8 +14,14 @@ class ExpressRouter(BaseRouter):
     See base class for usage example.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.choice_edges = []
+        self.re_routed = False
+
     def choose_route(self, env):
         """See parent class."""
+        
         vehicles = env.k.vehicle
         veh_id = self.veh_id
         veh_edge = vehicles.get_edge(veh_id)
@@ -24,14 +30,24 @@ class ExpressRouter(BaseRouter):
                                                 vehicles.get_lane(veh_id))
 
         veh_pos = vehicles.get_position(veh_id)
+        veh_lane = vehicles.get_lane(veh_id)
         next_route = None
         # connection are not in edges but it's valid veh_edge
         if veh_edge in env.network.edges2:
             edges = env.network.edges2
             edge_length = edges[veh_edge]['length']
-
+            
+            veh_speed = vehicles.get_speed(veh_id)
             # TODO: adjust by vehicle size and mingap (eta)
-            if edge_length - veh_pos < 10:
+            # if edge_length - veh_pos < 10 and veh_edge not in self.choice_edges:
+            if edge_length - veh_pos < 10 and not self.re_routed and veh_lane == 0 and \
+                    veh_speed > 0.1:
+
+                # if veh_edge == '23738909#2':
+                #     print(veh_id, veh_speed, veh_lane)
+                #     import pdb
+                #     pdb.set_trace()
+
                 veh_choices = len(veh_next_edge)
                 # for one approach there might be more than one choice
                 if veh_choices > 1:
@@ -56,30 +72,37 @@ class ExpressRouter(BaseRouter):
                            len(destination_vehicles) / cap
 
                     # both are sufficiently occupied
-                    if max(destination_occupancy.values()) > 0.5:
+                    if min(destination_occupancy.values()) > 0.5:
                         # choose the smallest filled route
                         min_edge = \
-                            min(destination_occupancy.items(),
-                                key=itemgetter(1))
+                            min(destination_occupancy.items(), key=itemgetter(1))
                         next_edge = min_edge[0]
 
                         #TODO: test if min_edge is already an edge
                         if next_edge not in veh_route:
                             # find routes that contain the min edge
-                            routes = []
-                            for start, weighted_routes in env.network.routes.items():
+                            sink = veh_route[-1]
+                            neighbours = env.network.neighbours_sinks[sink] 
 
-                                start_routes, _ = zip(*weighted_routes)
-                                routes += [rou for rou in start_routes if next_edge in rou]
-
+                            # try to find another route which has the same sink
+                            # and it contains next_edge
+                            routes = [r for r in env.network.routes2[sink] if next_edge in r]
+                            if len(routes) == 0 and len(neighbours) > 0:
+                                # neightbours search
+                                print(f'{veh_id} searching for neighbour')
+                                routes = [r for snk in neighbours 
+                                            for r in env.network.routes2[snk] if next_edge in r]
                             
-                            if len(routes) > 1:
+                            if len(routes) > 0:
                                 route_index = choice(len(routes))
                                 chosen_route = routes[route_index]
                                 # section of the route made so far
-                                new_route = ' '.join(chosen_route).
-                                                split(next_edge)[-1].
-                                                split()
+                                new_route = ' '.join(chosen_route).split(next_edge)[-1].split()
                                 next_route = tuple([veh_edge, next_edge] + new_route)
-        return next_route
+                                print(f'{veh_id} re-routing veh_id')
+
+                self.re_routed = next_route is not None
+                # if next_route is not None:
+                #     self.choice_edges.append(veh_edge)
+            return next_route
 

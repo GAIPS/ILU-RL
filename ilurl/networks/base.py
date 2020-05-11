@@ -6,6 +6,7 @@ import os
 import operator as op
 from itertools import groupby
 from copy import deepcopy
+from collections import defaultdict
 
 # Network related parameters
 from flow.core.params import InitialConfig, TrafficLightParams
@@ -246,6 +247,51 @@ class Network(flownet.Network):
         """Edges as dictionary instead of a list"""
         return {data['id']: {k:v for k, v in data.items() if k != 'id'}
                 for data in self.edges}
+
+    @lazy_property
+    def routes2(self):
+        """Sinks to routes dictionary --  no prob. emissions
+
+          Returns:
+            routes: dict<<str>, list<str>>
+                key: str .: edge_id routes' sink
+                values: list .: edge_ids
+        """
+        routes2 = defaultdict(list)
+        for src, routes_weights in get_routes(self.network_id).items():
+            for route, weights in routes_weights:
+                routes2[route[-1]].append(route)
+        return routes2
+
+    @lazy_property
+    def neighbours_sinks(self):
+        """Sinks to routes dictionary --  no prob. emissions
+
+          Returns:
+            routes: dict<<str>, list<str>>
+                key: str .: edge_id routes' sink
+                values: list .: edge_ids
+        """
+        edges = self.edges2
+        nodes = self.nodes
+        sinks = self.routes2.keys()
+        neighbours = {}
+            
+        for sink in sinks:
+            sink_node = edges[sink]['from']
+
+            # those neightbours share the same junction
+            neighbours[sink] = [eid for eid, data in edges.items()
+                                 if data['from'] == sink_node and 
+                                    eid != sink and eid in sinks] 
+
+            # those neighbours are on adjacent junctions
+            adjacent_nodes = [node['id'] for node in nodes for data in edges.values()
+                              if data['from'] == node['id'] and data['to'] == sink_node] 
+    
+            neighbours[sink] += [eid for eid in sinks
+                                     if edges[eid]['from'] in adjacent_nodes] 
+        return neighbours
 
     @lazy_property
     def tls_approaches(self):
