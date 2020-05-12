@@ -1,10 +1,11 @@
+"""This module implements a custom RL-controller"""
 from operator import itemgetter
 from numpy.random import choice
 
 from flow.controllers.base_routing_controller import BaseRouter
 
 
-class ExpressRouter(BaseRouter):
+class GreedyRouter(BaseRouter):
     """A router used to re-route vehicles in a generic network.
 
     This class allows the vehicle to pick a `more vacant` route at junctions.
@@ -16,7 +17,6 @@ class ExpressRouter(BaseRouter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.choice_edges = []
         self.re_routed = False
 
     def choose_route(self, env):
@@ -37,16 +37,8 @@ class ExpressRouter(BaseRouter):
             edges = env.network.edges2
             edge_length = edges[veh_edge]['length']
             
-            veh_speed = vehicles.get_speed(veh_id)
             # TODO: adjust by vehicle size and mingap (eta)
-            # if edge_length - veh_pos < 10 and veh_edge not in self.choice_edges:
-            if edge_length - veh_pos < 10 and not self.re_routed and veh_lane == 0 and \
-                    veh_speed > 0.1:
-
-                # if veh_edge == '23738909#2':
-                #     print(veh_id, veh_speed, veh_lane)
-                #     import pdb
-                #     pdb.set_trace()
+            if edge_length - veh_pos < 10 and not self.re_routed:
 
                 veh_choices = len(veh_next_edge)
                 # for one approach there might be more than one choice
@@ -72,7 +64,7 @@ class ExpressRouter(BaseRouter):
                            len(destination_vehicles) / cap
 
                     # both are sufficiently occupied
-                    if min(destination_occupancy.values()) > 0.5:
+                    if max(destination_occupancy.values()) > 0.5:
                         # choose the smallest filled route
                         min_edge = \
                             min(destination_occupancy.items(), key=itemgetter(1))
@@ -82,14 +74,14 @@ class ExpressRouter(BaseRouter):
                         if next_edge not in veh_route:
                             # find routes that contain the min edge
                             sink = veh_route[-1]
-                            neighbours = env.network.neighbours_sinks[sink] 
 
                             # try to find another route which has the same sink
                             # and it contains next_edge
                             routes = [r for r in env.network.routes2[sink] if next_edge in r]
-                            if len(routes) == 0 and len(neighbours) > 0:
+                            # neightbours search
+                            if len(routes) == 0:
                                 # neightbours search
-                                print(f'{veh_id} searching for neighbour')
+                                neighbours = env.network.neighbours_sinks[sink] 
                                 routes = [r for snk in neighbours 
                                             for r in env.network.routes2[snk] if next_edge in r]
                             
@@ -102,7 +94,5 @@ class ExpressRouter(BaseRouter):
                                 print(f'{veh_id} re-routing veh_id')
 
                 self.re_routed = next_route is not None
-                # if next_route is not None:
-                #     self.choice_edges.append(veh_edge)
             return next_route
 

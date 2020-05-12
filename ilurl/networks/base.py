@@ -12,11 +12,13 @@ from collections import defaultdict
 from flow.core.params import InitialConfig, TrafficLightParams
 from flow.core.params import (VehicleParams, SumoCarFollowingParams,
                                 SumoLaneChangeParams)
-
 import flow.networks.base as flownet
 
 
-from ilurl.controllers.routing_controllers import ExpressRouter
+
+# from flow.controllers.routing_controllers import GridRouter
+
+from ilurl.controllers.routing_controllers import GreedyRouter
 from ilurl.utils.properties import lazy_property
 from ilurl.core.params import InFlows, NetParams
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
@@ -133,7 +135,7 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    routing_controller=(ExpressRouter, {}),
+                    routing_controller=(GreedyRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
                         decel=7.5,  # avoid collisions at emergency stops

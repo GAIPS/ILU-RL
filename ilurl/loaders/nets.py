@@ -51,34 +51,27 @@ def get_generic_element(network_id, target, file_type='net',
 
 def get_routes(network_id):
     """Get routes as specified on Network
-
         routes must contain length and speed (max.)
         but those attributes belong to the lanes.
-
         parameters:
         ----------
             * network_id: string
             path data/networks/{network_id}/{network_id}.net.xml
-
         returns:
         -------
             * routes: list of dictionaries
             as specified at flow.networks.py
-
         specs:
         ------
-
         routes : dict
             A variable whose keys are the starting edge of a specific route, and
             whose values are the list of edges a vehicle is meant to traverse
             starting from that edge. These are only applied at the start of a
             simulation; vehicles are allowed to reroute within the environment
             immediately afterwards.
-
         reference:
         ----------
         flow.networks.base
-
         update:
         ------
         2020-05-06: Before routes were equiprobable.
@@ -112,7 +105,6 @@ def get_routes(network_id):
 
         weighted_routes[start] = [(p, w / weight_source) for p, w in weight_paths]
     return weighted_routes
-
 
 def get_nodes(network_id):
     return get_generic_element(network_id, 'junction')
