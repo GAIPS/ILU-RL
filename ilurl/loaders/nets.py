@@ -2,6 +2,7 @@
 
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-30'
+import math
 import os
 from operator import itemgetter
 from collections import OrderedDict
@@ -100,6 +101,7 @@ def get_routes(network_id):
         weight_source = 0
         for path in paths:
             weight = min([edge_lanes[eid] for eid in path])
+            weight = pow(2, weight - 1)
             weight_paths.append((path, weight))
             weight_source += weight
 
