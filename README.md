@@ -1,4 +1,4 @@
-# ILU: (I)ntegrative (L)earning from (U)rban Data: Reinforcment learning-based traffic signal controllers
+# ILU - (I)ntegrative (L)earning from (U)rban Data: Reinforcement learning-based traffic signal controllers
 
 This experimental project researches the development of RL-based traffic signal controllers.
 
@@ -40,7 +40,7 @@ Locally install the flow package. An installation guide can be found [here](http
 	deactivate
 	cd ..
 	```
- [_Troubleshooting_](https://flow.readthedocs.io/en/latest/flow_setup.html)
+ [Troubleshooting](https://flow.readthedocs.io/en/latest/flow_setup.html)
 	
 ### 2) ILU-RL project
 Locally install the ILU-RL package.
