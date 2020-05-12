@@ -30,26 +30,26 @@ from ilurl.loaders.nets import get_routes, get_edges
 
 XML_PATH = f"{os.environ['ILURL_HOME']}/data/networks/"
 
-def inflows_path(network_id, horizon, distribution='lane', n=0):
+def inflows_path(network_id, horizon, distribution='uniform', n=0):
     path = f'{XML_PATH}{network_id}/{network_id}'
 
-    if distribution not in ('lane', 'switch'):
+    if distribution not in ('uniform', 'switch'):
         raise ValueError(f'distribution not implemented {distribution}')
     else:
-        x = 'l' if distribution == 'lane' else 'w'
+        x = 'l' if distribution == 'uniform' else 'w'
 
     path = f'{path}.{n}.{horizon}.{x}.rou.xml'
 
     return path
 
 
-def inflows_paths(network_id, horizon, distribution='lane'):
+def inflows_paths(network_id, horizon, distribution='uniform'):
     path = f'{XML_PATH}{network_id}/{network_id}'
 
-    if distribution not in ('lane', 'switch'):
+    if distribution not in ('uniform', 'switch'):
         raise ValueError(f'distribution not implemented {distribution}')
     else:
-        x = 'l' if distribution == 'lane' else 'w'
+        x = 'l' if distribution == 'uniform' else 'w'
 
     paths = glob.glob(f'{path}.[0-9].{horizon}.{x}.rou.xml')
 
@@ -57,7 +57,7 @@ def inflows_paths(network_id, horizon, distribution='lane'):
 
 
 def inflows_dump(network_id, inflows,
-                 distribution='lane', label=None):
+                 distribution='uniform', label=None):
     """
 
     EXAMPLE:

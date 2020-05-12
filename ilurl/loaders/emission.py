@@ -150,7 +150,7 @@ def get_intersections(df_emission):
     if 'edge_id' in df_emission.columns:
         col_edge = 'edge_id'
     else:
-        col_edge = 'lane'
+        col_edge = 'uniform'
 
     df_intersection = pd.pivot_table(
         df_emission.reset_index(),
@@ -171,13 +171,13 @@ def get_throughput(df_emission):
     if 'edge_id' in df_emission.columns:
         col_edge = 'edge_id'
     else:
-        col_edge = 'lane'
+        col_edge = 'uniform'
 
     id_junction = df_emission[col_edge].str.startswith(':')
 
     df_junction = pd.pivot_table(
         df_emission[id_junction].reset_index(),
-        index=['id', 'lane'],
+        index=['id', 'uniform'],
         values='time',
         aggfunc=max
     ). \
@@ -192,7 +192,7 @@ def get_throughput(df_emission):
 
     df_lane = pd.pivot_table(
         df_emission[~id_junction].reset_index(),
-        index=['id', 'lane'],
+        index=['id', 'uniform'],
         values='time',
         aggfunc=min
     ). \
@@ -204,7 +204,7 @@ def get_throughput(df_emission):
         df_lane,
         how='inner',
         lsuffix='junc',
-        rsuffix='lane'
+        rsuffix='uniform'
     ). \
     rename(
         columns={f'{col_edge}junc': 'junc_id',

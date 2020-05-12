@@ -151,7 +151,7 @@ def main(train_config=None):
     flags = get_arguments(train_config)
     print_arguments(flags)
 
-    inflows_type = 'switch' if flags.switch else 'lane'
+    inflows_type = 'switch' if flags.switch else 'uniform'
 
     # Load cycle time and TLS programs.
     baseline = flags.tls_type == 'actuated'
@@ -161,7 +161,7 @@ def main(train_config=None):
         'network_id': flags.network,
         'horizon': flags.time,
         'demand_type': inflows_type,
-        'insertion_probability': 0.1,
+        'intensity': 'low'
     }
     if flags.tls_type == 'actuated':
         network_args['tls'] = programs

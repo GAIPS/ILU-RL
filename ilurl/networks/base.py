@@ -25,7 +25,6 @@ from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
                                 get_types)
 
-
 class Network(flownet.Network):
     """This class leverages on specs created by SUMO"""
 
@@ -114,8 +113,8 @@ class Network(flownet.Network):
                  horizon=360,
                  net_params=None,
                  vehicles=None,
-                 demand_type='lane',
-                 insertion_probability=0.1,
+                 demand_type='uniform',
+                 intensity=0.1,
                  initial_config=None,
                  tls=None):
 
@@ -148,7 +147,7 @@ class Network(flownet.Network):
             inflows = InFlows(network_id,
                               horizon,
                               demand_type,
-                              insertion_probability=insertion_probability,
+                              intensity=intensity,
                               initial_config=initial_config)
 
             net_params = NetParams(inflows,
