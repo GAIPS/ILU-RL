@@ -581,8 +581,13 @@ class InFlows(flow_params.InFlows):
 
                 args = (eid, 'human')
                 if demand_type == 'lane':
+                    if num_lanes == 1:
+                        prob = round(0.55 * insertion_probability, 2)
+                    else:
+                        prob = round(0.9 * insertion_probability * num_lanes, 2)
+
                     kwargs = {
-                        'probability': round(insertion_probability * num_lanes, 2),
+                        'probability': prob,
                         'depart_lane': 'best',
                         'depart_speed': 'random',
                         'name': f'lane_{eid}',
