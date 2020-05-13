@@ -91,7 +91,6 @@ class GreedyRouter(BaseRouter):
                                 # section of the route made so far
                                 new_route = ' '.join(chosen_route).split(next_edge)[-1].split()
                                 next_route = tuple([veh_edge, next_edge] + new_route)
-                                print(f'{veh_id} re-routing veh_id')
 
                 self.re_routed = next_route is not None
             return next_route

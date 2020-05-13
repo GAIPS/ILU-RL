@@ -36,25 +36,22 @@ from ilurl.loaders.xml2csv import main as xml2csv
 
 if __name__ == '__main__':
 
-    # # 1) Train agent(s).
-    # experiment_root_path = train()
+    # 1) Train agent(s).
+    experiment_root_path = train()
 
-    # # 2) Create train plots.
-    # train_plots(experiment_root_path)
+    # 2) Create train plots.
+    train_plots(experiment_root_path)
 
-    # # 3) Execute rollouts.
-    # eval_path = rollouts(batch_dir=experiment_root_path)
+    # 3) Execute rollouts.
+    eval_path = rollouts(batch_dir=experiment_root_path)
 
-    # # 4) Create rollouts plots.
-    # rollouts_plots(eval_path)
+    # 4) Create rollouts plots.
+    rollouts_plots(eval_path)
 
     # 5) Execute rollouts with last saved Q-tables (test).
-    experiment_root_path = 'data/emissions/grid_6/'
     rollouts(test=True, batch_dir=experiment_root_path)
 
     # 7) Convert .xml files to .csv files.
-    # experiment_root_path = 'data/emissions/20200505131858.299048'
-
     for xml_path in Path(experiment_root_path).rglob('*.xml'):
         csv_path = str(xml_path).replace('xml', 'csv')
         args = [str(xml_path), '-o', csv_path]
