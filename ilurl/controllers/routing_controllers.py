@@ -14,6 +14,11 @@ class GreedyRouter(BaseRouter):
     -----
     See base class for usage example.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.re_routed = False
+
     def choose_route(self, env):
         """See parent class."""
         
@@ -67,18 +72,26 @@ class GreedyRouter(BaseRouter):
 
                         #TODO: test if min_edge is already an edge
                         if next_edge not in veh_route:
+                            # find routes that contain the min edge
+                            sink = veh_route[-1]
+
                             # try to find another route which has the same sink
                             # and it contains next_edge
-                            routes = [r for dest, routes in env.networks.routes2.items()
-                                        for r in routes if next_edge in r]
-
+                            routes = [r for r in env.network.routes2[sink] if next_edge in r]
+                            # neightbours search
+                            if len(routes) == 0:
+                                # neightbours search
+                                neighbours = env.network.neighbours_sinks[sink] 
+                                routes = [r for snk in neighbours 
+                                            for r in env.network.routes2[snk] if next_edge in r]
+                            
                             if len(routes) > 0:
                                 route_index = choice(len(routes))
                                 chosen_route = routes[route_index]
                                 # section of the route made so far
                                 new_route = ' '.join(chosen_route).split(next_edge)[-1].split()
                                 next_route = tuple([veh_edge, next_edge] + new_route)
-                                print(f'{veh_id} re-routing veh_id')
 
+                self.re_routed = next_route is not None
             return next_route
 

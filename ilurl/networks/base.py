@@ -5,21 +5,25 @@ __date__ = '2020-01-10'
 import os
 import operator as op
 from itertools import groupby
+from copy import deepcopy
+from collections import defaultdict
 
 # Network related parameters
 from flow.core.params import InitialConfig, TrafficLightParams
-from flow.core.params import VehicleParams, SumoCarFollowingParams
-from flow.controllers.routing_controllers import GridRouter
-
+from flow.core.params import (VehicleParams, SumoCarFollowingParams,
+                                SumoLaneChangeParams)
 import flow.networks.base as flownet
-# from flow.networks.base import Network as FlowNetwork
 
+
+
+# from flow.controllers.routing_controllers import GridRouter
+
+from ilurl.controllers.routing_controllers import GreedyRouter
 from ilurl.utils.properties import lazy_property
 from ilurl.core.params import InFlows, NetParams
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
                                 get_types)
-
 
 class Network(flownet.Network):
     """This class leverages on specs created by SUMO"""
@@ -109,8 +113,8 @@ class Network(flownet.Network):
                  horizon=360,
                  net_params=None,
                  vehicles=None,
-                 demand_type='lane',
-                 insertion_probability=0.1,
+                 demand_type='uniform',
+                 intensity=0.1,
                  initial_config=None,
                  tls=None):
 
@@ -130,17 +134,20 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    routing_controller=(GridRouter, {}),
+                    routing_controller=(GreedyRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
                         decel=7.5,  # avoid collisions at emergency stops
                     ),
+                    lane_change_params=SumoLaneChangeParams(
+                        lane_change_mode='strategic'
+                    )
                 )
 
             inflows = InFlows(network_id,
                               horizon,
                               demand_type,
-                              insertion_probability=insertion_probability,
+                              intensity=intensity,
                               initial_config=initial_config)
 
             net_params = NetParams(inflows,
@@ -172,6 +179,7 @@ class Network(flownet.Network):
         self.edges = self.specify_edges(net_params)
         self.connections = self.specify_connections(net_params)
         self.types = self.specify_types(net_params)
+        
 
 
     def specify_nodes(self, net_params):
@@ -228,6 +236,67 @@ class Network(flownet.Network):
 
     def specify_types(self, net_params):
         return get_types(self.network_id)
+
+    def specify_edge_starts(self):
+        "see parent class"
+        return [(e['id'], e['length']) for e in get_edges(self.network_id)]
+
+    @lazy_property
+    def links(self):
+        """Dict version from connections"""
+        conns = deepcopy(self.connections)
+        return {conn.pop('via'): conn for conn in conns if 'via' in conn} 
+
+    @lazy_property
+    def edges2(self):
+        """Edges as dictionary instead of a list"""
+        return {data['id']: {k:v for k, v in data.items() if k != 'id'}
+                for data in self.edges}
+
+    @lazy_property
+    def routes2(self):
+        """Sinks to routes dictionary --  no prob. emissions
+
+          Returns:
+            routes: dict<<str>, list<str>>
+                key: str .: edge_id routes' sink
+                values: list .: edge_ids
+        """
+        routes2 = defaultdict(list)
+        for src, routes_weights in get_routes(self.network_id).items():
+            for route, weights in routes_weights:
+                routes2[route[-1]].append(route)
+        return routes2
+
+    @lazy_property
+    def neighbours_sinks(self):
+        """Sinks to routes dictionary --  no prob. emissions
+
+          Returns:
+            routes: dict<<str>, list<str>>
+                key: str .: edge_id routes' sink
+                values: list .: edge_ids
+        """
+        edges = self.edges2
+        nodes = self.nodes
+        sinks = self.routes2.keys()
+        neighbours = {}
+            
+        for sink in sinks:
+            sink_node = edges[sink]['from']
+
+            # those neightbours share the same junction
+            neighbours[sink] = [eid for eid, data in edges.items()
+                                 if data['from'] == sink_node and 
+                                    eid != sink and eid in sinks] 
+
+            # those neighbours are on adjacent junctions
+            adjacent_nodes = [node['id'] for node in nodes for data in edges.values()
+                              if data['from'] == node['id'] and data['to'] == sink_node] 
+    
+            neighbours[sink] += [eid for eid in sinks
+                                     if edges[eid]['from'] in adjacent_nodes] 
+        return neighbours
 
     @lazy_property
     def tls_approaches(self):
@@ -483,7 +552,7 @@ class Network(flownet.Network):
         Limitations:
         -----------
         * It considers an average number vehicles over all vehicle_types
-        * If vehicle lenght is not provided converts it to lenght 5 default
+        * If vehicle length is not provided converts it to length 5 default
 
         Sumo:
         -----
@@ -504,7 +573,7 @@ class Network(flownet.Network):
         # Summarize over vehicle types
         xs, vs = 0, 0
         for i, veh_type in enumerate(self.vehicles.types):
-            # compute the average vehicle lenght
+            # compute the average vehicle length
             x = veh_type.get('minGap', 2.5) + veh_type.get('length', 5.0)
             v = veh_type.get('maxSpeed', 55.55)
             xs = (x + i * xs) / (i + 1)     # mean of lengths
@@ -512,7 +581,7 @@ class Network(flownet.Network):
 
         # Apply over edges
         for edge in edges:
-            edge['max_capacity'] = (edge['length'] / xs) * edge['numLanes']
+            edge['max_capacity'] = int(edge['length'] / xs) * edge['numLanes']
             # max of mean speeds (max_speed is too conservative)
             edge['max_speed'] = 0.5 * edge.get('speed', vs)
             

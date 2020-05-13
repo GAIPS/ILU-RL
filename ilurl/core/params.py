@@ -13,6 +13,7 @@ from ilurl.core.ql.choice import CHOICE_TYPES
 from ilurl.dumpers.inflows import inflows_dump
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
+from ilurl.loaders.demands import get_uniform
 
 STATE_FEATURES = ('speed', 'count') #, 'flow', 'queue'
 
@@ -316,37 +317,6 @@ class QLParams:
         """
         return np.digitize(count, bins=self.category_counts).tolist()
 
-    # def _categorize_flow(self, flow_per_cycle):
-    #     """Converts float flow into a category
-    # 
-    #         UPDATES:
-    #         -------
-    #         2017-09-27 histogram analysis sugest the following
-    #         breakdowns for the quantiles of 20% and 75% for
-    #         the varable flow_per_cyle
-    #     """
-    #     if flow_per_cycle > .5067: # Top 25% data-points
-    #         return 2
-    # 
-    #     if flow_per_cycle > .2784:  # Average 20% -- 75%  data-points
-    #         return 1
-    #     return 0  # Bottom 20% data-points
-
-    # def _categorize_queue(self, queue_per_cycle):
-    #     """Converts float queue into a category
-    # 
-    #         UPDATES:
-    #         -------
-    #         2017-09-27 histogram analysis sugest the following
-    #         breakdowns for the quantiles of 20% and 75% for
-    #         the varable queue_per_cyle
-    #     """
-    #     if queue_per_cycle > .2002:  # Top 25% data-points
-    #         return 2
-    #     if queue_per_cycle > .1042:  # Average 20% -- 75%  data-points
-    #         return 1
-    #     return 0  # Bottom 20% data-points
-
 
 class InFlows(flow_params.InFlows):
     """InFlow: plus load & dump functionality"""
@@ -369,7 +339,7 @@ class InFlows(flow_params.InFlows):
                  network_id,
                  horizon,
                  demand_type,
-                 insertion_probability=0.1,
+                 intensity='low',
                  initial_config=None,
                  additional_params=ADDITIONAL_PARAMS):
 
@@ -380,6 +350,10 @@ class InFlows(flow_params.InFlows):
         else:
             edges_distribution = None
         edges = get_edges(network_id)
+
+        if demand_type == 'uniform':
+            demand = get_uniform(intensity=intensity)
+
         # an array of kwargs
         params = []
         for eid in get_routes(network_id):
@@ -391,18 +365,23 @@ class InFlows(flow_params.InFlows):
                 num_lanes = edge['numLanes'] if 'numLanes' in edge else 1
 
                 args = (eid, 'human')
-                if demand_type == 'lane':
+                if demand_type == 'uniform':
+                    insertion_probability = demand[str(num_lanes)]
+
                     kwargs = {
-                        'probability': round(insertion_probability * num_lanes, 2),
+                        'probability': insertion_probability,
                         'depart_lane': 'best',
                         'depart_speed': 'random',
-                        'name': f'lane_{eid}',
+                        'name': f'{eid}',
                         'begin': 1,
                         'end': horizon
                     }
 
                     params.append((args, kwargs))
+
                 elif demand_type == 'switch':
+                    raise NotImplementedError('Switch distribution')
+
                     switch = additional_params['switch']
                     num_flows = max(math.ceil(horizon / switch), 1)
                     for hr in range(num_flows):
