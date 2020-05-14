@@ -32,12 +32,10 @@ def main(train_config_path=None):
 
     train_args = parse_train_params(train_config_path, print_params=True)
 
-    inflows_type = 'switch' if train_args.inflows_switch else 'lane'
     network_args = {
         'network_id': train_args.network,
         'horizon': train_args.experiment_time,
-        'demand_type': inflows_type,
-        'insertion_probability': 0.1, # TODO: this needs to be network dependant
+        'demand_type': train_args.demand_type,
         'tls_type': train_args.tls_type
     }
 

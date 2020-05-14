@@ -168,7 +168,7 @@ def parse_train_params(train_config_path, print_params=False):
                     sumo_render=str2bool(train_args['sumo_render']),
                     sumo_emission=str2bool(train_args['sumo_emission']),
                     tls_type=train_args['tls_type'],
-                    inflows_switch=str2bool(train_args['inflows_switch']),
+                    demand_type=train_args['demand_type'],
     )
 
     if print_params:
@@ -189,5 +189,4 @@ def _print_train_params(params):
     print('\tSUMO render: {0}'.format(params.sumo_render))
     print('\tSUMO emission: {0}'.format(params.sumo_emission))
     print('\tSUMO tls_type: {0}'.format(params.tls_type))
-
-    print('\tInflows switch: {0}\n'.format(params.inflows_switch))
+    print('\tSUMO demand type: {0}\n'.format(params.demand_type))

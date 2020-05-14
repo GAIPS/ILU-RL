@@ -3,6 +3,7 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-30'
 import os
+import math
 from operator import itemgetter
 from collections import OrderedDict
 import json
@@ -22,7 +23,7 @@ def get_path(network_id, file_type):
 
 def get_generic_element(network_id, target, file_type='net',
                         ignore=None, key=None, child_key=None):
-    """Parses the {network_id}.{file_type}.xml in search for target
+    """ Parses the {network_id}.{file_type}.xml in search for target
 
     Usage:
     -----
@@ -50,24 +51,22 @@ def get_generic_element(network_id, target, file_type='net',
 
 
 def get_routes(network_id):
-    """Get routes as specified on Network
-
+    """ Get routes as specified on Network
         routes must contain length and speed (max.)
         but those attributes belong to the lanes.
 
-        parameters:
+        Parameters:
         ----------
             * network_id: string
             path data/networks/{network_id}/{network_id}.net.xml
 
-        returns:
+        Returns:
         -------
             * routes: list of dictionaries
-            as specified at flow.scenarios.py
+            as specified at flow.networks.py
 
-        specs:
+        Specs:
         ------
-
         routes : dict
             A variable whose keys are the starting edge of a specific route, and
             whose values are the list of edges a vehicle is meant to traverse
@@ -75,9 +74,13 @@ def get_routes(network_id):
             simulation; vehicles are allowed to reroute within the environment
             immediately afterwards.
 
-        reference:
+        References:
         ----------
         flow.networks.base
+
+        Update:
+        ------
+        2020-05-06: Before routes were equiprobable.
     """
     # Parse xml to recover all generated routes
     routes = get_generic_element(network_id, 'vehicle/route',
@@ -94,13 +97,21 @@ def get_routes(network_id):
     routes = {k: sorted([r for r in routes if k == r[0]])
               for k in sorted(keys)}
 
-    # convert to equipropable array of tuples:
-    # (routes, probability)
-    routes = OrderedDict({
-        k: [(r, 1 / len(rou)) for r in rou]
-        for k, rou in routes.items()
-    })
-    return routes
+    # weight every route by the min. number of lanes.
+    # convert list of edges into dict
+    edge_lanes = {e['id']: e['numLanes'] for e in get_edges(network_id)}
+    weighted_routes = OrderedDict()
+    for start, paths in routes.items():
+        weight_paths = []
+        weight_source = 0
+        for path in paths:
+            weight = min([edge_lanes[eid] for eid in path])
+            weight = pow(2, weight - 1)
+            weight_paths.append((path, weight))
+            weight_source += weight
+
+        weighted_routes[start] = [(p, w / weight_source) for p, w in weight_paths]
+    return weighted_routes
 
 
 def get_nodes(network_id):
@@ -113,24 +124,24 @@ def get_types(network_id):
     return get_generic_element(network_id, 'type')
 
 def get_edges(network_id):
-    """Get edges as specified on Network
+    """ Get edges as specified on Network
 
         edges must contain length and speed (max.)
         but those attributes belong to the lanes.
 
-        parameters:
+        Parameters:
         ----------
             * network_id: string
             path data/networks/{network_id}/{network_id}.net.xml
 
-        returns:
+        Returns:
         -------
             * edges: list of dictionaries
             as specified at flow.scenarios.py
 
-        specs:
+        Specs:
         ------
-    edges : list of dict or None
+        edges : list of dict or None
         edges that are assigned to the scenario via the `specify_edges` method.
         This include the shape, position, and properties of all edges in the
         network. These properties include the following mandatory properties:
