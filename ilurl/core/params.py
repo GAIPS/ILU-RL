@@ -575,7 +575,7 @@ class InFlows(flow_params.InFlows):
         edges = get_edges(network_id)
 
         # Get demand data.
-        demand = get_demand(demand_type)
+        demand = get_demand(demand_type, network_id)
 
         # an array of kwargs
         params = []
