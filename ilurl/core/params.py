@@ -605,8 +605,45 @@ class InFlows(flow_params.InFlows):
 
                     params.append((args, kwargs))
 
+                # 24 hours variable flows.
                 elif demand_type == 'variable':
-                    raise NotImplementedError('Variable demand')
+
+                    peak_distribution = demand['peak']
+
+                    num_days = horizon // (24*3600) + 1
+
+                    for day in range(num_days):
+
+                        for hour in range(24):
+
+                            hour_factor = demand['hours'][str(hour)]
+
+                            insertion_probability = hour_factor * \
+                                        peak_distribution[str(num_lanes)]
+
+                            begin_t = 1 + (hour * 3600) + (24*3600) * day
+                            end_t = (hour * 3600) + (24*3600) * day + 3600
+
+                            # print('-'*10)
+                            # print('num_lanes:', num_lanes)
+                            # print('begin_t:', begin_t)
+                            # print('end_t:', end_t)
+                            # print('insertion_probability:', insertion_probability)
+                            # print('\n')
+
+                            if end_t > horizon:
+                                break
+
+                            kwargs = {
+                                'probability': insertion_probability,
+                                'depart_lane': 'best',
+                                'depart_speed': 'random',
+                                'name': f'lane_{eid}',
+                                'begin': begin_t,
+                                'end': end_t
+                            }
+
+                            params.append((args, kwargs))
 
                 elif demand_type == 'switch':
                     raise NotImplementedError('Switch demand')
