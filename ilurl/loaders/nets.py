@@ -8,6 +8,7 @@ from operator import itemgetter
 from collections import OrderedDict
 import json
 import xml.etree.ElementTree as ET
+import numpy as np
 
 ILURL_HOME = os.environ['ILURL_HOME']
 
@@ -105,8 +106,8 @@ def get_routes(network_id):
         weight_paths = []
         weight_source = 0
         for path in paths:
-            weight = min([edge_lanes[eid] for eid in path])
-            weight = pow(2, weight - 1)
+            weight = np.mean([edge_lanes[eid] for eid in path])
+            weight = pow(2, weight)
             weight_paths.append((path, weight))
             weight_source += weight
 
