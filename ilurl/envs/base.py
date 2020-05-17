@@ -122,7 +122,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
     @property
     def stop(self):
-        pass
+        return self.agents.stop
 
     @stop.setter
     def stop(self, stop):

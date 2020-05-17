@@ -228,7 +228,7 @@ class Experiment:
             if done and stop_on_teleports:
                 break
 
-            if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
+            if self.save_agent and self._is_save_agent_step(agent_updates_counter):
                 self.env.agents.save_checkpoint(self.exp_path)
 
         # Save train log (data is aggregated per traffic signal).
@@ -250,9 +250,9 @@ class Experiment:
     def _is_save_step(self):
         if self.cycle is not None:
             return self.env.duration == 0.0
-        return self.step_counter % self.save_step == 0
+        return False
 
-    def _is_save_q_table_step(self, counter):
+    def _is_save_agent_step(self, counter):
         if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
             return self.train and hasattr(self.env, 'dump') and self.exp_path
         return False

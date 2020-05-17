@@ -62,7 +62,7 @@ class AgentsWrapper(object):
 
     @stop.setter
     def stop(self, stop):
-        for agent in self.agents:
+        for agent in self.agents.values():
             agent.stop = stop
 
     def act(self, state):

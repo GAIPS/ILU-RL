@@ -71,9 +71,9 @@ def get_arguments(config_file_path):
                                `None` for rl agent defaults to RandomState() 
                                `None` for Sumo defaults to a fixed but arbitrary seed''')
 
-    parser.add_argument('--num-rollouts', '-r', dest='num_rollouts',
-                        type=int, default=1, nargs='?',
-                        help='''Number of repetitions for each table''')
+    # parser.add_argument('--num-rollouts', '-r', dest='num_rollouts',
+    #                     type=int, default=1, nargs='?',
+    #                     help='''Number of repetitions for each table''')
 
 
     parser.add_argument('--switch', '-w', dest='switch', type=str2bool,

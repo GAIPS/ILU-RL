@@ -7,15 +7,17 @@
     * Seeds:
     https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.random.RandomState.html#numpy.random.RandomState
     http://sumo.sourceforge.net/userdoc/Simulation/Randomness.html
+
 """
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-08'
 import json
+import random
 from os import environ
 from pathlib import Path
+from shutil import copyfile
 
 import numpy as np
-import random
 
 from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
@@ -28,10 +30,12 @@ from ilurl.loaders.parser import config_parser
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
+NETWORKS_PATH = ILURL_PATH / 'data/networks/'
 
 def main(train_config_path=None):
 
-    # Setup parser with custom path (if 'train_config_path' is set).
+    # Setup config parser with custom path.
+    # (if 'train_config_path' is set).
     if train_config_path is not None:
         config_parser.set_config_path(train_config_path)
 
@@ -66,8 +70,10 @@ def main(train_config_path=None):
         np.random.seed(train_args.experiment_seed)
         sumo_args['seed'] = train_args.experiment_seed
 
+    # Setup emission path.
     if train_args.sumo_emission:
         sumo_args['emission_path'] = experiment_path.as_posix()
+
     sim_params = SumoParams(**sumo_args)
 
     additional_params = {}
@@ -89,7 +95,6 @@ def main(train_config_path=None):
     if train_args.tls_type not in ('controlled',):
         env.stop = True
         train_args.save_agent = False
-        train_args.save_agent_interval = None
 
     exp = Experiment(
             env=env,
@@ -101,8 +106,12 @@ def main(train_config_path=None):
             save_agent_interval=train_args.experiment_save_agent_interval
     )
 
-    # Store train parameters (copy config file to 'experiment_path/config' dir).
+    # Store train parameters (config file). 
     config_parser.store_config(experiment_path / 'config')
+
+    # Store a copy of the tls_config.json file.
+    tls_config_path = NETWORKS_PATH / train_args.network / 'tls_config.json'
+    copyfile(tls_config_path, experiment_path / 'tls_config.json')
 
     # Run the experiment.
     exp.run(train_args.experiment_time)
