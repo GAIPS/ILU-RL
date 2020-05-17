@@ -1,3 +1,6 @@
+"""
+    jobs/train.py
+"""
 from pathlib import Path
 from datetime import datetime
 import sys
@@ -24,7 +27,7 @@ def benchmarked_train(*args, **kwargs):
 
 
 def delay_train(*args, **kwargs):
-    """delays execution by 1 sec.
+    """Delays execution by 1 sec.
 
         Parameters:
         -----------
@@ -95,11 +98,10 @@ def train_batch():
             train_configs.append(tmp_train_cfg_path)
 
             # Setup train seed.
-            train_config.set("train_args", "experiment-seed", str(seed))
-            
+            train_config.set("train_args", "experiment_seed", str(seed))
+
             # Write temporary train config file.
             tmp_cfg_file = open(tmp_train_cfg_path, "w")
-
             train_config.write(tmp_cfg_file)
             tmp_cfg_file.close()
 
@@ -108,14 +110,14 @@ def train_batch():
         # rvs: directories' names holding experiment data
         if num_processors > 1:
             pool = mp.Pool(num_processors)
-            rvs = pool.map(delay_train, [[cfg] for cfg in train_configs])
+            rvs = pool.map(delay_train, [cfg for cfg in train_configs])
             pool.close()
         else:
             rvs = []
             for cfg in train_configs:
                 rvs.append(delay_train([cfg]))
 
-        # Create a directory and move newly created files
+        # Create a directory and move newly created files.
         paths = [Path(f) for f in rvs]
         commons = [p.parent for p in paths]
         if len(set(commons)) > 1:
@@ -135,9 +137,10 @@ def train_batch():
 
 @processable
 def train_job():
+    # Suppress textual output.
     return train_batch()
 
 if __name__ == '__main__':
-    # train_batch() # enable this in order to have a nice textual ouput
-    train_job()
+    train_batch() # enable this in order to have a nice textual ouput
+    # train_job()
 

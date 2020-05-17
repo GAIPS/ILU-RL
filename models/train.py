@@ -1,8 +1,10 @@
-"""Provides baseline for networks
+"""
+    models/train.py
 
     References:
     ==========
-    * seed:
+
+    * Seeds:
     https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.random.RandomState.html#numpy.random.RandomState
     http://sumo.sourceforge.net/userdoc/Simulation/Randomness.html
 """
