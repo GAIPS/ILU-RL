@@ -26,7 +26,6 @@ from ilurl.loaders.parsers import parse_train_params
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
-# CONFIG_PATH = ILURL_PATH / 'config'
 
 def main(train_config_path=None):
 
@@ -50,7 +49,7 @@ def main(train_config_path=None):
     sumo_args = {
         'render': train_args.sumo_render,
         'print_warnings': False,
-        'sim_step': 1, # step = 1 by default.
+        'sim_step': 1,
         'restart_instance': True
     }
 

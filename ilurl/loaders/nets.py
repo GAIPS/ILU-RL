@@ -107,7 +107,7 @@ def get_routes(network_id):
         weight_source = 0
         for path in paths:
             weight = np.mean([edge_lanes[eid] for eid in path])
-            weight = pow(2, weight)
+            weight = pow(4, weight)
             weight_paths.append((path, weight))
             weight_source += weight
 
