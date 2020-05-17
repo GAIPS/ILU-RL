@@ -22,14 +22,19 @@ from ilurl.core.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
 
-from ilurl.loaders.parsers import parse_train_params
+from ilurl.loaders.parser import config_parser
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
 
 def main(train_config_path=None):
 
-    train_args = parse_train_params(train_config_path, print_params=True)
+    # Setup parser with custom path (if 'train_config_path' is set).
+    if train_config_path is not None:
+        config_parser.set_config_path(train_config_path)
+
+    # Parse train parameters.
+    train_args = config_parser.parse_train_params(print_params=True)
 
     network_args = {
         'network_id': train_args.network,
@@ -94,14 +99,8 @@ def main(train_config_path=None):
             save_agent_interval=train_args.experiment_save_agent_interval
      )
 
-    # Store parameters.
-    parameters = {}
-    parameters['network_args'] = network_args
-    parameters['sumo_args'] = sumo_args
-    parameters['env_args'] = env_args
-    params_path = experiment_path / "params.json" 
-    with params_path.open('w') as f:
-        json.dump(parameters, f)
+    # Store train parameters (copy config file to 'experiment_path/config' dir).
+    config_parser.store_config(experiment_path / 'config')
 
     # Run the experiment.
     exp.run(train_args.experiment_time)
