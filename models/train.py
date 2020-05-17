@@ -99,7 +99,7 @@ def main(train_config_path=None):
             log_info_interval=train_args.experiment_log_interval,
             save_agent=train_args.experiment_save_agent,
             save_agent_interval=train_args.experiment_save_agent_interval
-     )
+    )
 
     # Store train parameters (copy config file to 'experiment_path/config' dir).
     config_parser.store_config(experiment_path / 'config')
