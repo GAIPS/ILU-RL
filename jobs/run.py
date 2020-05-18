@@ -14,8 +14,7 @@
         5) jobs/rollouts.py: execute python script in test mode
                              in order to assess final agent performance.
 
-                             Generates *.xml files and
-                             *.test.info.json file.
+                             Generates *.xml files.
 
         6) [Convert .xml files to .csv]
 
