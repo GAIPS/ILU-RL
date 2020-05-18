@@ -132,9 +132,6 @@ def rollout_batch(test=False, experiment_dir=None):
     else:
         rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
 
-    # print('Rollouts_paths found:')
-    # print(rollouts_paths)
-
     run_config = configparser.ConfigParser()
     run_config.read(str(CONFIG_PATH / 'run.config'))
 
@@ -166,6 +163,7 @@ def rollout_batch(test=False, experiment_dir=None):
         test_config = configparser.ConfigParser()
         test_config.read(str(CONFIG_PATH / 'test.config'))
 
+        # By default in test mode only one rollout per checkpoint is done.
         num_rollouts = 1
 
         rollout_time = test_config.get('test_args', 'rollout-time')
@@ -194,17 +192,17 @@ def rollout_batch(test=False, experiment_dir=None):
                 custom_configs.append((rp, seed))
         token = 'rollouts'
 
-    print(custom_configs)
+    # print(custom_configs)
 
-    print(f'''
-    \tArguments (jobs.{token}.py):
-    \t----------------------------
-    \tNumber of runs: {num_runs}
-    \tNumber of processors: {num_processors}
-    \tTrain seeds: {train_seeds}
-    \tNum. rollout files: {len(rollouts_paths)}
-    \tNum. rollout repetitions: {num_rollouts}
-    \tNum. rollout total: {len(rollouts_paths) * num_rollouts}\n\n''')
+    print(f'\nArguments (jobs/{token}.py):')
+    print('-------------------------')
+    print(f'Experiment dir: {batch_path}')
+    print(f'Number of processors: {num_processors}')
+    print(f'Num. rollout files: {len(rollouts_paths)}')
+    print(f'Num. rollout repetitions: {num_rollouts}')
+    print(f'Num. rollout total: {len(rollouts_paths) * num_rollouts}')
+    print(f'Rollouts time: {rollout_time}')
+    print(f'Rollouts emission: {emission}\n')
 
     with tempfile.TemporaryDirectory() as f:
 
@@ -253,8 +251,9 @@ def rollout_batch(test=False, experiment_dir=None):
 
 @processable
 def rollout_job(test=False):
+    # Suppress textual output.
     return rollout_batch(test=test)
 
 if __name__ == '__main__':
     #rollout_job()
-    rollout_batch() # use this line for textual output.
+    rollout_batch() # Use this line for textual output.

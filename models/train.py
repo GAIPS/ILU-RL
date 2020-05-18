@@ -37,7 +37,10 @@ def main(train_config_path=None):
     # Setup config parser with custom path.
     # (if 'train_config_path' is set).
     if train_config_path is not None:
+        print(f'Loading train parameters from: {train_config_path}')
         config_parser.set_config_path(train_config_path)
+    else:
+        print('Loading train parameters from: configs/train.config [Default]')
 
     # Parse train parameters.
     train_args = config_parser.parse_train_params(print_params=True)

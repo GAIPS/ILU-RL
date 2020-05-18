@@ -61,9 +61,6 @@ class Parser(object):
             self.config_path and returns a ilurl.core.params.TrainParams object
             with the parsed parameters.
         """
-
-        print(f'LOADING TRAIN PARAMETERS FROM {self.config_path}')
-
         # Load config file with parameters.
         train_config = configparser.ConfigParser()
 
@@ -93,19 +90,20 @@ class Parser(object):
         return train_params
 
     def _print_train_params(self, params):
-        print('Arguments (train.py):')
-        print('\tExperiment network: {0}'.format(params.network))
-        print('\tExperiment time: {0}'.format(params.experiment_time))
-        print('\tExperiment seed: {0}'.format(params.experiment_seed))
-        print('\tExperiment log info: {0}'.format(params.experiment_log))
-        print('\tExperiment log info interval: {0}'.format(params.experiment_log_interval))
-        print('\tExperiment save RL agent: {0}'.format(params.experiment_save_agent))
-        print('\tExperiment save RL agent interval: {0}'.format(params.experiment_save_agent_interval))
+        print('Arguments (models/train.py):')
+        print('--------------------')
+        print('Experiment network: {0}'.format(params.network))
+        print('Experiment time: {0}'.format(params.experiment_time))
+        print('Experiment seed: {0}'.format(params.experiment_seed))
+        print('Experiment log info: {0}'.format(params.experiment_log))
+        print('Experiment log info interval: {0}'.format(params.experiment_log_interval))
+        print('Experiment save RL agent: {0}'.format(params.experiment_save_agent))
+        print('Experiment save RL agent interval: {0}'.format(params.experiment_save_agent_interval))
 
-        print('\tSUMO render: {0}'.format(params.sumo_render))
-        print('\tSUMO emission: {0}'.format(params.sumo_emission))
-        print('\tSUMO tls_type: {0}'.format(params.tls_type))
-        print('\tSUMO demand type: {0}\n'.format(params.demand_type))
+        print('SUMO render: {0}'.format(params.sumo_render))
+        print('SUMO emission: {0}'.format(params.sumo_emission))
+        print('SUMO tls_type: {0}'.format(params.tls_type))
+        print('SUMO demand type: {0}\n'.format(params.demand_type))
 
     def parse_mdp_params(self):
         """
@@ -113,9 +111,6 @@ class Parser(object):
             at self.config_path and returns a ilurl.core.params.MDPParams
             object with the parsed parameters.
         """
-
-        print(f'LOADING MDP PARAMETERS FROM {self.config_path}')
-
         # Load config file with parameters.
         train_config = configparser.ConfigParser()
         train_config.read(str(self.config_path))
@@ -148,9 +143,6 @@ class Parser(object):
                 object containing the agent's parameters
 
         """
-
-        print(f'LOADING AGENT PARAMETERS FROM {self.config_path}')
-
         # Load parameters form train.config.
         train_config = configparser.ConfigParser()
         train_config.read(str(self.config_path))

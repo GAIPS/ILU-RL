@@ -81,12 +81,13 @@ def str2bool(v):
 def print_arguments(args):
 
     print('Arguments (rollout.py):')
-    print('\tRun path: {0}'.format(args.run_path))
-    print('\tCheckpoint number: {0}'.format(args.chkpt_number))
-    print('\tExperiment time: {0}'.format(args.rollout_time))
-    print('\tSUMO emission: {0}'.format(args.sumo_emission))
-    print('\tSUMO render: {0}'.format(args.sumo_render))
-    print('\tSeed: {0}\n'.format(args.seed))
+    print('----------------------')
+    print('Run path: {0}'.format(args.run_path))
+    print('Checkpoint number: {0}'.format(args.chkpt_number))
+    print('Experiment time: {0}'.format(args.rollout_time))
+    print('SUMO emission: {0}'.format(args.sumo_emission))
+    print('SUMO render: {0}'.format(args.sumo_render))
+    print('Seed: {0}\n'.format(args.seed))
 
 
 def main(config_file_path=None):

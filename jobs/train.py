@@ -64,10 +64,11 @@ def train_batch():
         raise configparser.Error('Number of seeds in run.config `train_seeds`'
                         ' must match the number of runs (`num_runs`) argument.')
 
-    print('Arguments (run_train.py):')
-    print('\tNumber of runs: {0}'.format(num_runs))
-    print('\tNumber of processors: {0}'.format(num_processors))
-    print('\tTrain seeds: {0}\n'.format(train_seeds))
+    print('Arguments (jobs/train.py):')
+    print('------------------------')
+    print('Number of runs: {0}'.format(num_runs))
+    print('Number of processors: {0}'.format(num_processors))
+    print('Train seeds: {0}\n'.format(train_seeds))
 
     # Assess total number of processors.
     processors_total = mp.cpu_count()
@@ -76,7 +77,7 @@ def train_batch():
     # Adjust number of processors.
     if num_processors > processors_total:
         num_processors = processors_total
-        print(f'Number of processors downgraded to {num_processors}\n')
+        print(f'WARNING: Number of processors downgraded to {num_processors}\n')
 
     # Read train.py arguments from train.config file.
     train_config = configparser.ConfigParser()
@@ -115,7 +116,7 @@ def train_batch():
         else:
             rvs = []
             for cfg in train_configs:
-                rvs.append(delay_train([cfg]))
+                rvs.append(delay_train(cfg))
 
         # Create a directory and move newly created files.
         paths = [Path(f) for f in rvs]
@@ -141,6 +142,6 @@ def train_job():
     return train_batch()
 
 if __name__ == '__main__':
-    train_batch() # enable this in order to have a nice textual ouput
+    train_batch() # Use this line for textual output.
     # train_job()
 
