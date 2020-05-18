@@ -1,9 +1,10 @@
 """
-    models/evaluate_policy.py
+    models/evaluate.py
 
     This script evaluates a given RL policy.
     It performs a rollout given a static policy
     loaded from a given model checkpoint.
+
 """
 import os
 import json
@@ -41,17 +42,17 @@ def get_arguments(config_file_path):
         """
     )
 
-    parser.add_argument('train_run_path', type=str, nargs='?',
+    parser.add_argument('--run-path', '-p', dest='run_path' , type=str, nargs='?',
                         help='Train run name to use for evaluation.')
 
-    parser.add_argument('--chckpt-number', '-n', dest='chkpt_number', type=int,
+    parser.add_argument('--chkpt-number', '-n', dest='chkpt_number', type=int,
                         nargs='?', required=True, help='Checkpoint number.')
 
-    parser.add_argument('--time', '-t', dest='exp_time', type=int,
+    parser.add_argument('--experiment-time', '-t', dest='experiment_time', type=int,
                         default=300, nargs='?',
                         help='Experiment time to perform evaluation.')
 
-    parser.add_argument('--emission', '-e', dest='sumo_emission', type=str2bool,
+    parser.add_argument('--sumo-emission', '-e', dest='sumo_emission', type=str2bool,
                         default=True, nargs='?',
                         help='Enabled will perform saves')
 
@@ -80,19 +81,12 @@ def str2bool(v):
 def print_arguments(args):
 
     print('Arguments (evaluate_policy.py):')
-    print('\tTrain run path: {0}'.format(args.train_run_path))
+    print('\tRun path: {0}'.format(args.run_path))
     print('\tCheckpoint number: {0}'.format(args.chkpt_number))
-    print('\tExperiment time: {0}'.format(args.exp_time))
+    print('\tExperiment time: {0}'.format(args.experiment_time))
     print('\tSUMO emission: {0}'.format(args.sumo_emission))
     print('\tSUMO render: {0}'.format(args.sumo_render))
     print('\tSeed: {0}\n'.format(args.seed))
-
-def setup_programs(programs_json):
-    programs = {}
-    for tls_id in programs_json.keys():
-        programs[tls_id] = {int(action): programs_json[tls_id][action]
-                                for action in programs_json[tls_id].keys()}
-    return programs
 
 
 def main(config_file_path=None):
@@ -100,11 +94,10 @@ def main(config_file_path=None):
     args = get_arguments(config_file_path)
     print_arguments(args)
 
-    print('Loading from train run: {0}\n'.format(args.train_run_path))
+    print('Loading from train run: {0}\n'.format(args.run_path))
 
     # Setup parser with custom path (load correct train parameters).
-    config_path = Path(args.train_run_path) / 'config' / 'train.config'
-    print(config_path)
+    config_path = Path(args.run_path) / 'config' / 'train.config'
     config_parser.set_config_path(config_path)
 
     # Parse train parameters.
@@ -112,7 +105,7 @@ def main(config_file_path=None):
 
     network_args = {
         'network_id': train_args.network,
-        'horizon': args.exp_time,
+        'horizon': args.experiment_time,
         'demand_type': train_args.demand_type,
         'tls_type': train_args.tls_type
     }
@@ -120,7 +113,7 @@ def main(config_file_path=None):
     network = Network(**network_args)
 
     # Create directory to store evaluation script data.
-    experiment_path = Path(args.train_run_path) / 'eval' / f'{network.name}'
+    experiment_path = Path(args.run_path) / 'eval' / f'{network.name}'
     os.makedirs(experiment_path, exist_ok=True)
     print(f'Experiment: {str(experiment_path)}')
     
@@ -133,9 +126,9 @@ def main(config_file_path=None):
 
     # Setup seeds.
     if args.seed is not None:
-        random.seed(args.experiment_seed)
-        np.random.seed(args.experiment_seed)
-        sumo_args['seed'] = args.experiment_seed
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        sumo_args['seed'] = args.seed
 
     # Setup emission path.
     if args.sumo_emission:
@@ -159,7 +152,7 @@ def main(config_file_path=None):
         )
 
     # Setup checkpoints.
-    checkpoints_dir_path = Path(args.train_run_path) / 'checkpoints'
+    checkpoints_dir_path = Path(args.run_path) / 'checkpoints'
     env.agents.load_checkpoint(checkpoints_dir_path, args.chkpt_number)
 
     # Stop training.
@@ -168,11 +161,13 @@ def main(config_file_path=None):
     exp = Experiment(
             env=env,
             exp_path=experiment_path.as_posix(),
-            train=False,
+            train=False, # Stop training.
     )
 
     # Run the experiment.
-    exp.run(args.exp_time)
+    info_dict = exp.run(args.experiment_time)
+
+    return info_dict
 
 if __name__ == '__main__':
     main()
