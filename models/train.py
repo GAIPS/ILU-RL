@@ -64,7 +64,8 @@ def main(train_config_path=None):
         'render': train_args.sumo_render,
         'print_warnings': False,
         'sim_step': 1,
-        'restart_instance': True
+        'restart_instance': True,
+        'teleport_time': 180
     }
 
     # Setup seeds.
