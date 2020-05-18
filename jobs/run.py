@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # 4) Create rollouts plots.
     rollouts_plots(eval_path)
 
-    # 5) Execute rollouts with last saved Q-tables (test).
+    # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, batch_dir=experiment_root_path)
 
     # 7) Convert .xml files to .csv files.

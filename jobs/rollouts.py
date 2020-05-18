@@ -1,5 +1,9 @@
+"""
+    jobs/rollouts.py
+"""
+
 from pathlib import Path
-from datetime import datetime
+import itertools
 import sys
 from os import environ
 import json
@@ -12,25 +16,41 @@ from collections import defaultdict
 import configparser
 
 from ilurl.utils.decorators import processable
-from models.rollouts import roll
+from models.rollout import main as roll
 
 ILURL_HOME = environ['ILURL_HOME']
-
 CONFIG_PATH = Path(f'{ILURL_HOME}/config/')
 
 
 def get_arguments():
     parser = argparse.ArgumentParser(
         description="""
-            This scripts runs recursively every experiment on path. It must receive a batch path.
+            This scripts runs recursively a rollout for every checkpoint stored
+            on the experiment path. If test is set to True only the last checkpoints
+            will be used.
         """
     )
-    parser.add_argument('batch_dir', type=str, nargs='?',
-                        help='''A directory which it\'s subdirectories are experiments''')
+    parser.add_argument('experiment_dir', type=str, nargs='?',
+                        help='''A directory which it\'s subdirectories are train runs.''')
+
+    parser.add_argument('--test', '-t', dest='test', type=str2bool,
+                        default=False, nargs='?',
+                        help='If true only the last checkpoints will be used.')
 
     parsed = parser.parse_args()
     sys.argv = [sys.argv[0]]
+
     return parsed
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def concat(evaluations):
     """Receives an experiments' json and merges it's contents
@@ -77,41 +97,43 @@ def concat(evaluations):
     return result
 
 
-def rollout_batch(test=False, batch_dir=None):
+def rollout_batch(test=False, experiment_dir=None):
 
     print('\nRUNNING jobs/rollouts.py\n')
 
-    if not batch_dir:
+    if not experiment_dir:
+
         # Read script arguments.
         args = get_arguments()
         # Clear command line arguments after parsing.
-        batch_path = Path(args.batch_dir)
+
+        batch_path = Path(args.experiment_dir)
+        test = args.test
+
     else:
-        batch_path = Path(batch_dir)
+        batch_path = Path(experiment_dir)
 
-    pattern = '*Q*.pickle'
-    # for test this should get only the last pickle
-    rollout_paths = [rp for rp in batch_path.rglob(pattern)]
+    chkpt_pattern = '*.chkpt'
 
+    # Get names of train runs.
+    experiment_names = list({p.parents[1] for p in batch_path.rglob(chkpt_pattern)})
+
+    # Get checkpoints numbers.
+    chkpts_nums = list({int(p.stem.split('-')[1]) for p in batch_path.rglob(chkpt_pattern)})
+
+    # If test then pick only the last checkpoints.
     if test:
-        
-        def fn(x):
-            # Filter using Q-table number.
-            q_number = int(x.suffixes[-2].split('-')[1])
-            return q_number
 
-        # Get number of last Q-table.
-        max_Q = max(rollout_paths, key=fn)
-        max_Q = max_Q.suffixes[-2]
+        chkpts_nums = [chkpts_nums[-1]]
+        rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
+    
+        print('\tjobs/rollouts.py (test mode): using checkpoints'
+                ' number {0}'.format(chkpts_nums[0]))
+    else:
+        rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
 
-        # Select only the latest Q-tables.
-        rollout_paths = []
-        max_q_pattern = '*.Q{0}.pickle'.format(max_Q)
-        for path in Path(batch_path).rglob(max_q_pattern):
-            rollout_paths.append(str(path))
-
-        print('jobs/rollouts.py (test mode): using Q-tables'
-                ' number {0}'.format(max_Q.split('-')[1]))
+    # print('Rollouts_paths found:')
+    # print(rollouts_paths)
 
     run_config = configparser.ConfigParser()
     run_config.read(str(CONFIG_PATH / 'run.config'))
@@ -133,44 +155,46 @@ def rollout_batch(test=False, batch_dir=None):
         num_processors = processors_total
         print(f'Number of processors downgraded to {num_processors}\n')
 
-    # Read train.py arguments from train.config file.
+    # Read rollouts arguments from rollouts.config file.
     rollouts_config = configparser.ConfigParser()
     rollouts_config.read(str(CONFIG_PATH / 'rollouts.config'))
     num_rollouts = int(rollouts_config.get('rollouts_args', 'num-rollouts'))
+    rollouts_config.remove_option('rollouts_args', 'num-rollouts')
 
     if test:
-        # merges test and rollouts
+        # Merge test and rollouts config files.
         test_config = configparser.ConfigParser()
         test_config.read(str(CONFIG_PATH / 'test.config'))
+
         num_rollouts = 1
 
-        cycles = test_config.get('test_args', 'cycles')
-        emission = test_config.get('test_args', 'emission')
-        switch = test_config.get('test_args', 'switch')
-        seed_delta = int(test_config.get('test_args', 'seed_delta'))
+        rollout_time = test_config.get('test_args', 'rollout-time')
+        emission = test_config.get('test_args', 'sumo-emission')
+        seed_delta = int(test_config.get('test_args', 'seed-delta'))
 
-        # overwrite defaults
-        rollouts_config.set('rollouts_args', 'cycles', cycles)
-        rollouts_config.set('rollouts_args', 'emission', emission)
-        rollouts_config.set('rollouts_args', 'switch', switch)
-        rollouts_config.set('rollouts_args', 'num-rollouts', repr(num_rollouts))
+        # Overwrite defaults.
+        rollouts_config.set('rollouts_args', 'rollout-time', rollout_time)
+        rollouts_config.set('rollouts_args', 'sumo-emission', emission)
 
-        # alocates the S seeds among M rollouts
+        # Alocate the S seeds among M rollouts.
         custom_configs = []
         base_seed = max(train_seeds)
-        for rn, rp in enumerate(rollout_paths):
-            custom_configs.append((str(rp), base_seed + rn + seed_delta))
+        for rn, rp in enumerate(rollouts_paths):
+            custom_configs.append((rp, base_seed + rn + seed_delta))
         token = 'test'
+
     else:
         # number of processes vs layouts
         # seeds must be different from training
         custom_configs = []
-        for rn, rp in enumerate(rollout_paths):
+        for rn, rp in enumerate(rollouts_paths):
             base_seed = max(train_seeds) + num_rollouts * rn
             for rr in range(num_rollouts):
                 seed = base_seed + rr + 1
-                custom_configs.append((str(rp), seed))
+                custom_configs.append((rp, seed))
         token = 'rollouts'
+
+    print(custom_configs)
 
     print(f'''
     \tArguments (jobs.{token}.py):
@@ -178,9 +202,9 @@ def rollout_batch(test=False, batch_dir=None):
     \tNumber of runs: {num_runs}
     \tNumber of processors: {num_processors}
     \tTrain seeds: {train_seeds}
-    \tNum. rollout files: {len(rollout_paths)}
+    \tNum. rollout files: {len(rollouts_paths)}
     \tNum. rollout repetitions: {num_rollouts}
-    \tNum. rollout total: {len(rollout_paths) * num_rollouts}\n\n''')
+    \tNum. rollout total: {len(rollouts_paths) * num_rollouts}\n\n''')
 
     with tempfile.TemporaryDirectory() as f:
 
@@ -191,14 +215,16 @@ def rollout_batch(test=False, batch_dir=None):
         rollouts_cfg_paths = []
         cfg_key = "rollouts_args"
         for cfg in custom_configs:
-            rollout_path, seed = cfg
+            run_path, chkpt_num = cfg[0]
+            seed = cfg[1]
 
-            # Setup custom rollout settings
-            rollouts_config.set(cfg_key, "rollout-path", str(rollout_path))
-            rollouts_config.set(cfg_key, "rollout-seed", str(seed))
+            # Setup custom rollout settings.
+            rollouts_config.set(cfg_key, "run-path", str(run_path))
+            rollouts_config.set(cfg_key, "chkpt-number", str(chkpt_num))
+            rollouts_config.set(cfg_key, "seed", str(seed))
             
             # Write temporary train config file.
-            cfg_path = tmp_path / f'rollouts-{seed}.config'
+            cfg_path = tmp_path / f'rollouts-{run_path.name}-{chkpt_num}-{seed}.config'
             rollouts_cfg_paths.append(str(cfg_path))
             with cfg_path.open('w') as fw:
                 rollouts_config.write(fw)
@@ -213,7 +239,8 @@ def rollout_batch(test=False, batch_dir=None):
             for cfg in rollouts_cfg_paths:
                 rvs.append(roll([cfg]))
 
-    res = concat(rvs)
+    """ res = concat(rvs)
+    print(res)
     res['num_rollouts'] = num_rollouts
     filepart = 'test' if test else 'eval'
     filename = f'{batch_path.parts[-1]}.l.{filepart}.info.json'
@@ -222,12 +249,12 @@ def rollout_batch(test=False, batch_dir=None):
         json.dump(res, fj)
 
     sys.stdout.write(str(batch_path))
-    return str(batch_path)
+    return str(batch_path) """
 
 @processable
 def rollout_job(test=False):
     return rollout_batch(test=test)
 
 if __name__ == '__main__':
-    rollout_job()
-    # rollout_batch() # use this line for textual output.
+    #rollout_job()
+    rollout_batch() # use this line for textual output.

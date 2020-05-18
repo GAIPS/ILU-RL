@@ -1,5 +1,5 @@
 """
-    models/evaluate.py
+    models/rollout.py
 
     This script evaluates a given RL policy.
     It performs a rollout given a static policy
@@ -48,9 +48,9 @@ def get_arguments(config_file_path):
     parser.add_argument('--chkpt-number', '-n', dest='chkpt_number', type=int,
                         nargs='?', required=True, help='Checkpoint number.')
 
-    parser.add_argument('--experiment-time', '-t', dest='experiment_time', type=int,
+    parser.add_argument('--rollout-time', '-t', dest='rollout_time', type=int,
                         default=300, nargs='?',
-                        help='Experiment time to perform evaluation.')
+                        help='Experiment runtime to perform evaluation.')
 
     parser.add_argument('--sumo-emission', '-e', dest='sumo_emission', type=str2bool,
                         default=True, nargs='?',
@@ -80,10 +80,10 @@ def str2bool(v):
 
 def print_arguments(args):
 
-    print('Arguments (evaluate_policy.py):')
+    print('Arguments (rollout.py):')
     print('\tRun path: {0}'.format(args.run_path))
     print('\tCheckpoint number: {0}'.format(args.chkpt_number))
-    print('\tExperiment time: {0}'.format(args.experiment_time))
+    print('\tExperiment time: {0}'.format(args.rollout_time))
     print('\tSUMO emission: {0}'.format(args.sumo_emission))
     print('\tSUMO render: {0}'.format(args.sumo_render))
     print('\tSeed: {0}\n'.format(args.seed))
@@ -105,7 +105,7 @@ def main(config_file_path=None):
 
     network_args = {
         'network_id': train_args.network,
-        'horizon': args.experiment_time,
+        'horizon': args.rollout_time,
         'demand_type': train_args.demand_type,
         'tls_type': train_args.tls_type
     }
@@ -165,7 +165,7 @@ def main(config_file_path=None):
     )
 
     # Run the experiment.
-    info_dict = exp.run(args.experiment_time)
+    info_dict = exp.run(args.rollout_time)
 
     return info_dict
 
