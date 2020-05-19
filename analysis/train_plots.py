@@ -175,6 +175,8 @@ def main(experiment_root_folder=None):
     """
     velocities = np.array(velocities)
 
+    velocities = np.nan_to_num(velocities)
+
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 

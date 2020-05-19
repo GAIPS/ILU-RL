@@ -246,6 +246,12 @@ class Network(flownet.Network):
         return {conn.pop('via'): conn for conn in conns if 'via' in conn} 
 
     @lazy_property
+    def nodes2(self):
+        """Nodes as dictionary instead of a list"""
+        return {data['id']: {k:v for k, v in data.items() if k != 'id'}
+                for data in self.nodes}
+
+    @lazy_property
     def edges2(self):
         """Edges as dictionary instead of a list"""
         return {data['id']: {k:v for k, v in data.items() if k != 'id'}
@@ -297,13 +303,55 @@ class Network(flownet.Network):
         return neighbours
 
     @lazy_property
-    def tls_approaches(self):
-        """Returns the incoming approaches for a traffic light junction
+    def neighbours(self):
+        """
+            Returns a dict containing the neighbours of each intersection.
+        """
 
-        Params:
-        ------
-        * nodeid: string
-            a valid nodeid in self.nodes
+        # Get incoming approaches.
+        in_approaches = self.tls_approaches
+
+        # Get outgoing approaches.
+        out_approaches = self.out_approaches
+
+        out = {}
+        for tid in self.tls_ids:
+
+            neighbours = []
+
+            for in_app in in_approaches[tid]:
+
+                neighbour_id = self.edges2[in_app]['from']
+
+                if self.nodes2[neighbour_id]['type'] == 'traffic_light':
+                    neighbours.append(neighbour_id)
+
+            for out_app in out_approaches[tid]:
+
+                neighbour_id = self.edges2[out_app]['to']
+
+                if self.nodes2[neighbour_id]['type'] == 'traffic_light':
+                    neighbours.append(neighbour_id)
+
+            # Remove duplicates.
+            neighbours = list(dict.fromkeys(neighbours))
+
+            out[tid] = neighbours
+
+        return out
+
+    @lazy_property
+    def out_approaches(self):
+        """
+            Returns the outgoing approaches for a traffic light junction
+        """
+        return {nid: [e['id'] for e in self.edges if e['from'] == nid]
+                for nid in self.tls_ids}
+
+    @lazy_property
+    def tls_approaches(self):
+        """
+        Returns the incoming approaches for a traffic light junction.
 
         Returns:
         ------
