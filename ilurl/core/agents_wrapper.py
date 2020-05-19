@@ -8,6 +8,8 @@ from ilurl.loaders.parser import config_parser
 from ilurl.core.ql.agent import QL
 from ilurl.core.dqn.agent import DQN
 
+import baselines.common.tf_util as U
+
 AGENT_TYPES = ('QL', 'DQN')
 
 class AgentsWrapper(object):
@@ -25,6 +27,8 @@ class AgentsWrapper(object):
         agents = {}
 
         num_variables = len(mdp_params.states_labels)
+
+        U.reset_session()
 
         # TODO: Afterwards this needs to come from a config file 
         # telling what each agent is controlling.

@@ -21,6 +21,7 @@ from models.rollout import main as roll
 ILURL_HOME = environ['ILURL_HOME']
 CONFIG_PATH = Path(f'{ILURL_HOME}/config/')
 
+LOCK = mp.Lock()
 
 def get_arguments():
     parser = argparse.ArgumentParser(
@@ -51,6 +52,17 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def delay_roll(*args, **kwargs):
+    """
+        Delays execution by 1 sec.
+    """
+    LOCK.acquire()
+    try:
+        time.sleep(1)
+    finally:
+        LOCK.release()
+    return roll(*args, **kwargs)
 
 def concat(evaluations):
     """Receives an experiments' json and merges it's contents
@@ -120,6 +132,8 @@ def rollout_batch(test=False, experiment_dir=None):
 
     # Get checkpoints numbers.
     chkpts_nums = list({int(p.stem.split('-')[1]) for p in batch_path.rglob(chkpt_pattern)})
+    if len(chkpts_nums) == 0:
+        raise ValueError('No checkpoints found.')
 
     # If test then pick only the last checkpoints.
     if test:
@@ -127,7 +141,7 @@ def rollout_batch(test=False, experiment_dir=None):
         chkpts_nums = [chkpts_nums[-1]]
         rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
     
-        print('\tjobs/rollouts.py (test mode): using checkpoints'
+        print('jobs/rollouts.py (test mode): using checkpoints'
                 ' number {0}'.format(chkpts_nums[0]))
     else:
         rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
@@ -163,36 +177,18 @@ def rollout_batch(test=False, experiment_dir=None):
         test_config = configparser.ConfigParser()
         test_config.read(str(CONFIG_PATH / 'test.config'))
 
-        # By default in test mode only one rollout per checkpoint is done.
-        num_rollouts = 1
-
+        num_rollouts = int(test_config.get('test_args', 'num-rollouts'))
         rollout_time = test_config.get('test_args', 'rollout-time')
         emission = test_config.get('test_args', 'sumo-emission')
-        seed_delta = int(test_config.get('test_args', 'seed-delta'))
 
         # Overwrite defaults.
         rollouts_config.set('rollouts_args', 'rollout-time', rollout_time)
         rollouts_config.set('rollouts_args', 'sumo-emission', emission)
 
-        # Alocate the S seeds among M rollouts.
-        custom_configs = []
-        base_seed = max(train_seeds)
-        for rn, rp in enumerate(rollouts_paths):
-            custom_configs.append((rp, base_seed + rn + seed_delta))
         token = 'test'
 
     else:
-        # number of processes vs layouts
-        # seeds must be different from training
-        custom_configs = []
-        for rn, rp in enumerate(rollouts_paths):
-            base_seed = max(train_seeds) + num_rollouts * rn
-            for rr in range(num_rollouts):
-                seed = base_seed + rr + 1
-                custom_configs.append((rp, seed))
         token = 'rollouts'
-
-    # print(custom_configs)
 
     print(f'\nArguments (jobs/{token}.py):')
     print('-------------------------')
@@ -203,6 +199,16 @@ def rollout_batch(test=False, experiment_dir=None):
     print(f'Num. rollout total: {len(rollouts_paths) * num_rollouts}')
     print(f'Rollouts time: {rollout_time}')
     print(f'Rollouts emission: {emission}\n')
+
+    # Allocate seeds.
+    custom_configs = []
+    for rn, rp in enumerate(rollouts_paths):
+        base_seed = max(train_seeds) + num_rollouts * rn
+        for rr in range(num_rollouts):
+            seed = base_seed + rr + 1
+            custom_configs.append((rp, seed))
+
+    # print(custom_configs)
 
     with tempfile.TemporaryDirectory() as f:
 
@@ -230,12 +236,12 @@ def rollout_batch(test=False, experiment_dir=None):
         # rvs: directories' names holding experiment data
         if num_processors > 1:
             pool = mp.Pool(num_processors)
-            rvs = pool.map(roll, [[cfg] for cfg in rollouts_cfg_paths])
+            rvs = pool.map(delay_roll, [[cfg] for cfg in rollouts_cfg_paths])
             pool.close()
         else:
             rvs = []
             for cfg in rollouts_cfg_paths:
-                rvs.append(roll([cfg]))
+                rvs.append(delay_roll([cfg]))
 
     """ res = concat(rvs)
     print(res)
