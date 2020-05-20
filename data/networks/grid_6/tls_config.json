@@ -66,18 +66,18 @@
 				"duration": "31",      
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "rrrrrGGG"
+				"state": "rrrrrrGGG"
 				}, {
 				"duration": "6",
-				"state": "rrrrryyy"
+				"state": "rrrrrryyy"
 				}, {
 				"duration": "31",
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "GGGGGrrr"
+				"state": "GGGGGGrrr"
 				}, {
 				"duration": "6",
-				"state": "yyyyyrrr"
+				"state": "yyyyyyrrr"
 			}]
 		},
 		"gneJ1": {
@@ -88,15 +88,15 @@
 				"duration": "31",      
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "rrrrrGGGGG"
+				"state": "rrrrrGGGGgG"
 				}, {
 				"duration": "6",
-				"state": "rrrrryyyyy"
+				"state": "rrrrryyyyyy"
 				}, {
 				"duration": "31",
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "GGGGGrrrrr"
+				"state": "GGGGGrrrrrr"
 				}, {
 				"duration": "6",
 				"state": "yyyyyrrrrr"
@@ -110,18 +110,18 @@
 				"duration": "31",      
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "rrGGGrrrGGG"
+				"state": "rrGGGrrGGG"
 				}, {
 				"duration": "6",
-				"state": "rryyyrrryyy"
+				"state": "rryyyrryyy"
 				}, {
 				"duration": "31",
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "GGrrrGGgrrr"
+				"state": "GGrrrGGrrr"
 				}, {
 				"duration": "6",
-				"state": "yyrrryyyrrr"
+				"state": "yyrrryyrrr"
 			}]
 		},
 		"gneJ3": {
@@ -132,18 +132,18 @@
 				"duration": "31",      
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "rrrGGgrrGG"
+				"state": "rrGGgrrGG"
 				}, {
 				"duration": "6",
-				"state": "rrryyyrryy"
+				"state": "rryyyrryy"
 				}, {
 				"duration": "31",
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "GGgrrrGGrr"
+				"state": "GGrrrGGrr"
 				}, {
 				"duration": "6",
-				"state": "yyyrrryyrr"
+				"state": "yyrrryyrr"
 			}]
 		},
 		"gneJ4": {
@@ -154,18 +154,18 @@
 				"duration": "31",      
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "rrGGGgrrGGG"
+				"state": "rrGGGrrGGG"
 				}, {
 				"duration": "6",
-				"state": "rryyyyrryyy"
+				"state": "rryyyrryyy"
 				}, {
 				"duration": "31",
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "GGrrrrGGrrr"
+				"state": "GGrrrGGrrr"
 				}, {
 				"duration": "6",
-				"state": "yyrrrryyrrr"
+				"state": "yyrrryyrrr"
 			}]
 		},
 		"gneJ5": {
@@ -176,18 +176,18 @@
 				"duration": "31",      
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "rrGGrrrGGg"
+				"state": "rrGGrrGG"
 				}, {
 				"duration": "6",
-				"state": "rryyrrryyy"
+				"state": "rryyrryy"
 				}, {
 				"duration": "31",
 				"minDur": "24",
 				"maxDur": "54",
-				"state": "GGrrGGgrrr"
+				"state": "GGrrGgrr"
 				}, {
 				"duration": "6",
-				"state": "yyrryyyrrr"
+				"state": "yyrryyrr"
 			}]
 		}
 	}
