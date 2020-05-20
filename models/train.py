@@ -11,9 +11,9 @@
 """
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-08'
+import os
 import json
 import random
-from os import environ
 from pathlib import Path
 from shutil import copyfile
 
@@ -28,14 +28,13 @@ from ilurl.networks.base import Network
 
 from ilurl.loaders.parser import config_parser
 
-ILURL_PATH = Path(environ['ILURL_HOME'])
+ILURL_PATH = Path(os.environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
 NETWORKS_PATH = ILURL_PATH / 'data/networks/'
 
 def main(train_config_path=None):
 
-    # Setup config parser with custom path.
-    # (if 'train_config_path' is set).
+    # Setup config parser path.
     if train_config_path is not None:
         print(f'Loading train parameters from: {train_config_path}')
         config_parser.set_config_path(train_config_path)
@@ -56,8 +55,7 @@ def main(train_config_path=None):
 
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
-    if not experiment_path.exists():
-        experiment_path.mkdir()
+    os.makedirs(experiment_path, exist_ok=True)
     print(f'Experiment: {str(experiment_path)}')
 
     sumo_args = {

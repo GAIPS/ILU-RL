@@ -1,11 +1,15 @@
-'''Evaluation: evaluates a batch of experiments.
+'''
 
-   * loads multi experiment files.
-   * verify parameters -- if they're compatible proceed
-   * for each experiment
-        loads all Q-tables, from that experiment.
-        filter Q-tables from S to S steps.
-        for each table runs R rollouts (defaults 1).
+    WARNING: DEPRECATED.
+
+    Evaluation: evaluates a batch of experiments.
+
+    * loads multi experiment files.
+    * verify parameters -- if they're compatible proceed
+    * for each experiment
+            loads all Q-tables, from that experiment.
+            filter Q-tables from S to S steps.
+            for each table runs R rollouts (defaults 1).
    
 '''
 
