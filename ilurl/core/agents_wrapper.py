@@ -150,7 +150,7 @@ class AgentsWrapper(object):
 
             # Calculate agent's reward.
             # reward = r[tid] + np.mean(neighbours_rewards)
-            reward = r[tid] + np.mean(list(r.values()))
+            reward = r[tid] + np.sum(list(r.values()))
 
 
             # Prepare target network input (next state).
