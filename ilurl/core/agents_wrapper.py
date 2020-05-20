@@ -47,7 +47,7 @@ class AgentsWrapper(object):
             states_depth = len(mdp_params.category_counts) + 1
 
             # Calculate new network input size.
-            states_rank = states_rank * 2 + actions_depth            
+            states_rank = states_rank + actions_depth            
 
             agent_params_.states = Bounds(states_rank, states_depth)
 
@@ -86,13 +86,13 @@ class AgentsWrapper(object):
         choices = {}
 
         # Calculate average neighbours state for each agent.
-        neighbours_avg_states = {}
+        """ neighbours_avg_states = {}
         for tid, agent in self.agents.items():
 
             # Calculate average neighbours state.
             neighbours_states = [state[n] for n in self.neighbours[tid]]
             neighbours_states = np.array(neighbours_states)
-            neighbours_avg_states[tid] = np.mean(neighbours_states, axis=0)
+            neighbours_avg_states[tid] = np.mean(neighbours_states, axis=0) """
 
         M = 10
         for _ in range(M):
@@ -108,7 +108,7 @@ class AgentsWrapper(object):
 
                 # Prepare network input.
                 state_contat = tuple(np.hstack((state[tid],
-                                                neighbours_avg_states[tid],
+                                                #neighbours_avg_states[tid],
                                                 neighbours_avg_action)))
 
                 # Pick agent's action.
@@ -123,14 +123,14 @@ class AgentsWrapper(object):
         for tid, agent in self.agents.items():
 
             # Concatenate neighbours' information.
-            neighbours_states = [s[n] for n in self.neighbours[tid]]
+            #neighbours_states = [s[n] for n in self.neighbours[tid]]
             neighbours_actions = [a[n] for n in self.neighbours[tid]]
-            # neighbours_rewards = [r[n] for n in self.neighbours[tid]]
-            neighbours_next_states = [s1[n] for n in self.neighbours[tid]]
+            neighbours_rewards = [r[n] for n in self.neighbours[tid]]
+            #neighbours_next_states = [s1[n] for n in self.neighbours[tid]]
 
             # Calculate average neighbours state.
-            neighbours_states = np.array(neighbours_states)
-            neighbours_avg_state = np.mean(neighbours_states, axis=0)
+            #neighbours_states = np.array(neighbours_states)
+            #neighbours_avg_state = np.mean(neighbours_states, axis=0)
 
             # Calculate average neighbours actions.
             neighbours_actions = np.array(neighbours_actions)
@@ -139,24 +139,22 @@ class AgentsWrapper(object):
             neighbours_avg_action = np.mean(one_hot_actions, axis=0)
 
             # Calculate average neighbours next state.
-            neighbours_next_states = np.array(neighbours_next_states)
-            neighbours_avg_next_state = np.mean(neighbours_next_states, axis=0)
+            #neighbours_next_states = np.array(neighbours_next_states)
+            #neighbours_avg_next_state = np.mean(neighbours_next_states, axis=0)
 
             # Prepare network input.
             # (agent's state + neighbours_avg_state + neighbours_avg_action).
             state = tuple(np.hstack((s[tid],
-                                     neighbours_avg_state,
+                                     #neighbours_avg_state,
                                      neighbours_avg_action)))
 
             # Calculate agent's reward.
-            # reward = r[tid] + np.mean(neighbours_rewards)
-            reward = r[tid] + np.sum(list(r.values()))
-
+            reward = r[tid] + np.mean(neighbours_rewards)
 
             # Prepare target network input (next state).
             # (agent's state + neighbours_avg_state + neighbours_avg_action).
             next_state = tuple(np.hstack((s1[tid],
-                               neighbours_avg_next_state,
+                               #neighbours_avg_next_state,
                                neighbours_avg_action)))
 
             # Update agent.
