@@ -94,7 +94,7 @@ class AgentsWrapper(object):
             neighbours_states = np.array(neighbours_states)
             neighbours_avg_states[tid] = np.mean(neighbours_states, axis=0)
 
-        M = 1
+        M = 100
         for _ in range(M):
 
             for tid, agent in self.agents.items():
