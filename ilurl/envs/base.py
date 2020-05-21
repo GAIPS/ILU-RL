@@ -13,7 +13,7 @@ import numpy as np
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
-from ilurl.core.ql.reward import RewardCalculator
+from ilurl.core.reward import RewardCalculator
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 

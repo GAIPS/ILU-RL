@@ -7,7 +7,7 @@ import numpy as np
 import flow.core.params as flow_params
 
 from collections import namedtuple
-from ilurl.core.ql.reward import REWARD_TYPES
+from ilurl.core.reward import REWARD_TYPES
 from ilurl.core.ql.choice import CHOICE_TYPES
 
 from ilurl.dumpers.inflows import inflows_dump
