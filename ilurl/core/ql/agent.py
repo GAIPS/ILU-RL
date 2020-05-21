@@ -10,7 +10,7 @@ from ilurl.core.ql.define import dpq_tls
 from ilurl.core.ql.update import dpq_update
 
 from baselines.deepq.replay_buffer import ReplayBuffer
-from baselines.logger import Logger, TensorBoardOutputFormat
+from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
 from baselines.common.schedules import PowerSchedule
 
 class QL(object, metaclass=MetaAgent):
@@ -262,4 +262,5 @@ class QL(object, metaclass=MetaAgent):
 
         log_file = f'{path}/train_logs/{self.name}'
         tb_logger = TensorBoardOutputFormat(log_file)
+        csv_logger = CSVOutputFormat(f'{log_file}.csv')
         self.logger = Logger(dir=path, output_formats=[tb_logger])
