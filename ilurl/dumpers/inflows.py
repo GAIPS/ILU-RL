@@ -27,37 +27,34 @@ from numpy import random
 
 from ilurl.loaders.nets import get_routes, get_edges
 
+DEMAND_TYPES = ('low', 'mid', 'high', 'variable')
 
 XML_PATH = f"{os.environ['ILURL_HOME']}/data/networks/"
 
-def inflows_path(network_id, horizon, distribution='lane', n=0):
+def inflows_path(network_id, horizon, distribution='low', n=0):
     path = f'{XML_PATH}{network_id}/{network_id}'
 
-    if distribution not in ('lane', 'switch'):
-        raise ValueError(f'distribution not implemented {distribution}')
-    else:
-        x = 'l' if distribution == 'lane' else 'w'
+    if distribution not in DEMAND_TYPES:
+        raise ValueError(f'Distribution not implemented {distribution}')
 
-    path = f'{path}.{n}.{horizon}.{x}.rou.xml'
+    path = f'{path}.{n}.{horizon}.{distribution}.rou.xml'
 
     return path
 
 
-def inflows_paths(network_id, horizon, distribution='lane'):
+def inflows_paths(network_id, horizon, distribution='low'):
     path = f'{XML_PATH}{network_id}/{network_id}'
 
-    if distribution not in ('lane', 'switch'):
-        raise ValueError(f'distribution not implemented {distribution}')
-    else:
-        x = 'l' if distribution == 'lane' else 'w'
+    if distribution not in DEMAND_TYPES:
+        raise ValueError(f'Distribution not implemented {distribution}')
 
-    paths = glob.glob(f'{path}.[0-9].{horizon}.{x}.rou.xml')
+    paths = glob.glob(f'{path}.[0-9].{horizon}.{distribution}.rou.xml')
 
     return paths
 
 
 def inflows_dump(network_id, inflows,
-                 distribution='lane', label=None):
+                 distribution='low', label=None):
     """
 
     EXAMPLE:

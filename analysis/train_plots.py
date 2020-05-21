@@ -1,22 +1,23 @@
 """
-    Python script to produce the following train plots:
+    Python script to produce the following (global metrics) train plots:
         - reward per cycle (with mean, std and smoothed curve)
         - number of vehicles per cycle (with mean, std and smoothed curve)
         - vehicles' velocity per cycle (with mean, std and smoothed curve)
 
     Given the path to the experiment root folder (-p flag), the script
-    searches for all *.train.json files and produces the previous plots
-    by averaging over all json files.
+    searches recursively for all train_log.json files and produces the
+    previous plots by averaging over all json files.
 
     The output plots will go into a folder named 'plots', created inside
     the given experiment root folder.
-
 """
 import os
 import json
 import argparse
 import numpy as np
 from pathlib import Path
+
+import pandas as pd
 
 import statsmodels.api as sm
 
@@ -39,14 +40,14 @@ def get_arguments():
 
     parser = argparse.ArgumentParser(
         description="""
-            Python script to produce the following train plots:
+            Python script to produce the following (global metrics) train plots:
                 - reward per cycle (with mean, std and smoothed curve)
                 - number of vehicles per cycle (with mean, std and smoothed curve)
                 - vehicles' velocity per cycle (with mean, std and smoothed curve)
 
-            Given the path to the experiment root folder, the script searches
-            for all *.train.json files and produces the previous plots by
-            averaging over all json files.
+            Given the path to the experiment root folder (-p flag), the script
+            searches recursively for all train_log.json files and produces the
+            previous plots by averaging over all json files.
 
             The output plots will go into a folder named 'plots', created inside
             the given experiment root folder.
@@ -69,9 +70,9 @@ def main(experiment_root_folder=None):
         experiment_root_folder = args.experiment_root_folder
 
     print('\tInput files:')
-    # Get all *.train.json files from experiment root folder.
+    # Get all train_log.json files from experiment root folder.
     train_files = []
-    for path in Path(experiment_root_folder).rglob('*.train.json'):
+    for path in Path(experiment_root_folder).rglob('train_log.json'):
         train_files.append(str(path))
         print('\t\t{0}'.format(str(path)))
 
@@ -93,8 +94,8 @@ def main(experiment_root_folder=None):
 
         # Rewards per time-step.
         r = json_data['rewards']
-        r = [sum(a) for a in r]
-        rewards.append(r)
+        r = pd.DataFrame(r)
+        rewards.append(np.sum(r.values, axis=1))
 
         # Number of vehicles per time-step.
         vehicles.append(json_data['vehicles'])
@@ -102,9 +103,9 @@ def main(experiment_root_folder=None):
         # Vehicles' velocity per time-step.
         velocities.append(json_data['velocities'])
 
-
     """
-        Rewards per time-step.
+        Rewards per cycle.
+        (GLOBAL: sum of the reward for all intersections).
     """
     rewards = np.array(rewards)
 
@@ -136,7 +137,8 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """ 
-        Number of vehicles per time-step.
+        Number of vehicles per cycle.
+        (GLOBAL: For all vehicles in simulation)
     """
     vehicles = np.array(vehicles)
 
@@ -168,7 +170,8 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """ 
-        Vehicles' velocity per time-step.
+        Vehicles' velocity per cycle.
+        (GLOBAL: For all vehicles in simulation)
     """
     velocities = np.array(velocities)
 

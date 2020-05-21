@@ -55,20 +55,19 @@ def delay_baseline(*args, **kwargs):
 def get_arguments():
     parser = argparse.ArgumentParser(
         description="""
-            User must provide the tls control type
+            Script to evaluate actuated, static or random timings.
         """
     )
 
-    # TODO: validate against existing networks
     parser.add_argument('tls_type', type=str, nargs='?',
                         choices=('actuated', 'static', 'random'),  
                          help='Deterministic control type')
     flags = parser.parse_args()
-    # BEWARE: clears all command line arguments
     sys.argv = [sys.argv[0]]
     return flags
 
 def baseline_batch():
+
     flags = get_arguments()
 
     # Read script arguments from run.config file.
@@ -78,7 +77,6 @@ def baseline_batch():
 
     num_processors = int(run_config.get('run_args', 'num_processors'))
     num_runs = int(run_config.get('run_args', 'num_runs'))
-    # TODO: seeds should be for evaluation
     seeds = json.loads(run_config.get("run_args", "train_seeds"))
 
     if len(seeds) != num_runs:
@@ -86,9 +84,10 @@ def baseline_batch():
                         ' must match the number of runs (`num_runs`) argument.')
 
     print('Arguments (baseline.py):')
-    print('\tNumber of runs: {0}'.format(num_runs))
-    print('\tNumber of processors: {0}'.format(num_processors))
-    print('\tTrain seeds: {0}\n'.format(seeds))
+    print('-----------------------')
+    print('Number of runs: {0}'.format(num_runs))
+    print('Number of processors: {0}'.format(num_processors))
+    print('Train seeds: {0}\n'.format(seeds))
 
     # Assess total number of processors.
     processors_total = mp.cpu_count()
@@ -100,29 +99,28 @@ def baseline_batch():
         print(f'Number of processors downgraded to {num_processors}\n')
 
     # Read train.py arguments from train.config file.
-    # TODO: include an evaluation config
     baseline_config = configparser.ConfigParser()
     baseline_path = CONFIG_PATH / 'train.config'
     baseline_config.read(str(baseline_path))
     
-    # Setup sumo-tls-type
-    baseline_config.set('train_args', 'sumo-tls-type', flags.tls_type)
-    baseline_config.set('train_args', 'experiment-save-agent', str(False))
+    # Setup sumo-tls-type.
+    baseline_config.set('train_args', 'tls_type', flags.tls_type)
+    baseline_config.set('train_args', 'experiment_save_agent', str(False))
 
-    # Override train configurations with test's
+    # Override train configurations with test parameters.
     test_config = configparser.ConfigParser()
     test_path = CONFIG_PATH / 'test.config'
     test_config.read(test_path.as_posix())
 
-    # is there another way
-    horizon = int(test_config.get('test_args', 'cycles')) * 90
-    emission = str2bool(test_config.get('test_args', 'emission'))
-    switch = str2bool(test_config.get('test_args', 'switch'))
-    seed_delta = int(test_config.get('test_args', 'seed_delta'))
+    horizon = int(test_config.get('test_args', 'rollout-time'))
+    emission = str2bool(test_config.get('test_args', 'sumo-emission'))
 
-    baseline_config.set('train_args', 'experiment-time', str(horizon))
-    baseline_config.set('train_args', 'inflows-switch', str(switch))
-    baseline_config.set('train_args', 'sumo-emission', str(emission))
+    baseline_config.set('train_args', 'experiment_time', str(horizon))
+    baseline_config.set('train_args', 'sumo_emission', str(emission))
+
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
+    print(f'Experiment timestamp: {timestamp}')
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         # Create a config file for each train.py
         # with the respective seed. These config
@@ -135,29 +133,30 @@ def baseline_batch():
             baseline_configs.append(cfg_path)
 
             # Setup train seed.
-            baseline_config.set("train_args", "experiment-seed", str(seed + seed_delta))
+            baseline_config.set("train_args", "experiment_seed", str(seed + 1))
             
             # Write temporary train config file.
             with cfg_path.open('w') as ft:
                 baseline_config.write(ft)
+
         # Run.
         # TODO: option without pooling not working. why?
         # rvs: directories' names holding experiment data
         if num_processors > 1:
             pool = mp.Pool(num_processors)
-            rvs = pool.map(delay_baseline, [[cfg] for cfg in baseline_configs])
+            rvs = pool.map(delay_baseline, [cfg for cfg in baseline_configs])
             pool.close()
         else:
             rvs = []
             for cfg in baseline_configs:
-                rvs.append(delay_baseline([cfg]))
+                rvs.append(delay_baseline(cfg))
+
         # Create a directory and move newly created files
         paths = [Path(f) for f in rvs]
         commons = [p.parent for p in paths]
         if len(set(commons)) > 1:
             raise ValueError(f'Directories {set(commons)} must have the same root')
         dirpath = commons[0]
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
         batchpath = dirpath / timestamp
         if not batchpath.exists():
             batchpath.mkdir()
@@ -166,7 +165,9 @@ def baseline_batch():
         for src in paths:
             dst = batchpath / src.parts[-1]
             src.replace(dst)
+
     sys.stdout.write(str(batchpath))
+
     return str(batchpath)
 
 @processable
@@ -174,7 +175,6 @@ def baseline_job():
     return baseline_batch()
 
 if __name__ == '__main__':
-    # enable this in order to have a nice textual ouput
-    baseline_batch()
+    baseline_batch() # textual output.
     # baseline_job()
 

@@ -3,10 +3,12 @@ from copy import deepcopy
 import numpy as np
 
 from ilurl.core.params import Bounds
-import ilurl.loaders.parsers as parsers
+from ilurl.loaders.parser import config_parser
 
 from ilurl.core.ql.agent import QL
 from ilurl.core.dqn.agent import DQN
+
+import baselines.common.tf_util as U
 
 AGENT_TYPES = ('QL', 'DQN')
 
@@ -19,12 +21,14 @@ class AgentsWrapper(object):
                 mdp_params):
 
         # Load agent parameters from config file (train.config).
-        agent_type, agent_params = parsers.parse_agent_params()
+        agent_type, agent_params = config_parser.parse_agent_params()
 
         # Create agents.
         agents = {}
 
         num_variables = len(mdp_params.states_labels)
+
+        U.reset_session()
 
         # TODO: Afterwards this needs to come from a config file 
         # telling what each agent is controlling.
@@ -62,7 +66,7 @@ class AgentsWrapper(object):
 
     @stop.setter
     def stop(self, stop):
-        for agent in self.agents:
+        for agent in self.agents.values():
             agent.stop = stop
 
     def act(self, state):

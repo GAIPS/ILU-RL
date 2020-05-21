@@ -182,15 +182,11 @@ def main(experiment_root_folder=None):
     print('Output folder: {0}'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
-    # Get cycle length from parameters (*.params.json) file.
-    params = None
-    for params_path in Path(experiment_root_folder).rglob('*.params.json'):
-        with params_path.open('r') as f:
-            params = json.load(f)
-        break   # There should be only one match.
-    if params is None:
-        raise ValueError('params is None')
-    cycle_time = params['env_args']['additional_params']['cycle_time']
+    # Get cycle length from tls_config.json file.
+    config_files = list(Path(experiment_root_folder).rglob('tls_config.json'))
+    with config_files[0].open('r') as f:
+        json_file = json.load(f)
+    cycle_time = json_file['rl']['cycle_time']
 
     # Get all *.csv files from experiment root folder.
     csv_files = [str(p) for p in list(Path(experiment_root_folder).rglob('*-emission.csv'))]

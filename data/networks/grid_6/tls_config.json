@@ -1,0 +1,194 @@
+{
+	"rl": {
+		    "cycle_time": 90,
+		    "gneJ0": {
+				"0": [14, 20, 84, 90],
+				"1": [24, 30, 84, 90],
+				"2": [34, 40, 84, 90],
+				"3": [39, 45, 84, 90],
+				"4": [44, 50, 84, 90],
+				"5": [54, 60, 84, 90],
+				"6": [64, 70, 84, 90]
+			},
+		    "gneJ1": {
+				"0": [14, 20, 84, 90],
+				"1": [24, 30, 84, 90],
+				"2": [34, 40, 84, 90],
+				"3": [39, 45, 84, 90],
+				"4": [44, 50, 84, 90],
+				"5": [54, 60, 84, 90],
+				"6": [64, 70, 84, 90]
+			},
+		    "gneJ2": {
+				"0": [14, 20, 84, 90],
+				"1": [24, 30, 84, 90],
+				"2": [34, 40, 84, 90],
+				"3": [39, 45, 84, 90],
+				"4": [44, 50, 84, 90],
+				"5": [54, 60, 84, 90],
+				"6": [64, 70, 84, 90]
+			},
+		    "gneJ3": {
+				"0": [14, 20, 84, 90],
+				"1": [24, 30, 84, 90],
+				"2": [34, 40, 84, 90],
+				"3": [39, 45, 84, 90],
+				"4": [44, 50, 84, 90],
+				"5": [54, 60, 84, 90],
+				"6": [64, 70, 84, 90]
+			},
+		    "gneJ4": {
+				"0": [14, 20, 84, 90],
+				"1": [24, 30, 84, 90],
+				"2": [34, 40, 84, 90],
+				"3": [39, 45, 84, 90],
+				"4": [44, 50, 84, 90],
+				"5": [54, 60, 84, 90],
+				"6": [64, 70, 84, 90]
+			},
+		    "gneJ5": {
+				"0": [14, 20, 84, 90],
+				"1": [24, 30, 84, 90],
+				"2": [34, 40, 84, 90],
+				"3": [39, 45, 84, 90],
+				"4": [44, 50, 84, 90],
+				"5": [54, 60, 84, 90],
+				"6": [64, 70, 84, 90]
+			}
+	},
+	"actuated": {
+		"cycle_time": 90,
+		"gneJ0": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrrryyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGGrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyyrrr"
+			}]
+		},
+		"gneJ1": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrGGGGgG"
+				}, {
+				"duration": "6",
+				"state": "rrrrryyyyyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGrrrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyrrrrrr"
+			}]
+        },
+		"gneJ2": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGGrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rryyyrryyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrrGGrrr"
+				}, {
+				"duration": "6",
+				"state": "yyrrryyrrr"
+			}]
+		},
+		"gneJ3": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGgrrGG"
+				}, {
+				"duration": "6",
+				"state": "rryyyrryy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrrGGrr"
+				}, {
+				"duration": "6",
+				"state": "yyrrryyrr"
+			}]
+		},
+		"gneJ4": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGGrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rryyyrryyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrrGGrrr"
+				}, {
+				"duration": "6",
+				"state": "yyrrryyrrr"
+			}]
+		},
+		"gneJ5": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGrrGG"
+				}, {
+				"duration": "6",
+				"state": "rryyrryy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrGgrr"
+				}, {
+				"duration": "6",
+				"state": "yyrryyrr"
+			}]
+		}
+	}
+}

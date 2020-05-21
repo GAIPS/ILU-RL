@@ -4,13 +4,17 @@ import numpy as np
 from ilurl.utils.meta import MetaAgent
 
 import tensorflow as tf
+
+# Suppress tf warnings.
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 import tensorflow.contrib.layers as layers
 
 from gym.spaces.box import Box
 
 import baselines.common.tf_util as U
 
-from baselines.logger import Logger, TensorBoardOutputFormat
+from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
 from baselines import deepq
 from baselines.common.tf_util import load_variables, save_variables
 from baselines.deepq.deepq import ActWrapper
@@ -237,4 +241,5 @@ class DQN(object, metaclass=MetaAgent):
 
         log_file = f'{path}/train_logs/{self.name}'
         tb_logger = TensorBoardOutputFormat(log_file)
-        self.logger = Logger(dir=path, output_formats=[tb_logger])
+        csv_logger = CSVOutputFormat(f'{log_file}.csv')
+        self.logger = Logger(dir=path, output_formats=[tb_logger, csv_logger])

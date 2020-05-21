@@ -7,12 +7,13 @@ import numpy as np
 import flow.core.params as flow_params
 
 from collections import namedtuple
-from ilurl.core.ql.reward import REWARD_TYPES
+from ilurl.core.reward import REWARD_TYPES
 from ilurl.core.ql.choice import CHOICE_TYPES
 
 from ilurl.dumpers.inflows import inflows_dump
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
+from ilurl.loaders.demands import get_demand
 
 STATE_FEATURES = ('speed', 'count') #, 'flow', 'queue'
 
@@ -41,12 +42,10 @@ Bounds = namedtuple('Bounds', 'rank depth')
 '''
 Reward = namedtuple('Reward', 'type additional_params')
 
-ADDITIONAL_PARAMS = {
-    # every `switch` seconds concentrate flow in one direction
-     "switch": 900
-}
-
 TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
+
+DEMAND_TYPES = ('low', 'mid', 'high', 'variable') # TODO: Add switch demand type.
+
 
 class MDPParams:
     """
@@ -465,7 +464,7 @@ class TrainParams:
             sumo_render=False,
             sumo_emission=False,
             tls_type='controlled',
-            inflows_switch=False,
+            demand_type='low',
         ):
         """Instantiate train parameters.
 
@@ -508,10 +507,13 @@ class TrainParams:
         * tls_type: ('controlled', 'static', 'random' or 'actuated')
             SUMO traffic light type: \'controlled\', \'actuated'\',
                     \'static\' or \'random\'.
-        
-        * inflows_switch: bool
-            If True assigns higher probability of spawning a vehicle
-                   every other hour on opposite sides.
+
+        * demand_type: ('low', 'mid', 'high' or 'variable')
+            low - low uniform vehicles demand.
+            mid - mid uniform vehicles demand.
+            high - high uniform vehicles demand.
+            variable - realistic demand that varies throught 24 hours
+                    (resembling realistic traffic variations, e.g. peak hours)
 
         """
         kwargs = locals()
@@ -531,6 +533,10 @@ class TrainParams:
         if tls_type not in TLS_TYPES:
             raise ValueError('''The tls_type must be in ('controlled', 'static', 'random', 'actuated').
                     Got tls_type = {}.'''.format(tls_type))
+
+        if demand_type not in DEMAND_TYPES:
+            raise ValueError('''The demand_type must be in ('low', 'mid', 'high' or 'variable').
+                    Got demand_type = {}.'''.format(demand_type))
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)
@@ -558,9 +564,7 @@ class InFlows(flow_params.InFlows):
                  network_id,
                  horizon,
                  demand_type,
-                 insertion_probability=0.1,
-                 initial_config=None,
-                 additional_params=ADDITIONAL_PARAMS):
+                 initial_config=None):
 
         super(InFlows, self).__init__()
 
@@ -569,6 +573,10 @@ class InFlows(flow_params.InFlows):
         else:
             edges_distribution = None
         edges = get_edges(network_id)
+
+        # Get demand data.
+        demand = get_demand(demand_type, network_id)
+
         # an array of kwargs
         params = []
         for eid in get_routes(network_id):
@@ -580,9 +588,14 @@ class InFlows(flow_params.InFlows):
                 num_lanes = edge['numLanes'] if 'numLanes' in edge else 1
 
                 args = (eid, 'human')
-                if demand_type == 'lane':
+
+                # Uniform flows.
+                if demand_type in ('low', 'mid', 'high'):
+
+                    insertion_probability = demand[str(num_lanes)]
+
                     kwargs = {
-                        'probability': round(insertion_probability * num_lanes, 2),
+                        'probability': insertion_probability,
                         'depart_lane': 'best',
                         'depart_speed': 'random',
                         'name': f'lane_{eid}',
@@ -591,8 +604,51 @@ class InFlows(flow_params.InFlows):
                     }
 
                     params.append((args, kwargs))
+
+                # 24 hours variable flows.
+                elif demand_type == 'variable':
+
+                    peak_distribution = demand['peak']
+
+                    num_days = horizon // (24*3600) + 1
+
+                    for day in range(num_days):
+
+                        for hour in range(24):
+
+                            hour_factor = demand['hours'][str(hour)]
+
+                            insertion_probability = hour_factor * \
+                                        peak_distribution[str(num_lanes)]
+
+                            begin_t = 1 + (hour * 3600) + (24*3600) * day
+                            end_t = (hour * 3600) + (24*3600) * day + 3600
+
+                            # print('-'*10)
+                            # print('num_lanes:', num_lanes)
+                            # print('begin_t:', begin_t)
+                            # print('end_t:', end_t)
+                            # print('insertion_probability:', insertion_probability)
+                            # print('\n')
+
+                            if end_t > horizon:
+                                break
+
+                            kwargs = {
+                                'probability': insertion_probability,
+                                'depart_lane': 'best',
+                                'depart_speed': 'random',
+                                'name': f'lane_{eid}',
+                                'begin': begin_t,
+                                'end': end_t
+                            }
+
+                            params.append((args, kwargs))
+
                 elif demand_type == 'switch':
-                    switch = additional_params['switch']
+                    raise NotImplementedError('Switch demand')
+
+                    """ switch = additional_params['switch']
                     num_flows = max(math.ceil(horizon / switch), 1)
                     for hr in range(num_flows):
                         step = min(horizon - hr * switch, switch)
@@ -610,7 +666,7 @@ class InFlows(flow_params.InFlows):
                             'end': step + hr * switch
                         }
 
-                        params.append((args, kwargs))
+                        params.append((args, kwargs)) """
                 else:
                     raise ValueError(f'Unknown demand_type {demand_type}')
 

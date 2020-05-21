@@ -13,11 +13,11 @@ import numpy as np
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
-from ilurl.core.ql.reward import RewardCalculator
+from ilurl.core.reward import RewardCalculator
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 
-import ilurl.loaders.parsers as parsers
+from ilurl.loaders.parser import config_parser
 
 from ilurl.core.agents_wrapper import AgentsWrapper
 
@@ -85,7 +85,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
                                               simulator=simulator)
 
         # Load MDP parameters from file (train.config[mdg_args]).
-        mdp_params = parsers.parse_mdp_params()
+        mdp_params = config_parser.parse_mdp_params()
 
         # TODO: Allow for mixed networks with actuated,
         # controlled and static traffic light configurations.
@@ -122,7 +122,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
     @property
     def stop(self):
-        pass
+        return self.agents.stop
 
     @stop.setter
     def stop(self, stop):

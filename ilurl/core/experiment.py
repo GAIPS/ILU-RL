@@ -10,12 +10,12 @@
    * extend outputs to costumized reward functions
    * fix bug of averaging speeds when no cars are on the simulation
    """
+import os
 from pathlib import Path
 import warnings
 import datetime
 import json
 import logging
-from os import environ
 import time
 from threading import Thread
 
@@ -175,6 +175,10 @@ class Experiment:
         if self.log_info:
             self.env.agents.setup_logs(self.exp_path)
 
+        # Setup logs folder.
+        os.makedirs(self.exp_path / 'train_logs', exist_ok=True)
+        train_log_path = self.exp_path / 'train_logs' / "train_log.json"
+
         state = self.env.reset()
 
         for step in tqdm(range(num_steps)):
@@ -217,7 +221,6 @@ class Experiment:
                     info_dict["actions"] = [a for a in self.env.actions_log.values()]
                     info_dict["states"] = [s for s in self.env.states_log.values()]
 
-                    train_log_path = self.exp_path / "train_log.json"
                     with train_log_path.open('w') as f:
                         t = Thread(target=json.dump(info_dict, f))
                         t.start()
@@ -225,7 +228,7 @@ class Experiment:
             if done and stop_on_teleports:
                 break
 
-            if self.save_agent and self._is_save_q_table_step(agent_updates_counter):
+            if self.save_agent and self._is_save_agent_step(agent_updates_counter):
                 self.env.agents.save_checkpoint(self.exp_path)
 
         # Save train log (data is aggregated per traffic signal).
@@ -236,7 +239,6 @@ class Experiment:
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
-        train_log_path = self.exp_path / "train_log.json"
         with train_log_path.open('w') as f:
             t = Thread(target=json.dump(info_dict, f))
             t.start()
@@ -248,9 +250,9 @@ class Experiment:
     def _is_save_step(self):
         if self.cycle is not None:
             return self.env.duration == 0.0
-        return self.step_counter % self.save_step == 0
+        return False
 
-    def _is_save_q_table_step(self, counter):
+    def _is_save_agent_step(self, counter):
         if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
             return self.train and hasattr(self.env, 'dump') and self.exp_path
         return False
