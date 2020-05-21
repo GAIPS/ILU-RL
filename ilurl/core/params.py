@@ -409,13 +409,13 @@ class DQNParams:
             raise ValueError('''The ineq 0 < gamma <= 1 must hold.
                     Got gamma = {}.'''.format(gamma))
 
-        """ if exp_initial_p < 0 or exp_initial_p > 1:
+        if exp_initial_p < 0 or exp_initial_p > 1:
             raise ValueError('''The ineq 0 < exp_initial_p < 1 must hold.
                     Got exp_initial_p = {}.'''.format(exp_initial_p))
 
         if exp_final_p < 0 or exp_final_p > 1:
             raise ValueError('''The ineq 0 < exp_final_p < 1 must hold.
-                    Got exp_final_p = {}.'''.format(exp_final_p)) """
+                    Got exp_final_p = {}.'''.format(exp_final_p))
 
         if exp_schedule_timesteps < 0:
             raise ValueError('''The ineq 0 < exp_schedule_timesteps.
