@@ -12,7 +12,6 @@ import argparse
 import multiprocessing as mp
 import time
 from collections import defaultdict
-
 import configparser
 
 from ilurl.utils.decorators import processable
@@ -80,21 +79,20 @@ def concat(evaluations):
               `numeric` params are appended
 
     """
-    result = defaultdict(list)
+    result = {}
+    result['id'] = []
     for qtb in evaluations:
         exid = qtb.pop('id')
-        qid = qtb.get('rollouts', 0)[0]
         # can either be a rollout from the prev
         # exid or a new experiment
         if exid not in result['id']:
             result['id'].append(exid)
 
-        ex_idx = result['id'].index(exid)
         for k, v in qtb.items():
-            append = isinstance(v, list) or isinstance(v, dict)
+            is_iterable = isinstance(v, list) or isinstance(v, dict)
             # check if integer fields match
             # such as cycle, save_step, etc
-            if not append:
+            if not is_iterable:
                 if k in result:
                     if result[k] != v:
                         raise ValueError(
@@ -103,9 +101,9 @@ def concat(evaluations):
                 else:
                     result[k] = v
             else:
-                if ex_idx == len(result[k]):
-                    result[k].append(defaultdict(list))
-                result[k][ex_idx][qid].append(v)
+                if k not in result:
+                    result[k] = defaultdict(list)
+                result[k][exid].append(v)
     return result
 
 
@@ -197,8 +195,9 @@ def rollout_batch(test=False, experiment_dir=None):
     print(f'Num. rollout files: {len(rollouts_paths)}')
     print(f'Num. rollout repetitions: {num_rollouts}')
     print(f'Num. rollout total: {len(rollouts_paths) * num_rollouts}')
-    print(f'Rollouts time: {rollout_time}')
-    print(f'Rollouts emission: {emission}\n')
+    if token == 'test':
+        print(f'Rollouts time: {rollout_time}')
+        print(f'Rollouts emission: {emission}\n')
 
     # Allocate seeds.
     custom_configs = []
@@ -243,9 +242,9 @@ def rollout_batch(test=False, experiment_dir=None):
             for cfg in rollouts_cfg_paths:
                 rvs.append(delay_roll([cfg]))
 
-    """ res = concat(rvs)
-    print(res)
-    res['num_rollouts'] = num_rollouts
+
+    
+    res = concat(rvs)
     filepart = 'test' if test else 'eval'
     filename = f'{batch_path.parts[-1]}.l.{filepart}.info.json'
     target_path = batch_path / filename
@@ -253,7 +252,8 @@ def rollout_batch(test=False, experiment_dir=None):
         json.dump(res, fj)
 
     sys.stdout.write(str(batch_path))
-    return str(batch_path) """
+    print(str(batch_path))
+    return str(batch_path)
 
 @processable
 def rollout_job(test=False):

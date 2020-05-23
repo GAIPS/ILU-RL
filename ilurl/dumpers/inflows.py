@@ -31,17 +31,6 @@ DEMAND_TYPES = ('low', 'mid', 'high', 'variable')
 
 XML_PATH = f"{os.environ['ILURL_HOME']}/data/networks/"
 
-def inflows_path(network_id, horizon, distribution='low', n=0):
-    path = f'{XML_PATH}{network_id}/{network_id}'
-
-    if distribution not in DEMAND_TYPES:
-        raise ValueError(f'Distribution not implemented {distribution}')
-
-    path = f'{path}.{n}.{horizon}.{distribution}.rou.xml'
-
-    return path
-
-
 def inflows_paths(network_id, horizon, distribution='low'):
     path = f'{XML_PATH}{network_id}/{network_id}'
 

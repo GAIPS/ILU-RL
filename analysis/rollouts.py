@@ -18,6 +18,7 @@ from glob import glob
 from collections import defaultdict, OrderedDict
 
 # third-party libs
+import configparser
 import numpy as np
 from numpy.random import choice
 import scipy.stats as ss
@@ -94,8 +95,7 @@ def main(batch_path=None):
         batch_path = Path(batch_path)
         max_rollouts = -1
 
-
-    suffix = '.l.eval.info.json' 
+    suffix = '.eval.info.json'
     if batch_path.is_file():
         file_path = batch_path
         batch_path = batch_path.parent
@@ -104,8 +104,8 @@ def main(batch_path=None):
         file_path = list(batch_path.glob(pattern))[0]
 
     # Prepare output folder.
-    output_folder_path = os.path.join(batch_path, 'plots/rollouts')
-    print('\tOutput folder: {0}'.format(output_folder_path))
+    output_folder_path = batch_path / 'plots' / 'rollouts'
+    print('\tOutput folder: {0}'.format(output_folder_path.as_posix()))
     os.makedirs(output_folder_path, exist_ok=True)
 
     filename = file_path.name.replace(suffix, '')
@@ -113,43 +113,65 @@ def main(batch_path=None):
     with file_path.open('r') as f:
         db = json.load(f)
 
-    cycle = db['cycle']
-    discount = [1, -db['discount']]
-    horizon = db['horizon']
-    rollout_ids = db['rollouts']
-    ex_ids = db['id']
-    num_trials = len(ex_ids)
+    # Define training configuration parameters
+    train_config_path = [conf for conf in batch_path.rglob('train.config')][0]
+    train_config = configparser.ConfigParser()
+    train_config.read(train_config_path.as_posix())
+
+
+    # train agent
+    agent_type = train_config.get('agent_type', 'agent_type')
+    agent_args = f'{agent_type.lower()}_args'
+
+    cycle = 90
+    gamma = float(train_config.get(agent_args, 'gamma'))
+    horizon = float(train_config.get('train_args', 'experiment_time'))
+
+
+
+
+     
+    # cycle = db['cycle']
+    # discount = [1, -db['discount']]
+    # horizon = db['horizon']
+
+    rollout_ids = db['id']
+
+    discount = [1, -gamma]
+    num_trials = len(rollout_ids)
     num_cycles = int(horizon) / cycle
-    num_rollouts = db['num_rollouts']
+    num_rollouts = len(db['rewards'][str(rollout_ids[0])])
+
+
     if max_rollouts == -1:
         max_rollouts = num_rollouts
 
     returns = defaultdict(list)
 
     # Iterate for each experiment.
-    for idx, ex_id in enumerate(ex_ids):
-        roll_idxs = choice(num_rollouts, size=max_rollouts, replace=False)
+    for rollout_id in rollout_ids:
+        # Gets max_rollouts [1, .. num_rollouts] indexes
+        # depends upon the number input arguments
+        idxs = choice(num_rollouts, size=max_rollouts, replace=False)
 
-        # Iterate for each Q table.
-        for rid, rewards in db['rewards'][idx].items():
+        # Rewards per rollouts.
+        rewards = db['rewards'][str(rollout_id)]
 
-            rewards = [[sum(r) for r in rollout] for rollout in rewards]
-            rewards = np.array(rewards).T
+        # Filter rollouts.
+        rewards = [rolls for i, rolls in enumerate(rewards) if i in idxs]
 
-            # rewards shape: (cycles, num_rollouts)
+        rewards = [[sum(cycle.values()) for cycle in cycles]
+                   for cycles in rewards]
 
-            # Select subset.
-            rewards = rewards[:, roll_idxs]
+        # rewards.shape = (cycles, num_rollouts)
+        rewards = np.array(rewards).T
 
-            # Remove samples from warm-up period.
-            rewards = rewards[ROLLOUT_WARM_UP_PERIOD:,:]
+        # Discount obtained rewards.
+        rewards = np.flip(rewards, axis=0)
+        gain = lfilter([1], discount, x=rewards, axis=0)
 
-            # Discount obtained rewards.
-            rewards = np.flip(rewards, axis=0)
-            gain = lfilter([1], discount, x=rewards, axis=0)
-
-            # Concatenate.
-            returns[int(rid)].append(gain[-1, :])
+        # Concatenate.
+        returns[int(rollout_id)].append(gain[-1, :])
 
     returns = OrderedDict({
         k: returns[k] for k in sorted(returns.keys())

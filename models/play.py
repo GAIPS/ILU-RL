@@ -1,16 +1,4 @@
-'''
-
-    WARNING: DEPRECATED.
-
-    Evaluation: evaluates a batch of experiments.
-
-    * loads multi experiment files.
-    * verify parameters -- if they're compatible proceed
-    * for each experiment
-            loads all Q-tables, from that experiment.
-            filter Q-tables from S to S steps.
-            for each table runs R rollouts (defaults 1).
-   
+'''Plays a single (max) rollout given a path Rendering to the user
 '''
 
 __author__ = 'Guilherme Varela'
@@ -32,6 +20,7 @@ from ilurl.core.experiment import Experiment
 import ilurl.core.ql.dpq as ql
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
+
 #TODO: move this into network
 from ilurl.loaders.nets import get_tls_custom
 
@@ -62,23 +51,8 @@ def get_arguments(config_file_path):
                         help='''The path Q.1-xxx.pickle files''')
 
     parser.add_argument('--cycles', '-c', dest='cycles', type=int,
-                        default=100, nargs='?',
+                        default=1000, nargs='?',
                         help='Number of cycles for a single rollout of a Q-table.')
-
-    parser.add_argument('--emission', '-e', dest='emission', type=str2bool,
-                        default=False, nargs='?',
-                        help='Enabled will perform saves')
-
-    parser.add('--rollout-seed', '-d', dest='seed', type=int,
-                        default=None, nargs='?',
-                        help='''Sets seed value for both rl agent and Sumo.
-                               `None` for rl agent defaults to RandomState() 
-                               `None` for Sumo defaults to a fixed but arbitrary seed''')
-
-    # parser.add_argument('--num-rollouts', '-r', dest='num_rollouts',
-    #                     type=int, default=1, nargs='?',
-    #                     help='''Number of repetitions for each table''')
-
 
     parser.add_argument('--switch', '-w', dest='switch', type=str2bool,
                         default=False, nargs='?',
@@ -100,7 +74,7 @@ def str2bool(v):
         raise configargparse.ArgumentTypeError('Boolean value expected.')
 
 
-def evaluate(env_params, sim_params, programs,
+def play(env_params, sim_params, programs,
              agent, network, horizon, ex_id, roll_id, qtb):
     """Evaluate
 
@@ -169,7 +143,7 @@ def evaluate(env_params, sim_params, programs,
     return result
 
 
-def roll(config_file_path=None):
+def main(config_file_path=None):
     args = get_arguments(config_file_path)
     rollout_path = Path(args.rollout_path)
 
@@ -192,19 +166,11 @@ def roll(config_file_path=None):
         raise ValueError('params is None')
 
     # TODO: test ground truth
-    params['sumo_args']['render'] = False
-    if args.emission:
-        rollout_path = Path(rollout_path)
-        rollout_path = rollout_path.parents[0]
-        params['sumo_args']['emission_path'] = rollout_path
-    else:
-        if 'emission_path' in params['sumo_args']:
-            del params['sumo_args']['emission_path']
+    params['sumo_args']['render'] = True
 
-    if args.seed:
-        random.seed(args.seed)
-        np.random.seed(args.seed)
-        params['sumo_args']['seed'] = args.seed
+    random.seed(0)
+    np.random.seed(0)
+    params['sumo_args']['seed'] = 0
 
 
     # Load cycle time and TLS programs.
@@ -220,12 +186,8 @@ def roll(config_file_path=None):
 
     horizon = int((cycle_time * cycles) / sim_params.sim_step)
 
-    info = evaluate(env_params, sim_params, programs,
-                    agent, network, horizon, ex_id, rollout_number, qtb)
-
-    info['horizon'] = horizon
-    info['id'] = ex_id
-    return info
+    play(env_params, sim_params, programs,
+         agent, network, horizon, ex_id, rollout_number, qtb)
 
 if __name__ == '__main__':
-    roll()
+    main()

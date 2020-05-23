@@ -28,7 +28,7 @@ from jobs.train import train_batch as train
 from jobs.rollouts import rollout_batch as rollouts
 
 from analysis.train_plots import main as train_plots
-# from analysis.rollouts import main as rollouts_plots
+from analysis.rollouts import main as rollouts_plots
 from analysis.test_plots import main as test_plots
 
 from ilurl.loaders.xml2csv import main as xml2csv
@@ -42,10 +42,10 @@ if __name__ == '__main__':
     train_plots(experiment_root_path)
 
     # 3) Execute rollouts.
-    # eval_path = rollouts(batch_dir=experiment_root_path)
+    eval_path = rollouts(experiment_dir=experiment_root_path)
 
     # 4) Create rollouts plots.
-    # rollouts_plots(eval_path)
+    rollouts_plots(eval_path)
 
     # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, experiment_dir=experiment_root_path)

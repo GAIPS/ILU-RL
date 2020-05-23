@@ -598,7 +598,7 @@ class InFlows(flow_params.InFlows):
                         'probability': insertion_probability,
                         'depart_lane': 'best',
                         'depart_speed': 'random',
-                        'name': f'lane_{eid}',
+                        'name': f'uniform_{eid}',
                         'begin': 1,
                         'end': horizon
                     }

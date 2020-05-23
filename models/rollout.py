@@ -168,6 +168,7 @@ def main(config_file_path=None):
 
     # Run the experiment.
     info_dict = exp.run(args.rollout_time)
+    info_dict['id'] = args.chkpt_number
 
     return info_dict
 
