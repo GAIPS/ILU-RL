@@ -80,7 +80,7 @@ def str2bool(v):
 
 def print_arguments(args):
 
-    print('Arguments (rollout.py):')
+    print('\nArguments (rollout.py):')
     print('----------------------')
     print('Run path: {0}'.format(args.run_path))
     print('Checkpoint number: {0}'.format(args.chkpt_number))
@@ -168,6 +168,7 @@ def main(config_file_path=None):
 
     # Run the experiment.
     info_dict = exp.run(args.rollout_time)
+
     info_dict['id'] = args.chkpt_number
 
     return info_dict

@@ -13,6 +13,6 @@ def dpq_update(gamma, alpha, q,
     # and follow that policy thereafter
     q_max = max(q[next_state].values())
     delta = gamma * q_max - q[state][action]
-    q[state][action] += alpha * (sum(reward) + delta)
+    q[state][action] += alpha * (reward + delta)
 
     return q

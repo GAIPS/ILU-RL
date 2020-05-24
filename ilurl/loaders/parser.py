@@ -90,7 +90,7 @@ class Parser(object):
         return train_params
 
     def _print_train_params(self, params):
-        print('Arguments (models/train.py):')
+        print('\nArguments (models/train.py):')
         print('--------------------')
         print('Experiment network: {0}'.format(params.network))
         print('Experiment time: {0}'.format(params.experiment_time))
