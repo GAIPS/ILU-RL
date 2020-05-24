@@ -1,4 +1,7 @@
-'''Plays a single (max) rollout given a path Rendering to the user
+'''
+    WARNING: DEPRECATED.
+
+    Plays a single (max) rollout given a path Rendering to the user
 '''
 
 __author__ = 'Guilherme Varela'
