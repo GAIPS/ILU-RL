@@ -54,7 +54,7 @@ def get_arguments(config_file_path):
 
     parser.add_argument('--sumo-emission', '-e', dest='sumo_emission', type=str2bool,
                         default=True, nargs='?',
-                        help='Enabled will perform saves')
+                        help='If enabled will perform save .xml file.')
 
     parser.add_argument('--sumo-render', '-r', dest='sumo_render', type=str2bool,
                         default=False, nargs='?',
@@ -164,11 +164,12 @@ def main(config_file_path=None):
             env=env,
             exp_path=experiment_path.as_posix(),
             train=False, # Stop training.
+            log_info=False,
+            save_agent=False
     )
 
     # Run the experiment.
     info_dict = exp.run(args.rollout_time)
-
     info_dict['id'] = args.chkpt_number
 
     return info_dict

@@ -39,7 +39,7 @@ def main(train_config_path=None):
         print(f'Loading train parameters from: {train_config_path}')
         config_parser.set_config_path(train_config_path)
     else:
-        print('Loading train parameters from: configs/train.config [Default]')
+        print('Loading train parameters from: configs/train.config [DEFAULT]')
 
     # Parse train parameters.
     train_args = config_parser.parse_train_params(print_params=True)
@@ -56,7 +56,7 @@ def main(train_config_path=None):
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
     os.makedirs(experiment_path, exist_ok=True)
-    print(f'Experiment: {str(experiment_path)}')
+    print(f'Experiment: {str(experiment_path)}\n')
 
     sumo_args = {
         'render': train_args.sumo_render,
@@ -116,7 +116,12 @@ def main(train_config_path=None):
     copyfile(tls_config_path, experiment_path / 'tls_config.json')
 
     # Run the experiment.
-    exp.run(train_args.experiment_time)
+    info_dict = exp.run(train_args.experiment_time)
+
+    # Store train info dict.
+    train_log_path = experiment_path / 'logs' / "train_log.json"
+    with train_log_path.open('w') as f:
+        json.dump(info_dict, f)
 
     return str(experiment_path)
 
