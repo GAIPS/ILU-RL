@@ -28,6 +28,8 @@ from ilurl.networks.base import Network
 
 from ilurl.loaders.parser import config_parser
 
+from baselines.common import set_global_seeds
+
 ILURL_PATH = Path(os.environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
 NETWORKS_PATH = ILURL_PATH / 'data/networks/'
@@ -71,6 +73,7 @@ def main(train_config_path=None):
         random.seed(train_args.experiment_seed)
         np.random.seed(train_args.experiment_seed)
         sumo_args['seed'] = train_args.experiment_seed
+        set_global_seeds(train_args.experiment_seed)
 
     # Setup emission path.
     if train_args.sumo_emission:
