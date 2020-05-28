@@ -200,7 +200,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
             for phase, data in self.tls_phases[node_id].items():
                 self.incoming[node_id][phase][self.duration] = \
                                     observe(data['components'])
-
     def get_observation_space(self):
         """
         Consolidates the observation space.
@@ -326,11 +325,9 @@ class TrafficLightEnv(AccelEnv, Serializer):
                 
                 tls_veh_ids = {}
                 tls_veh_speeds = {}
-
-
                 for phase, values in _new_states[nid].items():
 
-                    if any(values):
+                    if prev in values and any(values[prev]):
                         tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
                     else:
                         tls_veh_ids[phase] = []
