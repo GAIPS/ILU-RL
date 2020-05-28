@@ -15,6 +15,8 @@ from flow.envs.ring.accel import AccelEnv
 
 from ilurl.core.reward import RewardCalculator
 from ilurl.core.state import build_states
+from ilurl.core.rewards import build_rewards
+
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 
@@ -116,6 +118,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         # Reward function.
         self.reward_calculator = RewardCalculator(self.mdp_params)
+        self.reward_calculator1 = build_rewards(mdp_params)
 
         self.actions_log = {}
         self.states_log = {}
@@ -323,6 +326,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
                 
                 tls_veh_ids = {}
                 tls_veh_speeds = {}
+
 
                 for phase, values in _new_states[nid].items():
 
@@ -532,6 +536,14 @@ class TrafficLightEnv(AccelEnv, Serializer):
             reward = self.reward_calculator.calculate(
                 self.get_observation_space()
             )
+            global NEW_STATES
+            reward1 = self.reward_calculator1.calculate(
+                NEW_STATES
+            )
+            try:
+                assert dict(reward1) == dict(reward)
+            except AssertionError:
+                pdb.set_trace()
             self.memo_rewards[self.duration] = reward
         return self.memo_rewards[self.duration]
 

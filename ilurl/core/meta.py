@@ -106,8 +106,7 @@ class MetaState(type):
     """
     def __new__(meta, name, base, body):
 
-        state_methods = ('calculate',
-                         'tls_phases',
+        state_methods = ('tls_phases',
                          'tls_ids',
                          'reset',
                          'update',
@@ -150,7 +149,7 @@ class MetaStateCalculator(type):
         return super().__new__(meta, name, base, body)
 
 
-class MetaRewards(type):
+class MetaReward(type):
     """Common methods all reward-type objects must implement
 
 
@@ -163,8 +162,10 @@ class MetaRewards(type):
 
     def __new__(meta, name, base, body):
 
-        if 'calculate' not in body:
-            raise TypeError(f'Calculate must implement {attr}')
+        reward_methods = ('calculate',)
+        for attr in reward_methods:
+            if attr not in body:
+                raise TypeError(f'Rewards must implement {attr}')
 
         return super().__new__(meta, name, base, body)
 

@@ -1,32 +1,44 @@
-from ilurl.utils.meta import RewardsMeta
+import numpy as np
+from ilurl.core.meta import MetaReward
 
-class MaxMeanSpeedReward(object, metaclass=RewardsMeta):
 
-    def __init__(self, state, mdp_params):
+def build_rewards(mdp_params):
+    """Builder that defines all rewards
+    """
+    return MaxSpeedCountReward(mdp_params)
+    
+
+
+class MaxSpeedCountReward(object, metaclass=MetaReward):
+
+    def __init__(self,  mdp_params):
         """Creates a reference to the input state"""
-        if state.__class__ != 'MeanSpeedState':
-            raise ValueError(
-                'MeanSpeed reward expects `MeanSpeedState` state')
-        else:
-            self.state = state
-        self.target_velocity = mdp_params.target_velocity
+        reward_params = mdp_params.reward.additional_params
+        if 'target_velocity' not in reward_params:
+            raise ValueError('MaxSpeedCountReward must define target_velocity')
+        self.target_velocity = reward_params['target_velocity']
 
-    def calculate(self):
-        counts = self.state.get('MeanState')
-        speeds = self.state.get('SpeedState')
+    def calculate(self, state):
+        speeds_counts = state.split()
 
-        if sum(counts) <= 0:
-            reward = 0
-        else:
-            max_cost = \
-                np.array([self.target_velocity] * len(speeds))
+        ret = {}
+        for k, v in speeds_counts.items():
+            speeds, counts = v
 
-            reward = \
-                -np.maximum(max_cost - speeds, 0).dot(counts)
-        return rewards
+            if sum(counts) <= 0:
+                reward = 0
+            else:
+                max_cost = \
+                    np.array([self.target_velocity] * len(speeds))
+
+                reward = \
+                    -np.maximum(max_cost - speeds, 0).dot(counts)
+
+            ret[k] = reward
+        return ret
 
 # TODO: implement Rewards definition 1
-class MinDelayReward(object, metaclass=RewardsMeta):
+class MinDelayReward(object, metaclass=MetaReward):
     def __init__(self, state):
         """Creates a reference to the input state"""
         if state.__class__ != 'Delay':
@@ -42,7 +54,7 @@ class MinDelayReward(object, metaclass=RewardsMeta):
 
 
 # TODO: implement Rewards definition 2
-class MinDeltaDelay(object, metaclass=RewardsMeta):
+class MinDeltaDelay(object, metaclass=MetaReward):
     def __init__(self, state):
         """Creates a reference to the input state"""
         if state.__class__ != 'DeltaDelay':

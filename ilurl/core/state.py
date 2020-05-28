@@ -5,12 +5,12 @@ import numpy as np
 
 
 from ilurl.loaders.parser import config_parser
-from ilurl.utils.meta import (MetaState, MetaStateCollection,
+from ilurl.core.meta import (MetaState, MetaStateCollection,
                               MetaStateCalculator)
 # import ilurl.core.rewards as rw
 
 # TODO: check if the module has one of the following names
-REWARDS = ['MaxMeanSpeedReward', 'MinDelayReward', 'MinDeltaDelayReward']
+REWARDS = ['MaxSpeedCountReward', 'MinDelayReward', 'MinDeltaDelayReward']
 
 
 def build_states(network, mdp_params):
@@ -38,8 +38,7 @@ def build_states(network, mdp_params):
 
         # 3) For each reward instantiate states.
         if reward_type == 'target_velocity':
-        # if reward_type == 'MaxMeanSpeedReward':
-            state_classes = (SpeedState, MeanState)
+            state_classes = (SpeedState, CountState)
 
         for state_class in state_classes:
             tls_ids = [tid]
@@ -98,10 +97,11 @@ class StateCollection(object, metaclass=MetaStateCollection):
     @property
     def label(self):
         labels = []
-        for tid in self.tls_ids:
-            for s in self._states[tid].values():
-                if s.label not in labels:
-                    labels.append(s.label)
+        for tls_id in self.tls_ids:
+            states = [s for s in self._states if tls_id in s.tls_ids]
+            for state in states:
+                if state.label not in labels:
+                    labels.append(state.label)
         return '|'.join(labels)
 
     @property
@@ -138,16 +138,6 @@ class StateCollection(object, metaclass=MetaStateCollection):
     @property
     def state(self):
         # TODO: provide format options: flatten, split,   
-        # ret = \
-        #     {tid: state.state for tid in self.tls_ids
-        #      for state in self._states[tid]}
-
-        # nested_states = []
-        # for tls_id in self.tls_ids:
-        #     for states in self._states[tls_id]:
-        #         for state in states:
-        #             nested_states.append(state)
-        # return [s for states in nested_states for s in states]
         ret = {}
         for tls_id in self.tls_ids:
             states = [s for s in self._states if tls_id in s.tls_ids]
@@ -173,14 +163,19 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def split(self):
         """Splits per state label"""
         labels = self.label.split('|')
-        _splits = {}
-        for s in self._states:
-            _splits[s.label] = s.state
+        ret = {} # defaultdict(list)
+        for tls_id in self.tls_ids:
+            ret[tls_id] = defaultdict(list)
+            state = self.state[tls_id]
+            for nph in range(self.tls_phases[tls_id]):
+                for idx, label in enumerate(labels):
+                    ret[tls_id][label].append(state[nph][idx])
 
-        return zip(_splits)
+        ret = {tls_id: tuple([v for v in data.values()])
+               for tls_id, data in ret.items()}
+        return ret
 
-
-class MeanState(object, metaclass=MetaState):
+class CountState(object, metaclass=MetaState):
 
     def __init__(self, tls_ids, tls_phases, tls_max_caps, normalize):
         self._tls_ids = tls_ids

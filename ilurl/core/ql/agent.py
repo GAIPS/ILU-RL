@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 from threading import Thread
 
-from ilurl.utils.meta import MetaAgent
+from ilurl.core.meta import MetaAgent
 from ilurl.core.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.core.ql.define import dpq_tls
 from ilurl.core.ql.update import dpq_update
