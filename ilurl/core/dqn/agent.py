@@ -8,8 +8,6 @@ import tensorflow as tf
 # Suppress tf warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-import tensorflow.contrib.layers as layers
-
 from gym.spaces.box import Box
 
 import baselines.common.tf_util as U
@@ -20,16 +18,8 @@ from baselines.common.tf_util import load_variables, save_variables
 from baselines.deepq.deepq import ActWrapper
 from baselines.deepq.replay_buffer import ReplayBuffer
 from baselines.deepq.utils import ObservationInput
+from baselines.deepq.models import build_q_func
 from baselines.common.schedules import LinearSchedule
-
-# TODO: allow for arbitrary network architecture.
-def model(inpt, num_actions, scope, reuse=False):
-    """This model takes as input an observation and returns values of all actions."""
-    with tf.variable_scope(scope, reuse=reuse):
-        out = inpt
-        out = layers.fully_connected(out, num_outputs=8, activation_fn=tf.nn.tanh)
-        out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
-        return out
 
 
 class DQN(object, metaclass=MetaAgent):
@@ -54,7 +44,12 @@ class DQN(object, metaclass=MetaAgent):
         self.stop = False
 
         # Parameters.
-        self.model = model # TODO: allow for arbitrary network architecture.
+        self.model = build_q_func(network=params.network_type,
+                                  hiddens=params.head_network_mlp_hiddens,
+                                  dueling=params.head_network_dueling,
+                                  layer_norm=params.head_network_layer_norm,
+                                  mlp_hiddens=params.mlp_hiddens,
+                                  mlp_layer_norm=params.mlp_layer_norm)
         self.lr = params.lr
         self.gamma = params.gamma
         self.buffer_size = params.buffer_size

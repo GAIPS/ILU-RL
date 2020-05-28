@@ -355,7 +355,6 @@ class DQNParams:
 
     def __init__(
             self,
-            # TODO model
             lr=5e-4,
             gamma=0.8,
             buffer_size=20000,
@@ -365,6 +364,12 @@ class DQNParams:
             exp_schedule_timesteps=40000,
             learning_starts=2000,
             target_net_update_interval=2000,
+            network_type='mlp',
+            head_network_mlp_hiddens=[],
+            head_network_layer_norm=False,
+            head_network_dueling=False,
+            mlp_hiddens=[8],
+            mlp_layer_norm=False,
         ):
         """Instantiate Deep Q-network parameters.
 
@@ -397,6 +402,25 @@ class DQNParams:
 
         * target_net_update_interval: int
             target network updates interval.
+
+        * network_type: str
+            See baselines.common.models for available models.
+
+        * head_network_mlp_hiddens: list
+            List with the hidden nodes (Q-network head).
+
+        * head_network_layer_norm: bool
+            Layer normalization (Q-network head).
+
+        * head_network_dueling: bool,
+            Dueling network.
+            REF: http://proceedings.mlr.press/v48/wangf16.pdf
+
+        * mlp_hiddens: list
+            List with the hidden nodes (Applies if network_type= 'mlp').
+
+        * mlp_layer_norm: bool
+            Layer normalization (Applies if network_type= 'mlp').
 
         """
         kwargs = locals()
