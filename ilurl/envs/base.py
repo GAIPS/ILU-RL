@@ -14,6 +14,7 @@ from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
 from ilurl.core.reward import RewardCalculator
+from ilurl.core.state import build_states
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 
@@ -26,6 +27,7 @@ ILURL_HOME = os.environ['ILURL_HOME']
 NETWORKS_PATH = \
     f'{ILURL_HOME}/data/networks/'
 
+NEW_STATES = None
 
 class TrafficLightEnv(AccelEnv, Serializer):
     """
@@ -106,6 +108,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Problem formulation params.
         self.mdp_params = mdp_params
 
+
         # Object that handles RL agents logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
@@ -116,6 +119,9 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         self.actions_log = {}
         self.states_log = {}
+
+        global NEW_STATES
+        NEW_STATES = build_states(network, mdp_params)
 
         # if self.tls_type != "actuated":
         self._reset()
@@ -231,12 +237,20 @@ class TrafficLightEnv(AccelEnv, Serializer):
         if (prev not in self.memo_observation_space) or self.step_counter <= 2:
             observations = {}
             normalize = self.mdp_params.normalize_state_space
+            # TODO: erase
+
+            veh_ids = {}
+            veh_speeds = {}
             for nid in self.tls_ids:
                 tls_data = []
+
+                _new_states = {}
+                _new_states[nid] = self.incoming[nid]
                 for phase in self.tls_phases[nid]:
                     max_speed, max_count = self.tls_max_capacity[nid][phase]
                     incoming = self.incoming[nid][phase]
                     values = []
+
                     for label in self.mdp_params.states_labels:
 
                         if label in ('count',):
@@ -245,6 +259,43 @@ class TrafficLightEnv(AccelEnv, Serializer):
                             count += len(incoming[prev][1]) if prev in incoming else 0.0
                             counts[prev] = count
                             value = np.mean(list(counts.values()))
+
+
+                        # elif label in ('arrivals',):
+                        #     # arrivals accrue only during green times.
+                        #     # TODO: test if green
+                        #     arrivals = self.memo_arrivals[nid][phase]
+
+                        #     # This is the veh_ids set for current adjusted period
+                        #     veh_set = set(incoming[prev][1]) \
+                        #         if prev in incoming else set()
+
+                        #     # The vehicles which were observed last period
+                        #     prevprev = delay(prev)
+                        #     prev_veh_set = incoming[prevprev][1] \
+                        #             if prevprev in incoming else set()
+
+                        #     # new arrivals + arrivals accumulated up until
+                        #     # last time 
+                        #     arrivals[prev] = \
+                        #         len(veh_set - prev_veh_set) + arrivals
+
+                        #     value = len(flows[prev]) / t
+
+                        # elif label in ('queue',):
+                        #     # in some articles queue accrues only on red
+                        #     # test if red
+                        #     # vehicles are slowing :
+                        #     mem = self.memo_queue[nid][phase]
+                        #     queue = mem
+                        #     queue += incoming[prev][1] \
+                        #               if prev in incoming else []
+
+                        #     queue = [q for q in queue
+                        #              if q < 0.10 * self.k.scenario.max_speed()]
+
+                        #     queue = len(queue)
+                        #     value = np.mean(list(mem.values())) / t
 
                         elif label in ('speed',):
                             counts = self.memo_counts[nid][phase].copy()
@@ -267,8 +318,38 @@ class TrafficLightEnv(AccelEnv, Serializer):
                         values.append(round(value, 2))
                     tls_data.append(values)
                 observations[nid] = tls_data
+                # assert to see if new values equal the old
+                # make this step add collect time
+                
+                tls_veh_ids = {}
+                tls_veh_speeds = {}
+
+                for phase, values in _new_states[nid].items():
+
+                    if any(values):
+                        tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
+                    else:
+                        tls_veh_ids[phase] = []
+                        tls_veh_speeds[phase] = []
+
+                veh_ids[nid] = tls_veh_ids
+                veh_speeds[nid] = tls_veh_speeds
+
+               
+            global NEW_STATES
+            NEW_STATES.update(
+                prev, veh_ids, veh_speeds, None
+            )
 
             self.memo_observation_space[prev] = observations
+        try:
+            assert dict(NEW_STATES.state) == \
+                self.memo_observation_space[prev]
+        except AssertionError:
+            print(NEW_STATES.state)
+            print(self.memo_observation_space[prev])
+            pdb.set_trace()
+
         return self.memo_observation_space[prev]
 
     def get_state(self):
@@ -468,7 +549,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         self.memo_speeds = {}
         self.memo_counts = {}
-        self.memo_flows = {}
+        self.memo_arrivals = {}
         self.memo_queue = {}
 
         # stores the state index
@@ -486,5 +567,8 @@ class TrafficLightEnv(AccelEnv, Serializer):
             self.memo_speeds[node_id] = {p: {} for p in range(num_phases)}
             self.memo_counts[node_id] = {p: {} for p in range(num_phases)}
 
+
+        global NEW_STATES
+        NEW_STATES.reset()
         self.memo_rewards = {}
         self.memo_observation_space = {}

@@ -81,14 +81,90 @@ class MetaAgent(type):
 
     """
     def __new__(meta, name, base, body):
-        agent_q_methods = ('act',
-                           'update',
-                           'stop',
-                           'save_checkpoint',
-                           'load_checkpoint',
-                           'setup_logger')
-        for attr in agent_q_methods:
+        agent_methods = ('act',
+                         'update',
+                         'stop',
+                         'save_checkpoint',
+                         'load_checkpoint',
+                         'setup_logger')
+        for attr in agent_methods:
             if attr not in body:
                 raise TypeError(f'AgentQ must implement {attr}')
 
         return super().__new__(meta, name, base, body)
+
+
+class MetaState(type):
+    """Establishes common interface for observed states
+
+    References:
+    ----------
+
+    https://docs.python.org/3/reference/datamodel.html#metaclasses
+    https://realpython.com/python-metaclasses/
+
+    """
+    def __new__(meta, name, base, body):
+
+        state_methods = ('calculate',
+                         'tls_phases',
+                         'tls_ids',
+                         'reset',
+                         'update',
+                         'label',
+                         'state')
+
+        for attr in state_methods:
+            if attr not in body:
+                raise TypeError(f'State must implement {attr}')
+
+        return super().__new__(meta, name, base, body)
+
+
+class MetaStateCollection(MetaState):
+
+    def __new__(meta, name, base, body):
+
+        state_collection_methods = ('split',)
+
+        for attr in state_collection_methods:
+            if attr not in body:
+                raise TypeError(f'State must implement {attr}')
+
+        return super().__new__(meta, name, base, body)
+
+
+class MetaStateCalculator(type):
+    """Adaptive Traffic Signal Control (ATSC): 
+        is a domain that demands function approximations
+
+    """
+    def __new__(meta, name, base, body):
+
+        calculator_methods = ('calculate',)
+
+        for attr in calculator_methods:
+            if attr not in body:
+                raise TypeError(f'State must implement {attr}')
+
+        return super().__new__(meta, name, base, body)
+
+
+class MetaRewards(type):
+    """Common methods all reward-type objects must implement
+
+
+    References:
+    ----------
+
+    https://docs.python.org/3/reference/datamodel.html#metaclasses
+    https://realpython.com/python-metaclasses/
+    """
+
+    def __new__(meta, name, base, body):
+
+        if 'calculate' not in body:
+            raise TypeError(f'Calculate must implement {attr}')
+
+        return super().__new__(meta, name, base, body)
+
