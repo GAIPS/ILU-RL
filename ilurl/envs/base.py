@@ -123,12 +123,22 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.actions_log = {}
         self.states_log = {}
 
-        global NEW_STATES
-        NEW_STATES = build_states(network, mdp_params)
+        # overrides GYM's observation space
+        self.observation_space = build_states(network, mdp_params)
 
-        # if self.tls_type != "actuated":
         self._reset()
 
+
+    # overrides GYM's observation space
+    @property
+    def observation_space(self):
+        return self._observation_space
+
+    @observation_space.setter
+    def observation_space(self, observation_space):
+        self._observation_space = observation_space
+
+    # TODO: create a delegate class
     @property
     def stop(self):
         return self.agents.stop
@@ -137,22 +147,25 @@ class TrafficLightEnv(AccelEnv, Serializer):
     def stop(self, stop):
         self.agents.stop = stop
 
-    # TODO: generalize delegation
-    @delegate_property
+    # TODO: restrict delegate property to an
+    # instance of class
+    @lazy_property
     def tls_ids(self):
-        pass
+        return self.network.tls_ids
 
-    @delegate_property
+    @lazy_property
     def tls_max_capacity(self):
-        pass
+        return self.network.tls_ids
 
-    @delegate_property
+    @lazy_property
     def tls_phases(self):
-        pass
+        import pdb
+        pdb.set_trace
+        return self.network.tls_phases
 
-    @delegate_property
+    @lazy_property
     def tls_states(self):
-        pass
+        return self.network.tls_states
 
     @lazy_property
     def tls_durations(self):
@@ -236,122 +249,148 @@ class TrafficLightEnv(AccelEnv, Serializer):
                 if self.step_counter > 1 else 0.0, 2)
         prev = delay(self.duration)
 
-        if (prev not in self.memo_observation_space) or self.step_counter <= 2:
-            observations = {}
-            normalize = self.mdp_params.normalize_state_space
+        veh_ids = {}
+        veh_speeds = {}
+        for nid in self.tls_ids:
+
+            
+            tls_veh_ids = {}
+            tls_veh_speeds = {}
+            for phase, values in self.incoming[nid].items():
+
+                if prev in values and any(values[prev]):
+                    tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
+                else:
+                    tls_veh_ids[phase] = []
+                    tls_veh_speeds[phase] = []
+
+            veh_ids[nid] = tls_veh_ids
+            veh_speeds[nid] = tls_veh_speeds
+
+           
+        # global NEW_STATES
+        self.observation_space.update(
+            prev, veh_ids, veh_speeds, None
+        )
+
+        # if (prev not in self.memo_observation_space) or self.step_counter <= 2:
+            # observations = {}
+            # normalize = self.mdp_params.normalize_state_space
             # TODO: erase
 
-            veh_ids = {}
-            veh_speeds = {}
-            for nid in self.tls_ids:
-                tls_data = []
+            # veh_ids = {}
+            # veh_speeds = {}
+            # for nid in self.tls_ids:
+            #     tls_data = []
 
-                _new_states = {}
-                _new_states[nid] = self.incoming[nid]
-                for phase in self.tls_phases[nid]:
-                    max_speed, max_count = self.tls_max_capacity[nid][phase]
-                    incoming = self.incoming[nid][phase]
-                    values = []
+            #     _new_states = {}
+            #     _new_states[nid] = self.incoming[nid]
+            #     for phase in self.tls_phases[nid]:
+            #         max_speed, max_count = self.tls_max_capacity[nid][phase]
+            #         incoming = self.incoming[nid][phase]
+            #         values = []
 
-                    for label in self.mdp_params.states_labels:
+            #         for label in self.mdp_params.states_labels:
 
-                        if label in ('count',):
-                            counts = self.memo_counts[nid][phase]
-                            count = 0
-                            count += len(incoming[prev][1]) if prev in incoming else 0.0
-                            counts[prev] = count
-                            value = np.mean(list(counts.values()))
+            #             if label in ('count',):
+            #                 counts = self.memo_counts[nid][phase]
+            #                 count = 0
+            #                 count += len(incoming[prev][1]) if prev in incoming else 0.0
+            #                 counts[prev] = count
+            #                 value = np.mean(list(counts.values()))
 
 
-                        # elif label in ('arrivals',):
-                        #     # arrivals accrue only during green times.
-                        #     # TODO: test if green
-                        #     arrivals = self.memo_arrivals[nid][phase]
+            #             # elif label in ('arrivals',):
+            #             #     # arrivals accrue only during green times.
+            #             #     # TODO: test if green
+            #             #     arrivals = self.memo_arrivals[nid][phase]
 
-                        #     # This is the veh_ids set for current adjusted period
-                        #     veh_set = set(incoming[prev][1]) \
-                        #         if prev in incoming else set()
+            #             #     # This is the veh_ids set for current adjusted period
+            #             #     veh_set = set(incoming[prev][1]) \
+            #             #         if prev in incoming else set()
 
-                        #     # The vehicles which were observed last period
-                        #     prevprev = delay(prev)
-                        #     prev_veh_set = incoming[prevprev][1] \
-                        #             if prevprev in incoming else set()
+            #             #     # The vehicles which were observed last period
+            #             #     prevprev = delay(prev)
+            #             #     prev_veh_set = incoming[prevprev][1] \
+            #             #             if prevprev in incoming else set()
 
-                        #     # new arrivals + arrivals accumulated up until
-                        #     # last time 
-                        #     arrivals[prev] = \
-                        #         len(veh_set - prev_veh_set) + arrivals
+            #             #     # new arrivals + arrivals accumulated up until
+            #             #     # last time 
+            #             #     arrivals[prev] = \
+            #             #         len(veh_set - prev_veh_set) + arrivals
 
-                        #     value = len(flows[prev]) / t
+            #             #     value = len(flows[prev]) / t
 
-                        # elif label in ('queue',):
-                        #     # in some articles queue accrues only on red
-                        #     # test if red
-                        #     # vehicles are slowing :
-                        #     mem = self.memo_queue[nid][phase]
-                        #     queue = mem
-                        #     queue += incoming[prev][1] \
-                        #               if prev in incoming else []
+            #             # elif label in ('queue',):
+            #             #     # in some articles queue accrues only on red
+            #             #     # test if red
+            #             #     # vehicles are slowing :
+            #             #     mem = self.memo_queue[nid][phase]
+            #             #     queue = mem
+            #             #     queue += incoming[prev][1] \
+            #             #               if prev in incoming else []
 
-                        #     queue = [q for q in queue
-                        #              if q < 0.10 * self.k.scenario.max_speed()]
+            #             #     queue = [q for q in queue
+            #             #              if q < 0.10 * self.k.scenario.max_speed()]
 
-                        #     queue = len(queue)
-                        #     value = np.mean(list(mem.values())) / t
+            #             #     queue = len(queue)
+            #             #     value = np.mean(list(mem.values())) / t
 
-                        elif label in ('speed',):
-                            counts = self.memo_counts[nid][phase].copy()
-                            count = 0
-                            count += len(incoming[prev][1]) if prev in incoming else 0.0
+            #             elif label in ('speed',):
+            #                 counts = self.memo_counts[nid][phase].copy()
+            #                 count = 0
+            #                 count += len(incoming[prev][1]) if prev in incoming else 0.0
 
-                            mem = self.memo_speeds[nid][phase]
-                            speeds = []
-                            speeds += incoming[prev][1] \
-                                     if prev in incoming else []
-                            mem[prev] = \
-                                0.0 if not any(speeds) else round(np.mean(speeds), 2)
-                            value = np.mean(list(mem.values()))
+            #                 mem = self.memo_speeds[nid][phase]
+            #                 speeds = []
+            #                 speeds += incoming[prev][1] \
+            #                          if prev in incoming else []
+            #                 mem[prev] = \
+            #                     0.0 if not any(speeds) else round(np.mean(speeds), 2)
+            #                 value = np.mean(list(mem.values()))
 
-                            if normalize:
-                                value = value / max_speed
-                        else:
-                            raise ValueError(f'`{label}` not implemented')
+            #                 if normalize:
+            #                     value = value / max_speed
+            #             else:
+            #                 raise ValueError(f'`{label}` not implemented')
 
-                        values.append(round(value, 2))
-                    tls_data.append(values)
-                observations[nid] = tls_data
+            #             values.append(round(value, 2))
+            #         tls_data.append(values)
+            #     observations[nid] = tls_data
                 # assert to see if new values equal the old
                 # make this step add collect time
                 
-                tls_veh_ids = {}
-                tls_veh_speeds = {}
-                for phase, values in _new_states[nid].items():
+            # tls_veh_ids = {}
+            # tls_veh_speeds = {}
+            # for phase, values in _new_states[nid].items():
 
-                    if prev in values and any(values[prev]):
-                        tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
-                    else:
-                        tls_veh_ids[phase] = []
-                        tls_veh_speeds[phase] = []
+            #     if prev in values and any(values[prev]):
+            #         tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
+            #     else:
+            #         tls_veh_ids[phase] = []
+            #         tls_veh_speeds[phase] = []
 
-                veh_ids[nid] = tls_veh_ids
-                veh_speeds[nid] = tls_veh_speeds
+            # veh_ids[nid] = tls_veh_ids
+            # veh_speeds[nid] = tls_veh_speeds
 
-               
-            global NEW_STATES
-            NEW_STATES.update(
-                prev, veh_ids, veh_speeds, None
-            )
+            #    
+            # # global NEW_STATES
+            # self.observation_space.update(
+            #     prev, veh_ids, veh_speeds, None
+            # )
 
-            self.memo_observation_space[prev] = observations
-        try:
-            assert dict(NEW_STATES.state) == \
-                self.memo_observation_space[prev]
-        except AssertionError:
-            print(NEW_STATES.state)
-            print(self.memo_observation_space[prev])
-            pdb.set_trace()
+            # self.memo_observation_space[prev] = observations
+            # self.memo_observation_space[prev] = NEW_STATES.state
+        # try:
+        #     assert dict(NEW_STATES.state) == \
+        #         self.memo_observation_space[prev]
+        # except AssertionError:
+        #     print(NEW_STATES.state)
+        #     print(self.memo_observation_space[prev])
+        #     pdb.set_trace()
 
-        return self.memo_observation_space[prev]
+        # return self.memo_observation_space[prev]
+        return self.observation_space
 
     def get_state(self):
         """
@@ -363,7 +402,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        obs = self.get_observation_space()
+        obs = self.get_observation_space().state
 
         # Categorize.
         if self.mdp_params.discretize_state_space:
@@ -471,15 +510,17 @@ class TrafficLightEnv(AccelEnv, Serializer):
                     prev_action = self.actions_log[cycle_number - 1]
                     self.agents.update(prev_state, prev_action, reward, state)
 
-            self.memo_rewards = {}
-            self.memo_observation_space = {}
+            # self.memo_rewards = {}
+            # self.memo_observation_space = {}
 
             # Update traffic lights' control signals.
             self._apply_cl_actions(self.cl_actions(static=self.static))
         else:
             if self.duration == 0:
-                self.memo_rewards = {}
-                self.memo_observation_space = {}
+                # self.memo_rewards = {}
+                # self.memo_observation_space = {}
+                self.observation_space.reset()
+                
 
         # Update timer.
         self.duration = \
@@ -529,20 +570,21 @@ class TrafficLightEnv(AccelEnv, Serializer):
         -------
         reward : float or list of float
         """
-        if self.duration not in self.memo_rewards:
-            reward = self.reward_calculator.calculate(
-                self.get_observation_space()
-            )
-            global NEW_STATES
-            reward1 = self.reward_calculator1.calculate(
-                NEW_STATES
-            )
-            try:
-                assert dict(reward1) == dict(reward)
-            except AssertionError:
-                pdb.set_trace()
-            self.memo_rewards[self.duration] = reward
-        return self.memo_rewards[self.duration]
+        # if self.duration not in self.memo_rewards:
+        #     reward = self.reward_calculator.calculate(
+        #         self.get_observation_space()
+        #     )
+        #     global NEW_STATES
+        #     reward1 = self.reward_calculator1.calculate(
+        #         NEW_STATES
+        #     )
+        #     try:
+        #         assert dict(reward1) == dict(reward)
+        #     except AssertionError:
+        #         pdb.set_trace()
+        #     self.memo_rewards[self.duration] = reward
+        # return self.memo_rewards[self.duration]
+        return self.reward_calculator1.calculate(self.get_observation_space())
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
@@ -556,10 +598,10 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         self.incoming = {}
 
-        self.memo_speeds = {}
-        self.memo_counts = {}
-        self.memo_arrivals = {}
-        self.memo_queue = {}
+        # self.memo_speeds = {}
+        # self.memo_counts = {}
+        # self.memo_arrivals = {}
+        # self.memo_queue = {}
 
         # stores the state index
         # used for opt iterations that did not us this variable
@@ -573,11 +615,12 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
             self.incoming[node_id] = {p: {} for p in range(num_phases)}
 
-            self.memo_speeds[node_id] = {p: {} for p in range(num_phases)}
-            self.memo_counts[node_id] = {p: {} for p in range(num_phases)}
+            # self.memo_speeds[node_id] = {p: {} for p in range(num_phases)}
+            # self.memo_counts[node_id] = {p: {} for p in range(num_phases)}
 
 
-        global NEW_STATES
-        NEW_STATES.reset()
-        self.memo_rewards = {}
-        self.memo_observation_space = {}
+        # global NEW_STATES
+        # NEW_STATES.reset()
+        self.observation_space.reset()
+        # self.memo_rewards = {}
+        # self.memo_observation_space = {}
