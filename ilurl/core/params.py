@@ -359,6 +359,11 @@ class DQNParams:
             gamma=0.8,
             buffer_size=20000,
             batch_size=64,
+            prioritized_replay=False,
+            prioritized_replay_alpha=0.6,
+            prioritized_replay_beta0=0.4,
+            prioritized_replay_beta_iters=40000,
+            prioritized_replay_eps=1e-6,
             exp_initial_p=1.0,
             exp_final_p=0.02,
             exp_schedule_timesteps=40000,
@@ -386,6 +391,23 @@ class DQNParams:
 
         * batch_size: int
             the size of the batches sampled from the replay buffer.
+
+        * prioritized_replay: bool
+            Whether to use prioritized replay buffer.
+            REF: https://arxiv.org/pdf/1511.05952.pdf
+
+        * prioritized_replay_alpha: float
+            alpha parameter for prioritized replay buffer
+
+        * prioritized_replay_beta0: float
+            initial value of beta for prioritized replay buffer
+
+        * prioritized_replay_beta_iters: int
+            number of iterations over which beta will be annealed from initial value
+            to 1.0.
+
+        * prioritized_replay_eps: float
+            epsilon to add to the TD errors when updating priorities.
 
         * exp_initial_p: float
             initial exploration rate.
