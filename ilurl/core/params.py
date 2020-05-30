@@ -44,7 +44,7 @@ Reward = namedtuple('Reward', 'type additional_params')
 
 TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 
-DEMAND_TYPES = ('low', 'mid', 'high', 'variable') # TODO: Add switch demand type.
+DEMAND_TYPES = ('constant', 'variable') # TODO: Add switch demand type.
 
 
 class MDPParams:
@@ -510,7 +510,7 @@ class TrainParams:
             sumo_render=False,
             sumo_emission=False,
             tls_type='controlled',
-            demand_type='low',
+            demand_type='constant',
         ):
         """Instantiate train parameters.
 
@@ -554,10 +554,8 @@ class TrainParams:
             SUMO traffic light type: \'controlled\', \'actuated'\',
                     \'static\' or \'random\'.
 
-        * demand_type: ('low', 'mid', 'high' or 'variable')
-            low - low uniform vehicles demand.
-            mid - mid uniform vehicles demand.
-            high - high uniform vehicles demand.
+        * demand_type: ('constant' or 'variable')
+            constant - uniform vehicles demand.
             variable - realistic demand that varies throught 24 hours
                     (resembling realistic traffic variations, e.g. peak hours)
 
@@ -581,7 +579,7 @@ class TrainParams:
                     Got tls_type = {}.'''.format(tls_type))
 
         if demand_type not in DEMAND_TYPES:
-            raise ValueError('''The demand_type must be in ('low', 'mid', 'high' or 'variable').
+            raise ValueError('''The demand_type must be in ('constant' or 'variable').
                     Got demand_type = {}.'''.format(demand_type))
 
         for attr, value in kwargs.items():
@@ -636,7 +634,7 @@ class InFlows(flow_params.InFlows):
                 args = (eid, 'human')
 
                 # Uniform flows.
-                if demand_type in ('low', 'mid', 'high'):
+                if demand_type == 'constant':
 
                     insertion_probability = demand[str(num_lanes)]
 
