@@ -161,6 +161,13 @@ def main(batch_path=None):
         rewards = [[sum(cycle.values()) for cycle in cycles]
                    for cycles in rewards]
 
+        rewards = np.array(rewards)
+
+        # Concatenate.
+        returns[int(rollout_id)].append(np.sum(rewards, axis=1))
+
+        """
+        # Discounted.
         # rewards.shape = (cycles, num_rollouts)
         rewards = np.array(rewards).T
 
@@ -169,7 +176,7 @@ def main(batch_path=None):
         gain = lfilter([1], discount, x=rewards, axis=0)
 
         # Concatenate.
-        returns[int(rollout_id)].append(gain[-1, :])
+        returns[int(rollout_id)].append(gain[-1, :]) """
 
     returns = OrderedDict({
         k: returns[k] for k in sorted(returns.keys())
