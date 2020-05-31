@@ -13,10 +13,10 @@ class MaxSpeedCountReward(object, metaclass=MetaReward):
 
     def __init__(self,  mdp_params):
         """Creates a reference to the input state"""
-        reward_params = mdp_params.reward.additional_params
-        if 'target_velocity' not in reward_params:
-            raise ValueError('MaxSpeedCountReward must define target_velocity')
-        self.target_velocity = reward_params['target_velocity']
+        if not hasattr(mdp_params, 'target_velocity'):
+            raise ValueError('MDPParams must define target_velocity')
+        else: 
+            self.target_velocity = mdp_params.target_velocity
 
     def calculate(self, state):
         speeds_counts = state.split()
@@ -63,4 +63,3 @@ class MinDeltaDelay(object, metaclass=MetaReward):
 
     def calculate(self):
         return -sum(self._state.to_list())
-

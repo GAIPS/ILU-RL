@@ -62,7 +62,8 @@ class MDPParams:
                         'additional_params': {
                             'target_velocity': 1.0
                         }
-                }
+                },
+                target_velocity=1.0
             ):
         """Instantiate MDP params.
 

@@ -3,9 +3,7 @@
 
     Extends the flow's green wave environment
 '''
-__author__ = "Guilherme Varela"
 __date__ = "2019-12-10"
-import pdb
 import os
 import json
 import numpy as np
@@ -13,14 +11,11 @@ import numpy as np
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
-from ilurl.core.reward import RewardCalculator
 from ilurl.core.state import build_states
 from ilurl.core.rewards import build_rewards
 
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
-
-from ilurl.loaders.parser import config_parser
 
 from ilurl.core.agents_wrapper import AgentsWrapper
 
@@ -80,6 +75,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
     def __init__(self,
                  env_params,
                  sim_params,
+                 mdp_params,
                  network,
                  simulator='traci'):
 
@@ -88,8 +84,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
                                               network,
                                               simulator=simulator)
 
-        # Load MDP parameters from file (train.config[mdg_args]).
-        mdp_params = config_parser.parse_mdp_params()
 
         # TODO: Allow for mixed networks with actuated,
         # controlled and static traffic light configurations.
@@ -117,8 +111,8 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.agents = AgentsWrapper(mdp_params)
 
         # Reward function.
-        self.reward_calculator = RewardCalculator(self.mdp_params)
-        self.reward_calculator1 = build_rewards(mdp_params)
+        # self.reward_calculator = RewardCalculator(self.mdp_params)
+        self.reward_calculator = build_rewards(mdp_params)
 
         self.actions_log = {}
         self.states_log = {}
@@ -159,8 +153,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
     @lazy_property
     def tls_phases(self):
-        import pdb
-        pdb.set_trace
         return self.network.tls_phases
 
     @lazy_property
@@ -268,128 +260,10 @@ class TrafficLightEnv(AccelEnv, Serializer):
             veh_speeds[nid] = tls_veh_speeds
 
            
-        # global NEW_STATES
         self.observation_space.update(
             prev, veh_ids, veh_speeds, None
         )
 
-        # if (prev not in self.memo_observation_space) or self.step_counter <= 2:
-            # observations = {}
-            # normalize = self.mdp_params.normalize_state_space
-            # TODO: erase
-
-            # veh_ids = {}
-            # veh_speeds = {}
-            # for nid in self.tls_ids:
-            #     tls_data = []
-
-            #     _new_states = {}
-            #     _new_states[nid] = self.incoming[nid]
-            #     for phase in self.tls_phases[nid]:
-            #         max_speed, max_count = self.tls_max_capacity[nid][phase]
-            #         incoming = self.incoming[nid][phase]
-            #         values = []
-
-            #         for label in self.mdp_params.states_labels:
-
-            #             if label in ('count',):
-            #                 counts = self.memo_counts[nid][phase]
-            #                 count = 0
-            #                 count += len(incoming[prev][1]) if prev in incoming else 0.0
-            #                 counts[prev] = count
-            #                 value = np.mean(list(counts.values()))
-
-
-            #             # elif label in ('arrivals',):
-            #             #     # arrivals accrue only during green times.
-            #             #     # TODO: test if green
-            #             #     arrivals = self.memo_arrivals[nid][phase]
-
-            #             #     # This is the veh_ids set for current adjusted period
-            #             #     veh_set = set(incoming[prev][1]) \
-            #             #         if prev in incoming else set()
-
-            #             #     # The vehicles which were observed last period
-            #             #     prevprev = delay(prev)
-            #             #     prev_veh_set = incoming[prevprev][1] \
-            #             #             if prevprev in incoming else set()
-
-            #             #     # new arrivals + arrivals accumulated up until
-            #             #     # last time 
-            #             #     arrivals[prev] = \
-            #             #         len(veh_set - prev_veh_set) + arrivals
-
-            #             #     value = len(flows[prev]) / t
-
-            #             # elif label in ('queue',):
-            #             #     # in some articles queue accrues only on red
-            #             #     # test if red
-            #             #     # vehicles are slowing :
-            #             #     mem = self.memo_queue[nid][phase]
-            #             #     queue = mem
-            #             #     queue += incoming[prev][1] \
-            #             #               if prev in incoming else []
-
-            #             #     queue = [q for q in queue
-            #             #              if q < 0.10 * self.k.scenario.max_speed()]
-
-            #             #     queue = len(queue)
-            #             #     value = np.mean(list(mem.values())) / t
-
-            #             elif label in ('speed',):
-            #                 counts = self.memo_counts[nid][phase].copy()
-            #                 count = 0
-            #                 count += len(incoming[prev][1]) if prev in incoming else 0.0
-
-            #                 mem = self.memo_speeds[nid][phase]
-            #                 speeds = []
-            #                 speeds += incoming[prev][1] \
-            #                          if prev in incoming else []
-            #                 mem[prev] = \
-            #                     0.0 if not any(speeds) else round(np.mean(speeds), 2)
-            #                 value = np.mean(list(mem.values()))
-
-            #                 if normalize:
-            #                     value = value / max_speed
-            #             else:
-            #                 raise ValueError(f'`{label}` not implemented')
-
-            #             values.append(round(value, 2))
-            #         tls_data.append(values)
-            #     observations[nid] = tls_data
-                # assert to see if new values equal the old
-                # make this step add collect time
-                
-            # tls_veh_ids = {}
-            # tls_veh_speeds = {}
-            # for phase, values in _new_states[nid].items():
-
-            #     if prev in values and any(values[prev]):
-            #         tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
-            #     else:
-            #         tls_veh_ids[phase] = []
-            #         tls_veh_speeds[phase] = []
-
-            # veh_ids[nid] = tls_veh_ids
-            # veh_speeds[nid] = tls_veh_speeds
-
-            #    
-            # # global NEW_STATES
-            # self.observation_space.update(
-            #     prev, veh_ids, veh_speeds, None
-            # )
-
-            # self.memo_observation_space[prev] = observations
-            # self.memo_observation_space[prev] = NEW_STATES.state
-        # try:
-        #     assert dict(NEW_STATES.state) == \
-        #         self.memo_observation_space[prev]
-        # except AssertionError:
-        #     print(NEW_STATES.state)
-        #     print(self.memo_observation_space[prev])
-        #     pdb.set_trace()
-
-        # return self.memo_observation_space[prev]
         return self.observation_space
 
     def get_state(self):
@@ -510,15 +384,10 @@ class TrafficLightEnv(AccelEnv, Serializer):
                     prev_action = self.actions_log[cycle_number - 1]
                     self.agents.update(prev_state, prev_action, reward, state)
 
-            # self.memo_rewards = {}
-            # self.memo_observation_space = {}
-
             # Update traffic lights' control signals.
             self._apply_cl_actions(self.cl_actions(static=self.static))
         else:
             if self.duration == 0:
-                # self.memo_rewards = {}
-                # self.memo_observation_space = {}
                 self.observation_space.reset()
                 
 
@@ -570,21 +439,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         -------
         reward : float or list of float
         """
-        # if self.duration not in self.memo_rewards:
-        #     reward = self.reward_calculator.calculate(
-        #         self.get_observation_space()
-        #     )
-        #     global NEW_STATES
-        #     reward1 = self.reward_calculator1.calculate(
-        #         NEW_STATES
-        #     )
-        #     try:
-        #         assert dict(reward1) == dict(reward)
-        #     except AssertionError:
-        #         pdb.set_trace()
-        #     self.memo_rewards[self.duration] = reward
-        # return self.memo_rewards[self.duration]
-        return self.reward_calculator1.calculate(self.get_observation_space())
+        return self.reward_calculator.calculate(self.get_observation_space())
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
@@ -598,11 +453,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         self.incoming = {}
 
-        # self.memo_speeds = {}
-        # self.memo_counts = {}
-        # self.memo_arrivals = {}
-        # self.memo_queue = {}
-
         # stores the state index
         # used for opt iterations that did not us this variable
         self.state_indicator = {}
@@ -615,12 +465,5 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
             self.incoming[node_id] = {p: {} for p in range(num_phases)}
 
-            # self.memo_speeds[node_id] = {p: {} for p in range(num_phases)}
-            # self.memo_counts[node_id] = {p: {} for p in range(num_phases)}
 
-
-        # global NEW_STATES
-        # NEW_STATES.reset()
         self.observation_space.reset()
-        # self.memo_rewards = {}
-        # self.memo_observation_space = {}

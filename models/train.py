@@ -87,9 +87,14 @@ def main(train_config_path=None):
     }
     env_params = EnvParams(**env_args)
 
+
+    # Load MDP parameters from file (train.config[mdg_args]).
+    mdp_params = config_parser.parse_mdp_params()
+
     env = TrafficLightEnv(
         env_params=env_params,
         sim_params=sim_params,
+        mdp_params=mdp_params,
         network=network,
         )
 
