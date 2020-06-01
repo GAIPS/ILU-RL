@@ -8,6 +8,8 @@ import tensorflow as tf
 # Suppress tf warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
+import tensorflow.contrib.layers as layers
+
 from gym.spaces.box import Box
 
 import baselines.common.tf_util as U
@@ -16,10 +18,18 @@ from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
 from baselines import deepq
 from baselines.common.tf_util import load_variables, save_variables
 from baselines.deepq.deepq import ActWrapper
-from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
+from baselines.deepq.replay_buffer import ReplayBuffer
 from baselines.deepq.utils import ObservationInput
-from baselines.deepq.models import build_q_func
 from baselines.common.schedules import LinearSchedule
+
+# TODO: allow for arbitrary network architecture.
+def model(inpt, num_actions, scope, reuse=False):
+    """This model takes as input an observation and returns values of all actions."""
+    with tf.variable_scope(scope, reuse=reuse):
+        out = inpt
+        out = layers.fully_connected(out, num_outputs=8, activation_fn=tf.nn.tanh)
+        out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
+        return out
 
 
 class DQN(object, metaclass=MetaAgent):
@@ -44,26 +54,16 @@ class DQN(object, metaclass=MetaAgent):
         self.stop = False
 
         # Parameters.
-        self.model = build_q_func(network=params.network_type,
-                                  hiddens=params.head_network_mlp_hiddens,
-                                  dueling=params.head_network_dueling,
-                                  layer_norm=params.head_network_layer_norm,
-                                  mlp_hiddens=params.mlp_hiddens,
-                                  mlp_layer_norm=params.mlp_layer_norm)
+        self.model = model # TODO: allow for arbitrary network architecture.
         self.lr = params.lr
         self.gamma = params.gamma
+        self.buffer_size = params.buffer_size
+        self.batch_size = params.batch_size
         self.exp_initial_p = params.exp_initial_p
         self.exp_final_p = params.exp_final_p
         self.exp_schedule_timesteps = params.exp_schedule_timesteps
         self.learning_starts = params.learning_starts
         self.target_net_update_interval = params.target_net_update_interval
-        self.buffer_size = params.buffer_size
-        self.batch_size = params.batch_size
-        self.prioritized_replay = params.prioritized_replay
-        self.prioritized_replay_alpha = params.prioritized_replay_alpha
-        self.prioritized_replay_beta0 = params.prioritized_replay_beta0
-        self.prioritized_replay_beta_iters = params.prioritized_replay_beta_iters
-        self.prioritized_replay_eps = params.prioritized_replay_eps
 
         # Observation space.
         self.obs_space = Box(low=np.array([0.0]*params.states.rank),
@@ -91,13 +91,8 @@ class DQN(object, metaclass=MetaAgent):
         }
         self.action = ActWrapper(self.action, act_params)
 
-        if self.prioritized_replay:
-            self.replay_buffer = PrioritizedReplayBuffer(self.buffer_size, alpha=self.prioritized_replay_alpha)
-            self.beta_schedule = LinearSchedule(self.prioritized_replay_beta_iters,
-                                        initial_p=self.prioritized_replay_beta0,
-                                        final_p=1.0)
-        else:
-            self.replay_buffer = ReplayBuffer(self.buffer_size)
+        # TODO: add option for prioritized replay buffer.
+        self.replay_buffer = ReplayBuffer(self.buffer_size)
 
         self.exploration = LinearSchedule(schedule_timesteps=self.exp_schedule_timesteps,
                                           initial_p=self.exp_initial_p,
@@ -169,27 +164,13 @@ class DQN(object, metaclass=MetaAgent):
             self.replay_buffer.add(s, a, r, s1, 0.0)
 
             if self.updates_counter > self.learning_starts:
-
-                if self.prioritized_replay:
-                    beta_value = self.beta_schedule.value(self.updates_counter)
-                    exps = self.replay_buffer.sample(self.batch_size, beta=beta_value)
-                    (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = exps
-
-                else:
-                    exps = self.replay_buffer.sample(self.batch_size)
-                    (obses_t, actions, rewards, obses_tp1, dones) = exps
-                    weights = np.ones_like(rewards)
-
+                obses_t, actions, rewards, obses_tp1, dones = self.replay_buffer.sample(self.batch_size)
                 td_errors = self.train(obses_t,
                         actions,
                         rewards,
                         obses_tp1,
                         dones,
-                        weights)
-
-                if self.prioritized_replay:
-                    new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
-                    self.replay_buffer.update_priorities(batch_idxes, new_priorities)
+                        np.ones_like(rewards))
 
                 if self.logger:
                     self.logger.logkv("td_error", np.mean(td_errors))
@@ -256,9 +237,9 @@ class DQN(object, metaclass=MetaAgent):
             path to log directory.
 
         """
-        os.makedirs(f"{path}/logs", exist_ok=True)
+        os.makedirs(f"{path}/train_logs", exist_ok=True)
 
-        log_file = f'{path}/logs/{self.name}'
+        log_file = f'{path}/train_logs/{self.name}'
         tb_logger = TensorBoardOutputFormat(log_file)
         csv_logger = CSVOutputFormat(f'{log_file}.csv')
         self.logger = Logger(dir=path, output_formats=[tb_logger, csv_logger])

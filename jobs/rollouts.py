@@ -133,10 +133,9 @@ def rollout_batch(test=False, experiment_dir=None):
     if len(chkpts_nums) == 0:
         raise ValueError('No checkpoints found.')
 
-    chkpts_nums = sorted(chkpts_nums)
-
     # If test then pick only the last checkpoints.
     if test:
+
         chkpts_nums = [chkpts_nums[-1]]
         rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
     
@@ -172,31 +171,23 @@ def rollout_batch(test=False, experiment_dir=None):
     rollouts_config.remove_option('rollouts_args', 'num-rollouts')
 
     if test:
-        # Override rollouts config files with test.config file parameters.
+        # Merge test and rollouts config files.
         test_config = configparser.ConfigParser()
         test_config.read(str(CONFIG_PATH / 'test.config'))
 
         num_rollouts = int(test_config.get('test_args', 'num-rollouts'))
         rollout_time = test_config.get('test_args', 'rollout-time')
+        emission = test_config.get('test_args', 'sumo-emission')
 
         # Overwrite defaults.
         rollouts_config.set('rollouts_args', 'rollout-time', rollout_time)
+        rollouts_config.set('rollouts_args', 'sumo-emission', emission)
 
         token = 'test'
 
-        # Test mode defaults below (DO NOT CHANGE THESE).
-        # Write .xml files for test plots creation.
-        rollouts_config.set('rollouts_args', 'sumo-emission', str(True))
-
     else:
-
         token = 'rollouts'
 
-        # Non-test mode defaults below (DO NOT CHANGE THESE).
-        # Do not write .xml files due to performance and memory issues.
-        rollouts_config.set('rollouts_args', 'sumo-emission', str(False))
-
-    rollout_time = rollouts_config.get('rollouts_args', 'rollout-time')
     print(f'\nArguments (jobs/{token}.py):')
     print('-------------------------')
     print(f'Experiment dir: {batch_path}')
@@ -204,7 +195,9 @@ def rollout_batch(test=False, experiment_dir=None):
     print(f'Num. rollout files: {len(rollouts_paths)}')
     print(f'Num. rollout repetitions: {num_rollouts}')
     print(f'Num. rollout total: {len(rollouts_paths) * num_rollouts}')
-    print(f'Rollout time: {rollout_time}\n')
+    if token == 'test':
+        print(f'Rollouts time: {rollout_time}')
+        print(f'Rollouts emission: {emission}\n')
 
     # Allocate seeds.
     custom_configs = []
@@ -213,6 +206,8 @@ def rollout_batch(test=False, experiment_dir=None):
         for rr in range(num_rollouts):
             seed = base_seed + rr + 1
             custom_configs.append((rp, seed))
+
+    # print(custom_configs)
 
     with tempfile.TemporaryDirectory() as f:
 
@@ -247,15 +242,17 @@ def rollout_batch(test=False, experiment_dir=None):
             for cfg in rollouts_cfg_paths:
                 rvs.append(delay_roll([cfg]))
 
+
+    
     res = concat(rvs)
     filepart = 'test' if test else 'eval'
-    filename = f'rollouts_{filepart}.json'
+    filename = f'{batch_path.parts[-1]}.l.{filepart}.info.json'
     target_path = batch_path / filename
     with target_path.open('w') as fj:
         json.dump(res, fj)
 
     sys.stdout.write(str(batch_path))
-
+    print(str(batch_path))
     return str(batch_path)
 
 @processable

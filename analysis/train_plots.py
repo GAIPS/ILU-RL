@@ -69,16 +69,16 @@ def main(experiment_root_folder=None):
         args = get_arguments()
         experiment_root_folder = args.experiment_root_folder
 
-    print('Input files:')
+    print('\tInput files:')
     # Get all train_log.json files from experiment root folder.
     train_files = []
     for path in Path(experiment_root_folder).rglob('train_log.json'):
         train_files.append(str(path))
-        print('{0}'.format(str(path)))
+        print('\t\t{0}'.format(str(path)))
 
     # Prepare output folder.
     output_folder_path = os.path.join(experiment_root_folder, 'plots/train')
-    print('\nOutput folder:\n{0}\n'.format(output_folder_path))
+    print('\tOutput folder: {0}'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
     rewards = []

@@ -111,7 +111,7 @@ class Network(flownet.Network):
                  horizon=360,
                  net_params=None,
                  vehicles=None,
-                 demand_type='constant',
+                 demand_type='low',
                  initial_config=None,
                  tls_type='controlled'):
 

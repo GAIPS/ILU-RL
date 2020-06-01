@@ -258,9 +258,9 @@ class QL(object, metaclass=MetaAgent):
             path to log directory.
 
         """
-        os.makedirs(f"{path}/logs", exist_ok=True)
+        os.makedirs(f"{path}/train_logs", exist_ok=True)
 
-        log_file = f'{path}/logs/{self.name}'
+        log_file = f'{path}/train_logs/{self.name}'
         tb_logger = TensorBoardOutputFormat(log_file)
         csv_logger = CSVOutputFormat(f'{log_file}.csv')
-        self.logger = Logger(dir=path, output_formats=[tb_logger, csv_logger])
+        self.logger = Logger(dir=path, output_formats=[tb_logger])

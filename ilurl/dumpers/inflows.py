@@ -27,11 +27,11 @@ from numpy import random
 
 from ilurl.loaders.nets import get_routes, get_edges
 
-DEMAND_TYPES = ('constant', 'variable')
+DEMAND_TYPES = ('low', 'mid', 'high', 'variable')
 
 XML_PATH = f"{os.environ['ILURL_HOME']}/data/networks/"
 
-def inflows_paths(network_id, horizon, distribution='constant'):
+def inflows_paths(network_id, horizon, distribution='low'):
     path = f'{XML_PATH}{network_id}/{network_id}'
 
     if distribution not in DEMAND_TYPES:

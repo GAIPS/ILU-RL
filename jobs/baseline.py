@@ -113,8 +113,10 @@ def baseline_batch():
     test_config.read(test_path.as_posix())
 
     horizon = int(test_config.get('test_args', 'rollout-time'))
+    emission = str2bool(test_config.get('test_args', 'sumo-emission'))
 
     baseline_config.set('train_args', 'experiment_time', str(horizon))
+    baseline_config.set('train_args', 'sumo_emission', str(emission))
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
     print(f'Experiment timestamp: {timestamp}')

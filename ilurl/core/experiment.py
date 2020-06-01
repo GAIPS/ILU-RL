@@ -176,8 +176,8 @@ class Experiment:
             self.env.agents.setup_logs(self.exp_path)
 
         # Setup logs folder.
-        os.makedirs(self.exp_path / 'logs', exist_ok=True)
-        train_log_path = self.exp_path / 'logs' / "train_log.json"
+        os.makedirs(self.exp_path / 'train_logs', exist_ok=True)
+        train_log_path = self.exp_path / 'train_logs' / "train_log.json"
 
         state = self.env.reset()
 
@@ -238,6 +238,10 @@ class Experiment:
         info_dict["observation_spaces"] = observation_spaces
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
+
+        with train_log_path.open('w') as f:
+            t = Thread(target=json.dump(info_dict, f))
+            t.start()
 
         self.env.terminate()
 
