@@ -58,11 +58,6 @@ class MDPParams:
                 normalize_state_space=True,     # TODO
                 category_counts=[8.56, 13.00],  # TODO
                 category_speeds=[2.28, 5.50],   # TODO
-                # reward={'type': 'target_velocity',
-                #         'additional_params': {
-                #             'target_velocity': 1.0
-                #         }
-                # },
                 reward = 'MaxSpeedCountReward',
                 target_velocity=1.0
             ):
@@ -102,148 +97,134 @@ class MDPParams:
                     ''')
             self.states_labels = states_tuple
 
-        # Reward function.
-        # reward = kwargs['reward']
-
-        # reward_types, _ = get_rewards()
-        # if reward['type'] not in reward_types:
-        #     raise ValueError(f'''
-        #         Reward type must be in {reward_types}.
-        #         Got {reward['type']} type''')
-        # else:
-        #     self.set_reward(reward['type'], reward['additional_params'])
-
         if self.normalize_state_space:
             if max(self.category_speeds) > 1:
                 raise ValueError('If `normalize` flag is set categories'
                                     'must be between 0 and 1')
 
-    def set_reward(self, type, additional_params):
-        self.reward = Reward(type, additional_params)
+    # def categorize_space(self, observation_space):
+    #     """Converts readings e.g averages, counts into integers
 
-    def categorize_space(self, observation_space):
-        """Converts readings e.g averages, counts into integers
+    #     Parameters:
+    #     ----------
+    #         * observation_space: a list of lists
+    #             level 1 -- number of intersections controlled
+    #             level 2 -- number of phases e.g 2
+    #             level 3 -- number of variables
 
-        Parameters:
-        ----------
-            * observation_space: a list of lists
-                level 1 -- number of intersections controlled
-                level 2 -- number of phases e.g 2
-                level 3 -- number of variables
+    #     Returns:
+    #     -------
 
-        Returns:
-        -------
+    #     Example:
+    #     -------
+    #         # 1 tls, 2 phases, 2 variables
+    #         > reading = [[[14.2, 3], [0, 10]]]
+    #         > categories = categorize_space(reading)
+    #         > categories
+    #         > [[2, 0], [0, 3]]
+    #     """
 
-        Example:
-        -------
-            # 1 tls, 2 phases, 2 variables
-            > reading = [[[14.2, 3], [0, 10]]]
-            > categories = categorize_space(reading)
-            > categories
-            > [[2, 0], [0, 3]]
-        """
+    #     labels = list(self.states_labels)
 
-        labels = list(self.states_labels)
+    #     categorized_space = {}
+    #     # first loop is for intersections
+    #     for tls_id in observation_space.keys():
+    #         inters_space = observation_space[tls_id]
+    #         # second loop is for phases
+    #         categorized_intersection = []
+    #         for phase_space in inters_space:
+    #             # third loop is for variables
+    #             categorized_phases = []
+    #             for i, label in enumerate(labels):
+    #                 val = phase_space[i]
+    #                 category = getattr(self, f'_categorize_{label}')(val)
+    #                 categorized_phases.append(category)
+    #             categorized_intersection.append(categorized_phases)
+    #         categorized_space[tls_id] = categorized_intersection
+    #         
+    #     
+    #     return categorized_space
 
-        categorized_space = {}
-        # first loop is for intersections
-        for tls_id in observation_space.keys():
-            inters_space = observation_space[tls_id]
-            # second loop is for phases
-            categorized_intersection = []
-            for phase_space in inters_space:
-                # third loop is for variables
-                categorized_phases = []
-                for i, label in enumerate(labels):
-                    val = phase_space[i]
-                    category = getattr(self, f'_categorize_{label}')(val)
-                    categorized_phases.append(category)
-                categorized_intersection.append(categorized_phases)
-            categorized_space[tls_id] = categorized_intersection
-            
-        
-        return categorized_space
+    # def split_space(self, observation_space):
+    #     """Splits different variables into tuple.
+    #     
+    #     Parameters:
+    #     ----------
+    #     * observation_space: list of lists
+    #         nested 3 level list such that;
+    #         The second level represents it's phases; e.g
+    #         north-south and east-west. And the last level represents
+    #         the variables withing labels e.g `speed` and `count`.
 
-    def split_space(self, observation_space):
-        """Splits different variables into tuple.
-        
-        Parameters:
-        ----------
-        * observation_space: list of lists
-            nested 3 level list such that;
-            The second level represents it's phases; e.g
-            north-south and east-west. And the last level represents
-            the variables withing labels e.g `speed` and `count`.
+    #     Returns:
+    #     -------
+    #         * flatten space
 
-        Returns:
-        -------
-            * flatten space
+    #     Example:
+    #     -------
+    #     > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
+    #     > splits = split_space(observation_space)
+    #     > splits
+    #     > [[13.3, 15.7], [2.7, 1.9]]
 
-        Example:
-        -------
-        > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
-        > splits = split_space(observation_space)
-        > splits
-        > [[13.3, 15.7], [2.7, 1.9]]
+    #     """
+    #     num_labels = len(self.states_labels)
 
-        """
-        num_labels = len(self.states_labels)
+    #     splits = []
+    #     for label in range(num_labels):
+    #         components = []
+    #         for phases in observation_space:
+    #             components.append(phases[label])
+    #         splits.append(components)
 
-        splits = []
-        for label in range(num_labels):
-            components = []
-            for phases in observation_space:
-                components.append(phases[label])
-            splits.append(components)
+    #     return splits
 
-        return splits
+    # def flatten_space(self, observation_space):
+    #     """Linearizes hierarchial state representation.
+    #     
+    #     Parameters:
+    #     ----------
+    #         * observation_space: list of lists
+    #         nested 2 level list such that;
+    #         The second level represents it's phases; e.g
+    #         north-south and east-west. And the last level represents
+    #         the variables withing labels e.g `speed` and `count`.
 
-    def flatten_space(self, observation_space):
-        """Linearizes hierarchial state representation.
-        
-        Parameters:
-        ----------
-            * observation_space: list of lists
-            nested 2 level list such that;
-            The second level represents it's phases; e.g
-            north-south and east-west. And the last level represents
-            the variables withing labels e.g `speed` and `count`.
+    #     Returns:
+    #     -------
+    #         * flattened_space: a list
+    #         
+    #     Example:
+    #     -------
+    #     > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
+    #     > flattened = flatten_space(observation_space)
+    #     > flattened
+    #     > [13.3, 2.7, 15.7, 1.9]
 
-        Returns:
-        -------
-            * flattened_space: a list
-            
-        Example:
-        -------
-        > observation_space = [[[13.3, 2.7], [15.7, 1.9]]]
-        > flattened = flatten_space(observation_space)
-        > flattened
-        > [13.3, 2.7, 15.7, 1.9]
+    #     """
+    #     out = {}
 
-        """
-        out = {}
+    #     for tls_id in observation_space.keys():
+    #         tls_obs = observation_space[tls_id]
 
-        for tls_id in observation_space.keys():
-            tls_obs = observation_space[tls_id]
+    #         flattened = [obs_value for phases in tls_obs
+    #                     for obs_value in phases]
 
-            flattened = [obs_value for phases in tls_obs
-                        for obs_value in phases]
+    #         out[tls_id] = tuple(flattened)
 
-            out[tls_id] = tuple(flattened)
+    #     return out
 
-        return out
+    # def _categorize_speed(self, speed):
+    #     """
+    #         Converts a float speed into a category (integer).
+    #     """
+    #     return np.digitize(speed, bins=self.category_speeds).tolist()
 
-    def _categorize_speed(self, speed):
-        """
-            Converts a float speed into a category (integer).
-        """
-        return np.digitize(speed, bins=self.category_speeds).tolist()
-
-    def _categorize_count(self, count):
-        """
-            Converts a float count into a category (integer).
-        """
-        return np.digitize(count, bins=self.category_counts).tolist()
+    # def _categorize_count(self, count):
+    #     """
+    #         Converts a float count into a category (integer).
+    #     """
+    #     return np.digitize(count, bins=self.category_counts).tolist()
 
 
 class QLParams:

@@ -1,17 +1,12 @@
-import pdb
 from collections import defaultdict
 
 import numpy as np
 
-
 from ilurl.loaders.parser import config_parser
 from ilurl.core.rewards import get_rewards
-from ilurl.core.meta import (MetaState, MetaStateCollection,
-                              MetaStateCalculator)
-# import ilurl.core.rewards as rw
 
-# TODO: check if the module has one of the following names
-# REWARDS = ['MaxSpeedCountReward', 'MinDelayReward', 'MinDeltaDelayReward']
+from ilurl.core.meta import (MetaState, MetaStateCollection,
+                             MetaStateCategorizer)
 
 
 def build_states(network, mdp_params):
@@ -28,8 +23,6 @@ def build_states(network, mdp_params):
     if mdp_params.reward not in rewards:
         raise ValueError(f'{mdp_params.reward} not supported')
 
-    # TODO: test agents
-
     # 2) Builds states.
     states = []
     normalize_state_space = mdp_params.normalize_state_space
@@ -42,42 +35,26 @@ def build_states(network, mdp_params):
             state_classes = (SpeedState, CountState)
 
         for state_class in state_classes:
+            # 4) Define input parameters
             tls_ids = [tid]
-            tls_phases = {tid:np}
+            tls_phases = {tid: np}
             max_capacities = {tid: tls_max_capacity[tid]}
+
+            # 5) Q-Learning agent requires function approximation
+            # Some objects require discretization
+            categorizer = None
+            if mdp_params.discretize_state_space:
+                if state_class == SpeedState:
+                    categorizer = StateCategorizer(mdp_params.category_speeds)
+                elif state_class == CountState:
+                    categorizer = StateCategorizer(mdp_params.category_counts)
+                else:
+                    raise ValueError('Only speed and count states handled')
+
             state = state_class(tls_ids, tls_phases,
-                                max_capacities, normalize_state_space)
+                                max_capacities, normalize_state_space,
+                                categorizer=categorizer)
 
-            # 4) Q-Learning agent requires function approximation
-            if agent_type == 'QL':
-
-                # TODO: extend MDP params normalize per state
-                # normalize = state.label == 'speed'
-
-                # category_key = f'category_{state.label}s'
-                # category_bins = getattr(mdp_params, category_key, None)
-                # if category_bins is None:
-                #     raise ValueError(
-                #         'Category bins for `QL` must be defined'
-                #     )
-
-                # # TODO: extend MDP params for max_speed (network)
-                # category_max = f'max_{state.label}'
-                # if normalize:
-                #     ubound = 1.0
-                # else:
-                #     # either 30 vehs or 30 m/s
-                #     ubound = 30
-                # category_bins = getattr(mdp_params, category_max, ubound)
-
-                # categorizer = StateCategorizer(
-                #     category_bins,
-                #     category_max,
-                #     normalize
-                # )
-
-                # state.calculator = categorizer
-                pass
             states.append(state)
     return StateCollection(states)
 
@@ -154,13 +131,36 @@ class StateCollection(object, metaclass=MetaStateCollection):
             ret[tls_id] = state_tls
         return ret
 
-    def calculate(self):
-        nested_states = \
-                [s.calculate() for tid in self.tls_ids
-                 for s in self._states if tid in s.tls_ids]
+    def categorize(self):
+        # TODO: provide format options: flatten, split,   
+        ret = {}
+        for tls_id in self.tls_ids:
+            states = [s for s in self._states if tls_id in s.tls_ids]
+            num_phases = self.tls_phases[tls_id]
+            state_tls = []
+            for nph in range(num_phases):
+                state_phases = []
+                for state in states:
+                    # Convers the case of multiple tls
+                    idx = state.tls_ids.index(tls_id)
+                    digital_state = state.categorize()
+                    state_phases.append(int(digital_state[idx][nph]))
+                state_tls.append(state_phases)
+            ret[tls_id] = state_tls
+        return ret
 
-        return [s for states in nested_states for s in states]
 
+    def flatten(self, values):
+        ret = {}
+        for tls_id in self.tls_ids:
+            tls_obs = values[tls_id]
+
+            flattened = \
+                [obs_value for phases in tls_obs for obs_value in phases]
+
+            ret[tls_id] = tuple(flattened)
+        return ret
+        
     def split(self):
         """Splits per state label"""
         labels = self.label.split('|')
@@ -178,13 +178,17 @@ class StateCollection(object, metaclass=MetaStateCollection):
 
 class CountState(object, metaclass=MetaState):
 
-    def __init__(self, tls_ids, tls_phases, tls_max_caps, normalize):
+    def __init__(self, tls_ids, tls_phases, tls_max_caps,
+                 normalize, categorizer=None):
         self._tls_ids = tls_ids
         self._tls_phases = tls_phases
         self._tls_caps = {tid: {p: c[1] for p, c in phase_caps.items()}
                           for tid, phase_caps in tls_max_caps.items()
                           if tid in tls_ids}
         self._normalize = False
+        if categorizer is not None:
+            self.categorizer = categorizer
+
         self.reset()
 
     @property
@@ -214,39 +218,10 @@ class CountState(object, metaclass=MetaState):
                     mem[time] = {}
                 mem[time][phase] = len(phase_veh_ids)
             self._memory[tls_id] = mem
-        # if time not in self._memory:
-        #     self._memory[time] = {}
-
-        # for phase, phase_veh_ids in veh_ids.items():
-        #     self._memory[time][phase] = len(phase_veh_ids)
 
     def reset(self):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
-
-    # TODO: create a generator on parent class
-    # @property
-    # def state(self):
-    #     # ret = 0
-    #     # if self._memory:
-    #     # TODO: Add flatten as option
-    #     # ret = {p: np.nanmean([v for v in self._memory[t][p]])
-    #     #        for t in self._memory
-    #     #        for p in range(self.tls_phases)}
-
-    #     ret = []
-    #     # ret = defaultdict(list)
-    #     for tls_id, nph in self.tls_phases.items():
-    #         mem = self._memory[tls_id]
-    #         tls_obs = []
-    #         for p in range(nph):
-    #             vals = [pv[p] for pv in mem.values()]
-    #             # TODO: solve the NAN dilemma
-    #             val = np.nanmean(vals)
-    #             val = 0.0 if np.isnan(val) else val
-    #             tls_obs.append(val)
-    #         ret.append(val)
-    #     #TODO: include format options
 
     # TODO: create a generator on parent class
     @property
@@ -266,15 +241,17 @@ class CountState(object, metaclass=MetaState):
 
         return ret
 
-    def calculate(self):
-        if hasattr(self, 'calculator'):
-            return self.calculator.calculate(self.state)
-        return self.state
+    def categorize(self):
+        state = self.state
+        if hasattr(self, 'categorizer'):
+            return self.categorizer.categorize(self.state)
 
 
 class SpeedState(object, metaclass=MetaState):
 
-    def __init__(self, tls_ids, tls_phases, tls_max_caps, normalize):
+    def __init__(self, tls_ids, tls_phases, tls_max_caps,
+                 normalize, categorizer=None):
+
         self._tls_ids = tls_ids
         self._tls_phases = tls_phases
         self._tls_caps = {tid: {p: c[0] for p, c in phase_caps.items()}
@@ -282,6 +259,10 @@ class SpeedState(object, metaclass=MetaState):
                           if tid in tls_ids}
 
         self._normalize = normalize
+        
+        if categorizer is not None:
+            self.categorizer = categorizer
+
         self.reset()
 
     @property
@@ -303,6 +284,24 @@ class SpeedState(object, metaclass=MetaState):
     def reset(self):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
+
+    def update(self, time, veh_ids, veh_speeds, tls_states):
+
+        # TODO: Add mem context manager
+        for tls_id in self.tls_ids:
+            mem = self._memory[tls_id]
+            for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+                if time not in mem:
+                    mem[time] = {}
+
+                # TODO: Empty matrix case nanmean vs 0
+                if any(phase_veh_speeds):
+                    mem[time][phase] = \
+                        round(np.nanmean([pvs for pvs in phase_veh_speeds]), 2)
+                else:
+                    mem[time][phase] = 0.0
+            self._memory[tls_id] = mem
+
     # TODO: create a generator on parent class
     @property
     def state(self):
@@ -323,41 +322,18 @@ class SpeedState(object, metaclass=MetaState):
 
         return ret
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
-
-        # TODO: Add mem context manager
-        for tls_id in self.tls_ids:
-            mem = self._memory[tls_id]
-            for phase, phase_veh_speeds in veh_speeds[tls_id].items():
-                if time not in mem:
-                    mem[time] = {}
-
-                # TODO: Empty matrix case nanmean vs 0
-                if any(phase_veh_speeds):
-                    mem[time][phase] = \
-                        round(np.nanmean([pvs for pvs in phase_veh_speeds]), 2)
-                else:
-                    mem[time][phase] = 0.0
-            self._memory[tls_id] = mem
-
-    def calculate(self):
-        if hasattr(self, 'calculator'):
-            return self.calculator.calculate(self.state)
+    def categorize(self):
+        state = self.state
+        if hasattr(self, 'categorizer'):
+            return self.categorizer.categorize(self.state)
         return self.state
 
-class StateCategorizer(object, metaclass=MetaStateCalculator):
+
+class StateCategorizer(object, metaclass=MetaStateCategorizer):
     # TODO: define upper bound
-    def __init__(self, bins, ubound, normalize):
+    def __init__(self, bins):
         self.bins = bins
-        self.ubound = ubound
-        self.normalize = normalize
 
-    def calculate(self):
-        return {p: self._calculate(v)
-                for p, v in self.state.items()}
-
-    def _calculate(self, value):
-        if normalize:
-            value = value / self.ubound
-        return np.digitalize(value, bins=self.bins)
+    def categorize(self, value):
+        return np.digitize(value, bins=self.bins)
 

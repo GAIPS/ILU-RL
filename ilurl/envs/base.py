@@ -11,7 +11,7 @@ import numpy as np
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
-from ilurl.core.state import build_states
+from ilurl.core.states import build_states
 from ilurl.core.rewards import build_rewards
 
 from ilurl.utils.serialize import Serializer
@@ -111,7 +111,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.agents = AgentsWrapper(mdp_params)
 
         # Reward function.
-        # self.reward_calculator = RewardCalculator(self.mdp_params)
         self.reward_calculator = build_rewards(mdp_params)
 
         self.actions_log = {}
@@ -280,13 +279,11 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         # Categorize.
         if self.mdp_params.discretize_state_space:
-            obs = self.mdp_params.categorize_space(obs)
+            obs1 = self.get_observation_space().categorize()
 
-        # Flatten.
-        flattened = \
-            self.mdp_params.flatten_space(obs)
+        obs2 = self.get_observation_space().flatten(obs1)
 
-        return flattened
+        return obs2
 
     def rl_actions(self, state):
         """
