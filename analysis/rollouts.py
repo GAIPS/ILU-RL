@@ -95,12 +95,11 @@ def main(batch_path=None):
         batch_path = Path(batch_path)
         max_rollouts = -1
 
-    suffix = '.eval.info.json'
     if batch_path.is_file():
         file_path = batch_path
         batch_path = batch_path.parent
     else:
-        pattern = f'*{suffix}'
+        pattern = 'rollouts_eval.json'
         file_path = list(batch_path.glob(pattern))[0]
 
     # Prepare output folder.
@@ -108,7 +107,6 @@ def main(batch_path=None):
     print('\tOutput folder: {0}'.format(output_folder_path.as_posix()))
     os.makedirs(output_folder_path, exist_ok=True)
 
-    filename = file_path.name.replace(suffix, '')
     rewards = []
     with file_path.open('r') as f:
         db = json.load(f)
@@ -163,6 +161,13 @@ def main(batch_path=None):
         rewards = [[sum(cycle.values()) for cycle in cycles]
                    for cycles in rewards]
 
+        rewards = np.array(rewards)
+
+        # Concatenate.
+        returns[int(rollout_id)].append(np.sum(rewards, axis=1))
+
+        """
+        # Discounted.
         # rewards.shape = (cycles, num_rollouts)
         rewards = np.array(rewards).T
 
@@ -171,7 +176,7 @@ def main(batch_path=None):
         gain = lfilter([1], discount, x=rewards, axis=0)
 
         # Concatenate.
-        returns[int(rollout_id)].append(gain[-1, :])
+        returns[int(rollout_id)].append(gain[-1, :]) """
 
     returns = OrderedDict({
         k: returns[k] for k in sorted(returns.keys())
@@ -212,8 +217,6 @@ def main(batch_path=None):
 
     title = \
         f'Rollout num cycles: {num_cycles}, R: {max_rollouts}, T: {num_trials}'
-    title = \
-        f'{filename}\n({title})'
     plt.title(title)
 
     plt.xlabel(f'Train cycle')
@@ -255,8 +258,6 @@ def main(batch_path=None):
 
     title = \
         f'Rollout num cycles: {num_cycles}, R: {max_rollouts}, T: {num_trials}'
-    title = \
-        f'{filename}\n({title})'
     plt.title(title)
 
     plt.xlabel(f'Train cycle')

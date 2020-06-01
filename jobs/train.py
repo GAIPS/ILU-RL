@@ -64,7 +64,7 @@ def train_batch():
         raise configparser.Error('Number of seeds in run.config `train_seeds`'
                         ' must match the number of runs (`num_runs`) argument.')
 
-    print('Arguments (jobs/train.py):')
+    print('\nArguments (jobs/train.py):')
     print('------------------------')
     print('Number of runs: {0}'.format(num_runs))
     print('Number of processors: {0}'.format(num_processors))
@@ -84,7 +84,7 @@ def train_batch():
     train_config.read(os.path.join(CONFIG_PATH, 'train.config'))
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
-    print(f'Experiment timestamp: {timestamp}')
+    print(f'Experiment timestamp: {timestamp}\n')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
 
@@ -134,6 +134,7 @@ def train_batch():
             src.replace(dst)
 
     sys.stdout.write(str(batchpath))
+
     return str(batchpath)
 
 @processable

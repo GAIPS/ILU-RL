@@ -200,11 +200,22 @@ class Parser(object):
                         gamma=float(dqn_args['gamma']),
                         buffer_size=int(dqn_args['buffer_size']),
                         batch_size=int(dqn_args['batch_size']),
+                        prioritized_replay=str2bool(dqn_args['prioritized_replay']),
+                        prioritized_replay_alpha=float(dqn_args['prioritized_replay_alpha']),
+                        prioritized_replay_beta0=float(dqn_args['prioritized_replay_beta0']),
+                        prioritized_replay_beta_iters=int(dqn_args['prioritized_replay_beta_iters']),
+                        prioritized_replay_eps=float(dqn_args['prioritized_replay_eps']),
                         exp_initial_p=float(dqn_args['exp_initial_p']),
                         exp_final_p=float(dqn_args['exp_final_p']),
                         exp_schedule_timesteps=int(dqn_args['exp_schedule_timesteps']),
                         learning_starts=int(dqn_args['learning_starts']),
                         target_net_update_interval=int(dqn_args['target_net_update_interval']),
+                        network_type=dqn_args['network_type'],
+                        head_network_mlp_hiddens=json.loads(dqn_args['head_network_mlp_hiddens']),
+                        head_network_dueling=str2bool(dqn_args['head_network_dueling']),
+                        head_network_layer_norm=str2bool(dqn_args['head_network_layer_norm']),
+                        mlp_hiddens=json.loads(dqn_args['mlp_hiddens']),
+                        mlp_layer_norm=str2bool(dqn_args['mlp_layer_norm']),
         )
 
         return dqn_params
