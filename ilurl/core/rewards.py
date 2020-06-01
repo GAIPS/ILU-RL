@@ -1,13 +1,30 @@
+import inspect
+from sys import modules
+
 import numpy as np
 from ilurl.core.meta import MetaReward
 
+
+def get_rewards():
+    this = modules[__name__]
+    names, objects = [], []
+    for name, obj in inspect.getmembers(this):
+
+        # Is a definition a class?
+        if inspect.isclass(obj):
+            # Is defined in this module
+            if inspect.getmodule(obj) == this:
+                names.append(name)
+                objects.append(obj)
+
+    return tuple(names), tuple(objects)
+        
+    
 
 def build_rewards(mdp_params):
     """Builder that defines all rewards
     """
     return MaxSpeedCountReward(mdp_params)
-    
-
 
 class MaxSpeedCountReward(object, metaclass=MetaReward):
 
@@ -15,7 +32,7 @@ class MaxSpeedCountReward(object, metaclass=MetaReward):
         """Creates a reference to the input state"""
         if not hasattr(mdp_params, 'target_velocity'):
             raise ValueError('MDPParams must define target_velocity')
-        else: 
+        else:
             self.target_velocity = mdp_params.target_velocity
 
     def calculate(self, state):
@@ -47,14 +64,13 @@ class MinDelayReward(object, metaclass=MetaReward):
         else:
             self._state = state
 
-
     # TODO: make state sumable
     def calculate(self):
         return -sum(self._state.to_list())
 
 
 # TODO: implement Rewards definition 2
-class MinDeltaDelay(object, metaclass=MetaReward):
+class MinDeltaDelayReward(object, metaclass=MetaReward):
     def __init__(self, state):
         """Creates a reference to the input state"""
         if state.__class__ != 'DeltaDelay':

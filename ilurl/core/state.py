@@ -5,12 +5,13 @@ import numpy as np
 
 
 from ilurl.loaders.parser import config_parser
+from ilurl.core.rewards import get_rewards
 from ilurl.core.meta import (MetaState, MetaStateCollection,
                               MetaStateCalculator)
 # import ilurl.core.rewards as rw
 
 # TODO: check if the module has one of the following names
-REWARDS = ['MaxSpeedCountReward', 'MinDelayReward', 'MinDeltaDelayReward']
+# REWARDS = ['MaxSpeedCountReward', 'MinDelayReward', 'MinDeltaDelayReward']
 
 
 def build_states(network, mdp_params):
@@ -20,16 +21,16 @@ def build_states(network, mdp_params):
     * For each tls assigns one or more state objects
     """
     # 1) Handle reward and agent parameters.
-    reward_type = mdp_params.reward.type
+    reward_type = mdp_params.reward
     agent_type, _ = config_parser.parse_agent_params()
 
-    # if reward_type not in REWARDS:
-    #     raise ValueError(f'{reward_type} not supported')
+    rewards, _ = get_rewards()
+    if mdp_params.reward not in rewards:
+        raise ValueError(f'{mdp_params.reward} not supported')
 
     # TODO: test agents
 
     # 2) Builds states.
-    # phase_params = mdp_params.phases_per_traffic_light
     states = []
     normalize_state_space = mdp_params.normalize_state_space
     tls_max_capacity = network.tls_max_capacity
@@ -37,7 +38,7 @@ def build_states(network, mdp_params):
     for tid, np in phases_per_tls.items():
 
         # 3) For each reward instantiate states.
-        if reward_type == 'target_velocity':
+        if reward_type == 'MaxSpeedCountReward':
             state_classes = (SpeedState, CountState)
 
         for state_class in state_classes:
