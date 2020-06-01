@@ -44,7 +44,7 @@ Reward = namedtuple('Reward', 'type additional_params')
 
 TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 
-DEMAND_TYPES = ('low', 'mid', 'high', 'variable') # TODO: Add switch demand type.
+DEMAND_TYPES = ('constant', 'variable') # TODO: Add switch demand type.
 
 
 class MDPParams:
@@ -340,16 +340,26 @@ class DQNParams:
 
     def __init__(
             self,
-            # TODO model
             lr=5e-4,
             gamma=0.8,
             buffer_size=20000,
             batch_size=64,
+            prioritized_replay=False,
+            prioritized_replay_alpha=0.6,
+            prioritized_replay_beta0=0.4,
+            prioritized_replay_beta_iters=40000,
+            prioritized_replay_eps=1e-6,
             exp_initial_p=1.0,
             exp_final_p=0.02,
             exp_schedule_timesteps=40000,
             learning_starts=2000,
             target_net_update_interval=2000,
+            network_type='mlp',
+            head_network_mlp_hiddens=[],
+            head_network_layer_norm=False,
+            head_network_dueling=False,
+            mlp_hiddens=[8],
+            mlp_layer_norm=False,
         ):
         """Instantiate Deep Q-network parameters.
 
@@ -367,6 +377,23 @@ class DQNParams:
         * batch_size: int
             the size of the batches sampled from the replay buffer.
 
+        * prioritized_replay: bool
+            Whether to use prioritized replay buffer.
+            REF: https://arxiv.org/pdf/1511.05952.pdf
+
+        * prioritized_replay_alpha: float
+            alpha parameter for prioritized replay buffer
+
+        * prioritized_replay_beta0: float
+            initial value of beta for prioritized replay buffer
+
+        * prioritized_replay_beta_iters: int
+            number of iterations over which beta will be annealed from initial value
+            to 1.0.
+
+        * prioritized_replay_eps: float
+            epsilon to add to the TD errors when updating priorities.
+
         * exp_initial_p: float
             initial exploration rate.
 
@@ -382,6 +409,25 @@ class DQNParams:
 
         * target_net_update_interval: int
             target network updates interval.
+
+        * network_type: str
+            See baselines.common.models for available models.
+
+        * head_network_mlp_hiddens: list
+            List with the hidden nodes (Q-network head).
+
+        * head_network_layer_norm: bool
+            Layer normalization (Q-network head).
+
+        * head_network_dueling: bool,
+            Dueling network.
+            REF: http://proceedings.mlr.press/v48/wangf16.pdf
+
+        * mlp_hiddens: list
+            List with the hidden nodes (Applies if network_type= 'mlp').
+
+        * mlp_layer_norm: bool
+            Layer normalization (Applies if network_type= 'mlp').
 
         """
         kwargs = locals()
@@ -449,7 +495,7 @@ class TrainParams:
             sumo_render=False,
             sumo_emission=False,
             tls_type='controlled',
-            demand_type='low',
+            demand_type='constant',
         ):
         """Instantiate train parameters.
 
@@ -493,10 +539,8 @@ class TrainParams:
             SUMO traffic light type: \'controlled\', \'actuated'\',
                     \'static\' or \'random\'.
 
-        * demand_type: ('low', 'mid', 'high' or 'variable')
-            low - low uniform vehicles demand.
-            mid - mid uniform vehicles demand.
-            high - high uniform vehicles demand.
+        * demand_type: ('constant' or 'variable')
+            constant - uniform vehicles demand.
             variable - realistic demand that varies throught 24 hours
                     (resembling realistic traffic variations, e.g. peak hours)
 
@@ -520,7 +564,7 @@ class TrainParams:
                     Got tls_type = {}.'''.format(tls_type))
 
         if demand_type not in DEMAND_TYPES:
-            raise ValueError('''The demand_type must be in ('low', 'mid', 'high' or 'variable').
+            raise ValueError('''The demand_type must be in ('constant' or 'variable').
                     Got demand_type = {}.'''.format(demand_type))
 
         for attr, value in kwargs.items():
@@ -575,7 +619,7 @@ class InFlows(flow_params.InFlows):
                 args = (eid, 'human')
 
                 # Uniform flows.
-                if demand_type in ('low', 'mid', 'high'):
+                if demand_type == 'constant':
 
                     insertion_probability = demand[str(num_lanes)]
 
