@@ -18,13 +18,21 @@ def get_rewards():
                 objects.append(obj)
 
     return tuple(names), tuple(objects)
-        
-    
+
 
 def build_rewards(mdp_params):
     """Builder that defines all rewards
     """
-    return MaxSpeedCountReward(mdp_params)
+    target = mdp_params.reward
+    rewnames, rewclasses = get_rewards()
+    if target not in rewnames:
+        raise ValueError(f'build_rewards: {target} not in {rewnames}')
+    
+    idx = rewnames.index(target)
+    reward_cls = rewclasses[idx]
+
+    return reward_cls(mdp_params)
+
 
 class MaxSpeedCountReward(object, metaclass=MetaReward):
 
@@ -56,17 +64,14 @@ class MaxSpeedCountReward(object, metaclass=MetaReward):
 
 # TODO: implement Rewards definition 1
 class MinDelayReward(object, metaclass=MetaReward):
-    def __init__(self, state):
-        """Creates a reference to the input state"""
-        if state.__class__ != 'Delay':
-            raise ValueError(
-                'MinDelay reward expects `Delay` state')
-        else:
-            self._state = state
+    def __init__(self, *args, **kwargs):
+        pass
 
-    # TODO: make state sumable
-    def calculate(self):
-        return -sum(self._state.to_list())
+    def calculate(self, states):
+        ret = {}
+        for tls_id, phase_obs in states.state.items():
+            ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+        return ret
 
 
 # TODO: implement Rewards definition 2

@@ -117,7 +117,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.states_log = {}
 
         # overrides GYM's observation space
-        self.observation_space = build_states(network, mdp_params)
+        self.observation_space = build_states(network, mdp_params, network.cycle_time)
 
         self._reset()
 
@@ -279,11 +279,11 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         # Categorize.
         if self.mdp_params.discretize_state_space:
-            obs1 = self.get_observation_space().categorize()
+            obs = self.get_observation_space().categorize()
 
-        obs2 = self.get_observation_space().flatten(obs1)
+        obs = self.get_observation_space().flatten(obs)
 
-        return obs2
+        return obs
 
     def rl_actions(self, state):
         """
@@ -464,3 +464,4 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
 
         self.observation_space.reset()
+
