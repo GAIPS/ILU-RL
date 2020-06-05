@@ -429,11 +429,11 @@ class DelayState(object, metaclass=MetaState):
             tls_obs = []
             for p in range(nph):
                 # TODO: should discount sim_step
-                uniq_veh_ids = set()
+                num_delays = 0
                 for time, phase_veh_ids in mem:
                     veh_ids = phase_veh_ids[p]
-                    uniq_veh_ids = uniq_veh_ids.union(veh_ids)
-                tls_obs.append(len(uniq_veh_ids))
+                    num_delays += len(veh_ids)
+                tls_obs.append(num_delays)
             ret.append(tls_obs)
         return ret
 
