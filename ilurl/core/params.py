@@ -57,6 +57,7 @@ class MDPParams:
                 discretize_state_space=True,    # TODO
                 normalize_state_space=True,     # TODO
                 category_counts=[8.56, 13.00],  # TODO
+                category_delays=[5, 30],
                 category_speeds=[2.28, 5.50],   # TODO
                 reward = 'MaxSpeedCountReward',
                 target_velocity=1.0,
@@ -85,7 +86,7 @@ class MDPParams:
         kwargs = locals()
 
         for attr, value in kwargs.items():
-            if attr not in ('self', 'states'):
+            if attr not in ('self'):
                 setattr(self, attr, value)
 
         # State space:

@@ -1,27 +1,86 @@
+"""Implementation of states as perceived by agent"""
+
+import inspect
+from sys import modules
+
 from operator import itemgetter
 from collections import defaultdict
 
 import numpy as np
 
 from ilurl.loaders.parser import config_parser
-from ilurl.core.rewards import get_rewards
-
 from ilurl.core.meta import (MetaState, MetaStateCollection,
                              MetaStateCategorizer)
+from ilurl.utils.aux import camelize
 
 
-def build_states(network, mdp_params, cycle_time):
+def get_states():
+    """States defined within module
+
+    * Uses module introspection to get the handle for classes
+    * Ignores StateCollection, StateCategorizer
+
+    
+    Returns:
+    -------
+    * names: tuple(<str>)
+        camelized names of state like classes defined within this module
+
+    * objects: tuple(<objects>)
+        classes wrt camelized names
+
+    Usage:
+    -----
+    > names, objs = get_states()
+    > names
+    > ('count', 'delay', 'speed')
+    > objs
+    > (<class 'ilurl.core.states.CountState'>,
+       <class 'ilurl.core.states.DelayState'>,
+       <class 'ilurl.core.states.SpeedState'>)
+    """
+    this = modules[__name__]
+    names, objects = [], []
+    for name, obj in inspect.getmembers(this):
+
+        # Is a definition a class?
+        if inspect.isclass(obj):
+            if 'StateCollection' != name and 'StateCategorizer' != name:
+                # Is defined in this module
+                if inspect.getmodule(obj) == this:
+                    name = camelize(name.replace('State', ''))
+                    names.append(name)
+                    objects.append(obj)
+
+    return tuple(names), tuple(objects)
+
+
+def build_states(network, mdp_params):
     """Builder that defines all states
 
     * States are built upon pre-defined rewards
     * For each tls assigns one or more state objects
-    """
-    # 1) Handle reward and agent parameters.
-    agent_type, _ = config_parser.parse_agent_params()
 
-    rewards, _ = get_rewards()
-    if mdp_params.reward not in rewards:
-        raise ValueError(f'{mdp_params.reward} not supported')
+    Params:
+    ------
+
+    * network: ilurl.networks.base.Network
+        network to be described by states
+
+    * mdp_params: ilurl.core.params.MDPParams
+        mdp specify: agent, states, rewards, gamma and learning params
+
+    Returns:
+    --------
+
+    * state_collection: ilurl.core.states.StateCollection
+        a wrapper for multiple states
+    """
+    # 1) Handle state, reward and agent parameters.
+    states_names, states_classes = get_states()
+    no_state_set = set(mdp_params.states) - set(states_names)
+    if len(no_state_set) > 0:
+        raise ValueError(f'{no_state_set} is not implemented')
 
     # 2) Builds states.
     states = []
@@ -30,20 +89,15 @@ def build_states(network, mdp_params, cycle_time):
     phases_per_tls = network.phases_per_tls
     for tid, np in phases_per_tls.items():
 
-        # TODO: Should states be bound directly to rewards
-        # 3) For each reward instantiate states.
-        if mdp_params.reward == 'MaxSpeedCountReward':
-            state_classes = (SpeedState, CountState)
-        elif mdp_params.reward == 'MinDelayReward':
-            state_classes = (DelayState,)
+        for state_name in mdp_params.states:
+            state_cls = states_classes[states_names.index(state_name)]
 
-        for state_cls in state_classes:
-            # 4) Define input parameters
+            # 3) Define input parameters.
             tls_ids = [tid]
             tls_phases = {tid: np}
             max_capacities = {tid: tls_max_capacity[tid]}
 
-            # 5) Q-Learning agent requires function approximation
+            # 4) Q-Learning agent requires function approximation
             # Some objects require discretization
             categorizer = None
             if mdp_params.discretize_state_space:
@@ -52,11 +106,11 @@ def build_states(network, mdp_params, cycle_time):
                 elif state_cls == CountState:
                     categorizer = StateCategorizer(mdp_params.category_counts)
                 elif state_cls == DelayState:
-                    categorizer = StateCategorizer(mdp_params.category_counts)
+                    categorizer = StateCategorizer(mdp_params.category_delays)
                 else:
-                    raise ValueError('Only speed and count states handled')
+                    raise ValueError(f'No discretization bins for {state_cls}')
 
-            # 6) Function specific parameters
+            # 5) Function specific parameters
             velocity_threshold = None
             if mdp_params.reward == 'MinDelayReward':
                 velocity_threshold = mdp_params.velocity_threshold
@@ -64,8 +118,7 @@ def build_states(network, mdp_params, cycle_time):
             state = state_cls(tls_ids, tls_phases,
                               max_capacities, normalize_state_space,
                               categorizer=categorizer,
-                              velocity_threshold=velocity_threshold,
-                              cycle_time=cycle_time)
+                              velocity_threshold=velocity_threshold)
 
             states.append(state)
     return StateCollection(states)
@@ -299,7 +352,6 @@ class SpeedState(object, metaclass=MetaState):
 
 
     def update(self, time, veh_ids, veh_speeds, tls_states):
-
         # TODO: Add mem context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
@@ -346,7 +398,7 @@ class DelayState(object, metaclass=MetaState):
 
     def __init__(self, tls_ids, tls_phases, tls_max_caps,
                  normalize, categorizer=None,
-                 velocity_threshold=None, cycle_time=None, **kwargs):
+                 velocity_threshold=None, **kwargs):
 
         self._tls_ids = tls_ids
         self._tls_phases = tls_phases
@@ -362,11 +414,6 @@ class DelayState(object, metaclass=MetaState):
             raise ValueError('DelayState:velocity_threshold must be provided')
         else:
             self.velocity_threshold = velocity_threshold
-
-        if cycle_time is None:
-            raise ValueError('DelayState:cycle_time must be provided')
-        else:
-            self.cycle_time = cycle_time
 
         self.reset()
 

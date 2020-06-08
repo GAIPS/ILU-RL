@@ -117,7 +117,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.states_log = {}
 
         # overrides GYM's observation space
-        self.observation_space = build_states(network, mdp_params, network.cycle_time)
+        self.observation_space = build_states(network, mdp_params)
 
         self._reset()
 

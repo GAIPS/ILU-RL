@@ -1,3 +1,9 @@
+"""Implementation of rewards to be used on state space
+    
+    TODO: Move from strategy pattern to pure-functional
+        implementation
+"""
+
 import inspect
 from sys import modules
 
@@ -6,6 +12,28 @@ from ilurl.core.meta import MetaReward
 
 
 def get_rewards():
+    """Rewards defined within the module
+
+    * Uses module introspection to get the
+      handle for classes.
+
+    Returns:
+    -------
+    * names: tuple(<str>)
+        Names for classes that implement reward computation
+
+    * objects: tuple(<objects>)
+        classes wrt camelized names
+
+    Usage:
+    -----
+    > names, objs = get_rewards()
+    > names
+    > ('MaxSpeedCountReward', 'MinDelayReward')
+    > objs
+    > (<class 'ilurl.core.rewards.MaxSpeedCountReward'>,
+       <class 'ilurl.core.rewards.MinDelayReward'>)
+    """
     this = modules[__name__]
     names, objects = [], []
     for name, obj in inspect.getmembers(this):
@@ -22,12 +50,23 @@ def get_rewards():
 
 def build_rewards(mdp_params):
     """Builder that defines all rewards
+
+    Params:
+    ------
+    * mdp_params: ilurl.core.params.MDPParams
+        mdp specify: agent, states, rewards, gamma and learning params
+
+    Returns:
+    --------
+    * reward: ilurl.core.rewards.XXXReward
+        an instance of reward object
+
     """
     target = mdp_params.reward
     rewnames, rewclasses = get_rewards()
     if target not in rewnames:
         raise ValueError(f'build_rewards: {target} not in {rewnames}')
-    
+
     idx = rewnames.index(target)
     reward_cls = rewclasses[idx]
 
@@ -62,7 +101,7 @@ class MaxSpeedCountReward(object, metaclass=MetaReward):
             ret[k] = reward
         return ret
 
-# TODO: implement Rewards definition 1
+
 class MinDelayReward(object, metaclass=MetaReward):
     def __init__(self, *args, **kwargs):
         pass
