@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from ilurl.utils.meta import MetaAgent
+from ilurl.core.meta import MetaAgent
 
 import tensorflow as tf
 

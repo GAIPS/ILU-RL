@@ -116,14 +116,14 @@ class Parser(object):
         train_config.read(str(self.config_path))
 
         mdp_args = train_config['mdp_args']
-
         mdp_params = MDPParams(
                         states=literal_eval(mdp_args['states']),
                         category_counts=json.loads(mdp_args['category_counts']),
                         category_speeds=json.loads(mdp_args['category_speeds']),
                         normalize_state_space=str2bool(mdp_args['normalize_state_space']),
                         discretize_state_space=str2bool(mdp_args['discretize_state_space']),
-                        reward=literal_eval(mdp_args['reward'])
+                        reward=literal_eval(mdp_args['reward']),
+                        target_velocity=literal_eval(mdp_args['target_velocity'])
         )
 
         return mdp_params

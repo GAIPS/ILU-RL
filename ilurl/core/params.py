@@ -7,7 +7,7 @@ import numpy as np
 import flow.core.params as flow_params
 
 from collections import namedtuple
-from ilurl.core.reward import REWARD_TYPES
+from ilurl.core.rewards import get_rewards 
 from ilurl.core.ql.choice import CHOICE_TYPES
 
 from ilurl.dumpers.inflows import inflows_dump
@@ -58,11 +58,13 @@ class MDPParams:
                 normalize_state_space=True,     # TODO
                 category_counts=[8.56, 13.00],  # TODO
                 category_speeds=[2.28, 5.50],   # TODO
-                reward={'type': 'target_velocity',
-                        'additional_params': {
-                            'target_velocity': 1.0
-                        }
-                }
+                # reward={'type': 'target_velocity',
+                #         'additional_params': {
+                #             'target_velocity': 1.0
+                #         }
+                # },
+                reward = 'MaxSpeedCountReward',
+                target_velocity=1.0
             ):
         """Instantiate MDP params.
 
@@ -87,7 +89,7 @@ class MDPParams:
         kwargs = locals()
 
         for attr, value in kwargs.items():
-            if attr not in ('self', 'states', 'rewards'):
+            if attr not in ('self', 'states'):
                 setattr(self, attr, value)
 
         # State space:
@@ -101,13 +103,15 @@ class MDPParams:
             self.states_labels = states_tuple
 
         # Reward function.
-        reward = kwargs['reward']
-        if reward['type'] not in REWARD_TYPES:
-            raise ValueError(f'''
-                Reward type must be in {REWARD_TYPES}.
-                Got {reward['type']} type''')
-        else:
-            self.set_reward(reward['type'], reward['additional_params'])
+        # reward = kwargs['reward']
+
+        # reward_types, _ = get_rewards()
+        # if reward['type'] not in reward_types:
+        #     raise ValueError(f'''
+        #         Reward type must be in {reward_types}.
+        #         Got {reward['type']} type''')
+        # else:
+        #     self.set_reward(reward['type'], reward['additional_params'])
 
         if self.normalize_state_space:
             if max(self.category_speeds) > 1:

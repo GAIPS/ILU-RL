@@ -199,7 +199,7 @@ class Experiment:
 
             if self._is_save_step():
 
-                observation_spaces.append(self.env.get_observation_space())
+                observation_spaces.append(self.env.get_observation_space().state)
 
                 rewards.append(reward)
 

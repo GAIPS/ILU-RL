@@ -3,9 +3,7 @@
 
     Extends the flow's green wave environment
 '''
-__author__ = "Guilherme Varela"
 __date__ = "2019-12-10"
-import pdb
 import os
 import json
 import numpy as np
@@ -13,11 +11,11 @@ import numpy as np
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
-from ilurl.core.reward import RewardCalculator
+from ilurl.core.state import build_states
+from ilurl.core.rewards import build_rewards
+
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
-
-from ilurl.loaders.parser import config_parser
 
 from ilurl.core.agents_wrapper import AgentsWrapper
 
@@ -26,6 +24,7 @@ ILURL_HOME = os.environ['ILURL_HOME']
 NETWORKS_PATH = \
     f'{ILURL_HOME}/data/networks/'
 
+NEW_STATES = None
 
 class TrafficLightEnv(AccelEnv, Serializer):
     """
@@ -76,6 +75,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
     def __init__(self,
                  env_params,
                  sim_params,
+                 mdp_params,
                  network,
                  simulator='traci'):
 
@@ -84,8 +84,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
                                               network,
                                               simulator=simulator)
 
-        # Load MDP parameters from file (train.config[mdg_args]).
-        mdp_params = config_parser.parse_mdp_params()
 
         # TODO: Allow for mixed networks with actuated,
         # controlled and static traffic light configurations.
@@ -106,20 +104,35 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Problem formulation params.
         self.mdp_params = mdp_params
 
+
         # Object that handles RL agents logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
         self.agents = AgentsWrapper(mdp_params)
 
         # Reward function.
-        self.reward_calculator = RewardCalculator(self.mdp_params)
+        # self.reward_calculator = RewardCalculator(self.mdp_params)
+        self.reward_calculator = build_rewards(mdp_params)
 
         self.actions_log = {}
         self.states_log = {}
 
-        # if self.tls_type != "actuated":
+        # overrides GYM's observation space
+        self.observation_space = build_states(network, mdp_params)
+
         self._reset()
 
+
+    # overrides GYM's observation space
+    @property
+    def observation_space(self):
+        return self._observation_space
+
+    @observation_space.setter
+    def observation_space(self, observation_space):
+        self._observation_space = observation_space
+
+    # TODO: create a delegate class
     @property
     def stop(self):
         return self.agents.stop
@@ -128,22 +141,23 @@ class TrafficLightEnv(AccelEnv, Serializer):
     def stop(self, stop):
         self.agents.stop = stop
 
-    # TODO: generalize delegation
-    @delegate_property
+    # TODO: restrict delegate property to an
+    # instance of class
+    @lazy_property
     def tls_ids(self):
-        pass
+        return self.network.tls_ids
 
-    @delegate_property
+    @lazy_property
     def tls_max_capacity(self):
-        pass
+        return self.network.tls_ids
 
-    @delegate_property
+    @lazy_property
     def tls_phases(self):
-        pass
+        return self.network.tls_phases
 
-    @delegate_property
+    @lazy_property
     def tls_states(self):
-        pass
+        return self.network.tls_states
 
     @lazy_property
     def tls_durations(self):
@@ -191,7 +205,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
             for phase, data in self.tls_phases[node_id].items():
                 self.incoming[node_id][phase][self.duration] = \
                                     observe(data['components'])
-
     def get_observation_space(self):
         """
         Consolidates the observation space.
@@ -228,48 +241,30 @@ class TrafficLightEnv(AccelEnv, Serializer):
                 if self.step_counter > 1 else 0.0, 2)
         prev = delay(self.duration)
 
-        if (prev not in self.memo_observation_space) or self.step_counter <= 2:
-            observations = {}
-            normalize = self.mdp_params.normalize_state_space
-            for nid in self.tls_ids:
-                tls_data = []
-                for phase in self.tls_phases[nid]:
-                    max_speed, max_count = self.tls_max_capacity[nid][phase]
-                    incoming = self.incoming[nid][phase]
-                    values = []
-                    for label in self.mdp_params.states_labels:
+        veh_ids = {}
+        veh_speeds = {}
+        for nid in self.tls_ids:
 
-                        if label in ('count',):
-                            counts = self.memo_counts[nid][phase]
-                            count = 0
-                            count += len(incoming[prev][1]) if prev in incoming else 0.0
-                            counts[prev] = count
-                            value = np.mean(list(counts.values()))
+            
+            tls_veh_ids = {}
+            tls_veh_speeds = {}
+            for phase, values in self.incoming[nid].items():
 
-                        elif label in ('speed',):
-                            counts = self.memo_counts[nid][phase].copy()
-                            count = 0
-                            count += len(incoming[prev][1]) if prev in incoming else 0.0
+                if prev in values and any(values[prev]):
+                    tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
+                else:
+                    tls_veh_ids[phase] = []
+                    tls_veh_speeds[phase] = []
 
-                            mem = self.memo_speeds[nid][phase]
-                            speeds = []
-                            speeds += incoming[prev][1] \
-                                     if prev in incoming else []
-                            mem[prev] = \
-                                0.0 if not any(speeds) else round(np.mean(speeds), 2)
-                            value = np.mean(list(mem.values()))
+            veh_ids[nid] = tls_veh_ids
+            veh_speeds[nid] = tls_veh_speeds
 
-                            if normalize:
-                                value = value / max_speed
-                        else:
-                            raise ValueError(f'`{label}` not implemented')
+           
+        self.observation_space.update(
+            prev, veh_ids, veh_speeds, None
+        )
 
-                        values.append(round(value, 2))
-                    tls_data.append(values)
-                observations[nid] = tls_data
-
-            self.memo_observation_space[prev] = observations
-        return self.memo_observation_space[prev]
+        return self.observation_space
 
     def get_state(self):
         """
@@ -281,7 +276,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        obs = self.get_observation_space()
+        obs = self.get_observation_space().state
 
         # Categorize.
         if self.mdp_params.discretize_state_space:
@@ -389,15 +384,12 @@ class TrafficLightEnv(AccelEnv, Serializer):
                     prev_action = self.actions_log[cycle_number - 1]
                     self.agents.update(prev_state, prev_action, reward, state)
 
-            self.memo_rewards = {}
-            self.memo_observation_space = {}
-
             # Update traffic lights' control signals.
             self._apply_cl_actions(self.cl_actions(static=self.static))
         else:
             if self.duration == 0:
-                self.memo_rewards = {}
-                self.memo_observation_space = {}
+                self.observation_space.reset()
+                
 
         # Update timer.
         self.duration = \
@@ -447,12 +439,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         -------
         reward : float or list of float
         """
-        if self.duration not in self.memo_rewards:
-            reward = self.reward_calculator.calculate(
-                self.get_observation_space()
-            )
-            self.memo_rewards[self.duration] = reward
-        return self.memo_rewards[self.duration]
+        return self.reward_calculator.calculate(self.get_observation_space())
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
@@ -466,11 +453,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         self.incoming = {}
 
-        self.memo_speeds = {}
-        self.memo_counts = {}
-        self.memo_flows = {}
-        self.memo_queue = {}
-
         # stores the state index
         # used for opt iterations that did not us this variable
         self.state_indicator = {}
@@ -483,8 +465,5 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
             self.incoming[node_id] = {p: {} for p in range(num_phases)}
 
-            self.memo_speeds[node_id] = {p: {} for p in range(num_phases)}
-            self.memo_counts[node_id] = {p: {} for p in range(num_phases)}
 
-        self.memo_rewards = {}
-        self.memo_observation_space = {}
+        self.observation_space.reset()
