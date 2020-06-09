@@ -19,6 +19,8 @@ from shutil import copyfile
 
 import numpy as np
 
+import tensorflow as tf
+
 from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
@@ -28,7 +30,6 @@ from ilurl.networks.base import Network
 
 from ilurl.loaders.parser import config_parser
 
-from baselines.common import set_global_seeds
 
 ILURL_PATH = Path(os.environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
@@ -73,7 +74,7 @@ def main(train_config_path=None):
         random.seed(train_args.experiment_seed)
         np.random.seed(train_args.experiment_seed)
         sumo_args['seed'] = train_args.experiment_seed
-        set_global_seeds(train_args.experiment_seed)
+        tf.random.set_seed(train_args.experiment_seed)
 
     # Setup emission path.
     if train_args.sumo_emission:
@@ -90,7 +91,6 @@ def main(train_config_path=None):
     }
     env_params = EnvParams(**env_args)
 
-
     # Load MDP parameters from file (train.config[mdg_args]).
     mdp_params = config_parser.parse_mdp_params()
 
@@ -99,7 +99,8 @@ def main(train_config_path=None):
         sim_params=sim_params,
         mdp_params=mdp_params,
         network=network,
-        )
+        exp_path=experiment_path.as_posix(),
+    )
 
     # Override possible inconsistent params.
     if train_args.tls_type not in ('controlled',):

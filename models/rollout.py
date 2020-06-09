@@ -7,6 +7,7 @@
 
 """
 import os
+import sys
 import json
 import argparse
 import pickle
@@ -15,6 +16,8 @@ from pathlib import Path
 import configargparse
 import numpy as np
 import random
+
+import tensorflow as tf
 
 from flow.core.params import SumoParams, EnvParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
@@ -25,7 +28,6 @@ from ilurl.networks.base import Network
 
 from ilurl.loaders.parser import config_parser
 
-from baselines.common import set_global_seeds
 
 ILURL_PATH = Path(os.environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
@@ -66,8 +68,10 @@ def get_arguments(config_file_path):
                         help='''Sets seed value for both rl agent and Sumo.
                                `None` for rl agent defaults to RandomState() 
                                `None` for Sumo defaults to a fixed but arbitrary seed''')
+    parsed = parser.parse_args()
+    sys.argv = [sys.argv[0]]
 
-    return parser.parse_args()
+    return parsed
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -132,7 +136,7 @@ def main(config_file_path=None):
         random.seed(args.seed)
         np.random.seed(args.seed)
         sumo_args['seed'] = args.seed
-        set_global_seeds(args.seed)
+        tf.random.set_seed(train_args.experiment_seed)
 
     # Setup emission path.
     if args.sumo_emission:
@@ -149,7 +153,6 @@ def main(config_file_path=None):
     }
     env_params = EnvParams(**env_args)
 
-
     # Load MDP parameters from file (train.config[mdg_args]).
     mdp_params = config_parser.parse_mdp_params()
 
@@ -158,7 +161,8 @@ def main(config_file_path=None):
         sim_params=sim_params,
         mdp_params=mdp_params,
         network=network,
-        )
+        exp_path=experiment_path.as_posix(),
+    )
 
     # Setup checkpoints.
     checkpoints_dir_path = Path(args.run_path) / 'checkpoints'

@@ -8,8 +8,6 @@ from ilurl.loaders.parser import config_parser
 from ilurl.core.ql.agent import QL
 from ilurl.core.dqn.agent import DQN
 
-import baselines.common.tf_util as U
-
 AGENT_TYPES = ('QL', 'DQN')
 
 class AgentsWrapper(object):
@@ -18,7 +16,8 @@ class AgentsWrapper(object):
     """
 
     def __init__(self, 
-                mdp_params):
+                mdp_params,
+                exp_path):
 
         # Load agent parameters from config file (train.config).
         agent_type, agent_params = config_parser.parse_agent_params()
@@ -27,8 +26,6 @@ class AgentsWrapper(object):
         agents = {}
 
         num_variables = len(mdp_params.states_labels)
-
-        U.reset_session()
 
         # TODO: Afterwards this needs to come from a config file 
         # telling what each agent is controlling.
@@ -49,9 +46,10 @@ class AgentsWrapper(object):
 
             # Agents factory.
             if agent_type == 'QL':
-                agents[tid] = QL(agent_params_, name=tid)
+                #agents[tid] = QL(agent_params_, name=tid)
+                pass
             elif agent_type == 'DQN':
-                agents[tid] = DQN(agent_params_, name=tid)
+                agents[tid] = DQN(agent_params_, exp_path, name=tid)
             else:
                 raise ValueError(f'''
                 Agent type must be in {AGENT_TYPES}.

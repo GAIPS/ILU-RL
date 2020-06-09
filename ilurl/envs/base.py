@@ -77,6 +77,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
                  sim_params,
                  mdp_params,
                  network,
+                 exp_path,
                  simulator='traci'):
 
         super(TrafficLightEnv, self).__init__(env_params,
@@ -104,11 +105,10 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Problem formulation params.
         self.mdp_params = mdp_params
 
-
         # Object that handles RL agents logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
-        self.agents = AgentsWrapper(mdp_params)
+        self.agents = AgentsWrapper(mdp_params, exp_path)
 
         # Reward function.
         self.reward = build_rewards(mdp_params)
@@ -120,7 +120,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.observation_space = build_states(network, mdp_params)
 
         self._reset()
-
 
     # overrides GYM's observation space
     @property

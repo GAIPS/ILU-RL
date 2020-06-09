@@ -7,7 +7,7 @@
         2) analysis/train_plots.py: create training plots.
 
         3) jobs/rollouts.py: execute and evaluate different
-                             Q-tables using rollouts.
+                             checkpoints using rollouts.
 
         4) analysis/rollouts.py: create rollouts plots.
 
@@ -33,6 +33,11 @@ from analysis.test_plots import main as test_plots
 
 from ilurl.loaders.xml2csv import main as xml2csv
 
+_ERROR_MESSAGE_1 = '''ERROR: Caught an exception while
+                    executing analysis/rollouts_plots.py script.''''
+_ERROR_MESSAGE_2 = '''ERROR: Caught an exception while 
+                    executing analysis/test_plots.py script.'''
+
 if __name__ == '__main__':
 
     # 1) Train agent(s).
@@ -42,10 +47,14 @@ if __name__ == '__main__':
     train_plots(experiment_root_path)
 
     # 3) Execute rollouts.
-    # eval_path = rollouts(experiment_dir=experiment_root_path)
+    eval_path = rollouts(experiment_dir=experiment_root_path)
 
     # 4) Create rollouts plots.
-    # rollouts_plots(eval_path)
+    try:
+        rollouts_plots(eval_path)
+    except Exception:
+        print(_ERROR_MESSAGE_1)
+        pass
 
     # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, experiment_dir=experiment_root_path)
@@ -61,6 +70,10 @@ if __name__ == '__main__':
             raise
 
     # 8) Create plots with metrics plots for final agent.
-    test_plots(experiment_root_path)
+    try:
+        test_plots(experiment_root_path)
+    except Exception:
+        print(_ERROR_MESSAGE_2)
+        pass
 
     print('Experiment folder: {0}'.format(experiment_root_path))

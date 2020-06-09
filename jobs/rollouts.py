@@ -123,13 +123,14 @@ def rollout_batch(test=False, experiment_dir=None):
     else:
         batch_path = Path(experiment_dir)
 
-    chkpt_pattern = '*.chkpt'
+    chkpt_pattern = 'checkpoints'
 
     # Get names of train runs.
-    experiment_names = list({p.parents[1] for p in batch_path.rglob(chkpt_pattern)})
+    experiment_names = list({p.parents[0] for p in batch_path.rglob(chkpt_pattern)})
 
     # Get checkpoints numbers.
-    chkpts_nums = list({int(p.stem.split('-')[1]) for p in batch_path.rglob(chkpt_pattern)})
+    chkpts_dirs = [p for p in batch_path.rglob(chkpt_pattern)]
+    chkpts_nums = [int(n.name) for n in chkpts_dirs[0].iterdir()]
     if len(chkpts_nums) == 0:
         raise ValueError('No checkpoints found.')
 
@@ -144,6 +145,8 @@ def rollout_batch(test=False, experiment_dir=None):
                 ' number {0}'.format(chkpts_nums[0]))
     else:
         rollouts_paths = list(itertools.product(experiment_names, chkpts_nums))
+
+    # print(rollouts_paths)
 
     run_config = configparser.ConfigParser()
     run_config.read(str(CONFIG_PATH / 'run.config'))

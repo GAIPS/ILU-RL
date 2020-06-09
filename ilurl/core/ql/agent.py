@@ -9,9 +9,9 @@ from ilurl.core.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.core.ql.define import dpq_tls
 from ilurl.core.ql.update import dpq_update
 
-from baselines.deepq.replay_buffer import ReplayBuffer
-from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
-from baselines.common.schedules import PowerSchedule
+# from baselines.deepq.replay_buffer import ReplayBuffer
+# from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
+# from baselines.common.schedules import PowerSchedule
 
 class QL(object, metaclass=MetaAgent):
     """
@@ -83,6 +83,7 @@ class QL(object, metaclass=MetaAgent):
         # Replay buffer.
         self.replay_buffer = ql_params.replay_buffer
         if self.replay_buffer:
+            pass
             self.batch_size = ql_params.replay_buffer_batch_size
             self.warm_up = ql_params.replay_buffer_warm_up
 

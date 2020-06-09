@@ -2,24 +2,13 @@ import os
 import numpy as np
 
 from ilurl.core.meta import MetaAgent
+from ilurl.utils.default_logger import make_default_logger
 
-import tensorflow as tf
-
-# Suppress tf warnings.
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
-from gym.spaces.box import Box
-
-import baselines.common.tf_util as U
-
-from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
-from baselines import deepq
-from baselines.common.tf_util import load_variables, save_variables
-from baselines.deepq.deepq import ActWrapper
-from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
-from baselines.deepq.utils import ObservationInput
-from baselines.deepq.models import build_q_func
-from baselines.common.schedules import LinearSchedule
+import dm_env
+import acme
+from acme import specs
+from ilurl.core.dqn import acme_agent
+from acme import networks
 
 
 class DQN(object, metaclass=MetaAgent):
@@ -27,7 +16,7 @@ class DQN(object, metaclass=MetaAgent):
         DQN agent.
     """
 
-    def __init__(self, params, name):
+    def __init__(self, params, exp_path, name):
         """Instantiate DQN agent.
 
         PARAMETERS
@@ -43,75 +32,41 @@ class DQN(object, metaclass=MetaAgent):
         # Whether learning stopped.
         self.stop = False
 
-        # Parameters.
-        self.model = build_q_func(network=params.network_type,
-                                  hiddens=params.head_network_mlp_hiddens,
-                                  dueling=params.head_network_dueling,
-                                  layer_norm=params.head_network_layer_norm,
-                                  mlp_hiddens=params.mlp_hiddens,
-                                  mlp_layer_norm=params.mlp_layer_norm)
-        self.lr = params.lr
-        self.gamma = params.gamma
-        self.exp_initial_p = params.exp_initial_p
-        self.exp_final_p = params.exp_final_p
-        self.exp_schedule_timesteps = params.exp_schedule_timesteps
-        self.learning_starts = params.learning_starts
-        self.target_net_update_interval = params.target_net_update_interval
-        self.buffer_size = params.buffer_size
-        self.batch_size = params.batch_size
-        self.prioritized_replay = params.prioritized_replay
-        self.prioritized_replay_alpha = params.prioritized_replay_alpha
-        self.prioritized_replay_beta0 = params.prioritized_replay_beta0
-        self.prioritized_replay_beta_iters = params.prioritized_replay_beta_iters
-        self.prioritized_replay_eps = params.prioritized_replay_eps
-
-        # Observation space.
-        self.obs_space = Box(low=np.array([0.0]*params.states.rank),
-                             high=np.array([np.inf]*params.states.rank),
-                             dtype=np.float64)
-        def make_obs_ph(name):
-            return ObservationInput(self.obs_space, name=name)
-
-        # Action space.
-        self.num_actions = params.actions.depth # TODO
-
-        self.action, self.train, self.update_target, self.debug = deepq.build_train(
-            make_obs_ph=make_obs_ph,
-            q_func=self.model,
-            num_actions=self.num_actions,
-            optimizer=tf.train.AdamOptimizer(learning_rate=self.lr),
-            gamma=self.gamma,
-            scope=self.name
+        observation_spec = specs.Array(shape=(params.states.rank,),
+                                  dtype=np.float32,
+                                  name='obs'
         )
+        action_spec = specs.DiscreteArray(dtype=int,
+                                          num_values=params.actions.depth,
+                                          name="action"
+        )
+        reward_spec = specs.Array(shape=(),
+                                  dtype=float,
+                                  name='reward'
+        ) # Default.
+        discount_spec = specs.BoundedArray(shape=(),
+                                           dtype=float,
+                                           minimum=0.,
+                                           maximum=1.,
+                                           name='discount'
+        ) # Default.
+ 
+        env_spec = specs.EnvironmentSpec(observations=observation_spec,
+                                          actions=action_spec,
+                                          rewards=reward_spec,
+                                          discounts=discount_spec)
 
-        act_params = {
-            'make_obs_ph': make_obs_ph,
-            'q_func': self.model,
-            'num_actions': self.num_actions,
-        }
-        self.action = ActWrapper(self.action, act_params)
+        # Logger.
+        dir_path = f'{exp_path}/logs/{self.name}'
+        self._logger = make_default_logger(directory=dir_path, label=self.name)
 
-        if self.prioritized_replay:
-            self.replay_buffer = PrioritizedReplayBuffer(self.buffer_size, alpha=self.prioritized_replay_alpha)
-            self.beta_schedule = LinearSchedule(self.prioritized_replay_beta_iters,
-                                        initial_p=self.prioritized_replay_beta0,
-                                        final_p=1.0)
-        else:
-            self.replay_buffer = ReplayBuffer(self.buffer_size)
+        agent_logger = make_default_logger(directory=dir_path, label=f'{self.name}-learning')
+        network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
+                                                hidden_sizes=[8])
+        self.agent = acme_agent.DQN(env_spec, network, logger=agent_logger)
 
-        self.exploration = LinearSchedule(schedule_timesteps=self.exp_schedule_timesteps,
-                                          initial_p=self.exp_initial_p,
-                                          final_p=self.exp_final_p)
-
-        # Initialize the parameters and copy them to the target network.
-        U.initialize()
-        self.update_target()
-
-        # Tensorboard logger.
-        self.logger = None
-
-        # Updates counter.
-        self.updates_counter = 0
+        # Observations counter.
+        self._obs_counter = 0
 
     @property
     def stop(self):
@@ -132,25 +87,29 @@ class DQN(object, metaclass=MetaAgent):
             state representation.
 
         """
-        s = np.array(s)
+        s = np.array(s, dtype=np.float32)
 
+        # Make first observation.
+        if self._obs_counter == 0:
+            t_1 = dm_env.restart(s)
+            self.agent.observe_first(t_1)
+
+        # Select action.
         if self.stop:
-            action, _ = self.action(s[None], stochastic=False)
+            action = self.agent.deterministic_action(s)
         else:
-            action, _ = self.action(s[None],
-                              update_eps=self.exploration.value(self.updates_counter))
+            action = self.agent.select_action(s)
 
-        return action[0]
+        self._obs_counter += 1
 
-    def update(self, s, a, r, s1):
+        return action
+
+    def update(self, _, a, r, s1):
         """
         Performs a learning update step.
 
         Parameters:
         ----------
-        * s: tuple 
-            state representation.
-
         * a: int
             action.
 
@@ -163,53 +122,20 @@ class DQN(object, metaclass=MetaAgent):
         """
         if not self.stop:
 
-            s = np.array(s)
-            s1 = np.array(s1)
+            s1 = np.array(s1, dtype=np.float32)
+            timestep = dm_env.transition(reward=r, observation=s1)
 
-            self.replay_buffer.add(s, a, r, s1, 0.0)
+            self.agent.observe(a, timestep)
+            self.agent.update()
 
-            if self.updates_counter > self.learning_starts:
-
-                if self.prioritized_replay:
-                    beta_value = self.beta_schedule.value(self.updates_counter)
-                    exps = self.replay_buffer.sample(self.batch_size, beta=beta_value)
-                    (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = exps
-
-                else:
-                    exps = self.replay_buffer.sample(self.batch_size)
-                    (obses_t, actions, rewards, obses_tp1, dones) = exps
-                    weights = np.ones_like(rewards)
-
-                td_errors = self.train(obses_t,
-                        actions,
-                        rewards,
-                        obses_tp1,
-                        dones,
-                        weights)
-
-                if self.prioritized_replay:
-                    new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
-                    self.replay_buffer.update_priorities(batch_idxes, new_priorities)
-
-                if self.logger:
-                    self.logger.logkv("td_error", np.mean(td_errors))
-
-            # Update target network.
-            if self.updates_counter % self.target_net_update_interval == 0:
-                self.update_target()
-
-            # Tensorboard log.
-            if self.logger:
-                self.logger.logkv("action", a)
-                self.logger.logkv("reward", r)
-                self.logger.logkv("step", self.updates_counter)
-                self.logger.logkv("lr", self.lr)
-                self.logger.logkv("expl_eps",
-                                    self.exploration.value(self.updates_counter))                    
-
-                self.logger.dumpkvs()
-
-            self.updates_counter += 1
+        # Log values.
+        if self._logger:
+            values = {
+                'step': self._obs_counter,
+                'action': a,
+                'reward': r,
+            }
+            self._logger.write(values)
 
     def save_checkpoint(self, path):
         """
@@ -221,11 +147,13 @@ class DQN(object, metaclass=MetaAgent):
             path to save directory.
 
         """
-        if (self.updates_counter > self.learning_starts):
-            checkpoint_file = '{0}/checkpoints/{1}-{2}.chkpt'.format(path,
-                                                        self.name,
-                                                        self.updates_counter)
-            save_variables(checkpoint_file, scope_name=self.name)
+        checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
+            path, self._obs_counter, self.name)
+
+        print('SAVED')
+        print(checkpoint_file)
+
+        self.agent.save(checkpoint_file)
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
         """
@@ -240,25 +168,24 @@ class DQN(object, metaclass=MetaAgent):
             the number of the checkpoint to load.
 
         """
-        chkpt_path = '{0}/{1}-{2}.chkpt'.format(chkpts_dir_path,
-                                                    self.name,
-                                                    chkpt_num)
+        chkpt_path = '{0}/{1}/{2}.chkpt'.format(chkpts_dir_path,
+                                                    chkpt_num,
+                                                    self.name)
 
-        load_variables(chkpt_path, scope_name=self.name)
+        print('LOADED')
+        print(chkpt_path)
+        self.agent.load(chkpt_path)
 
     def setup_logger(self, path):
         """
-        Setup train logger (tensorboard).
+        Setup train logger.
  
-        Parameters:
-        ----------
+        Args:
+        ----
         * path: str 
             path to log directory.
 
         """
-        os.makedirs(f"{path}/logs", exist_ok=True)
-
-        log_file = f'{path}/logs/{self.name}'
-        tb_logger = TensorBoardOutputFormat(log_file)
-        csv_logger = CSVOutputFormat(f'{log_file}.csv')
-        self.logger = Logger(dir=path, output_formats=[tb_logger, csv_logger])
+        pass
+        """ dir_path = f'{path}/logs/{self.name}'
+        self.logger = make_default_logger(directory=dir_path, label=self.name) """

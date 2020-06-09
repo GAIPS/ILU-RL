@@ -172,8 +172,8 @@ class Experiment:
         agent_updates_counter = 0
 
         # Setup agent loggers (tensorboard).
-        if self.log_info:
-            self.env.agents.setup_logs(self.exp_path)
+        # if self.log_info:
+        #     self.env.agents.setup_logs(self.exp_path)
 
         # Setup logs folder.
         os.makedirs(self.exp_path / 'logs', exist_ok=True)
@@ -184,8 +184,8 @@ class Experiment:
         for step in tqdm(range(num_steps)):
 
             # WARNING: This is not synchronized with agents' cycle time.
-            if step % 86400 == 0 and agent_updates_counter != 0: # 24 hours
-                self.env.reset()
+            # if step % 86400 == 0 and agent_updates_counter != 0: # 24 hours
+            #     self.env.reset()
 
             state, reward, done, _ = self.env.step(rl_actions(state))
 
