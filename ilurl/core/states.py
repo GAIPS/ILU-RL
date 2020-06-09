@@ -112,7 +112,7 @@ def build_states(network, mdp_params):
 
             # 5) Function specific parameters
             velocity_threshold = None
-            if mdp_params.reward == 'MinDelayReward':
+            if mdp_params.reward == 'reward_min_delay':
                 velocity_threshold = mdp_params.velocity_threshold
 
             state = state_cls(tls_ids, tls_phases,
@@ -129,14 +129,14 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def __init__(self, states):
         self.tls_ids = \
             sorted({tid for s in states for tid in s.tls_ids})
-        
+
         self.tls_phases = \
             {tls_id: state.tls_phases[tls_id]
              for tls_id in self.tls_ids
              for state in states if tls_id in state.tls_ids}
 
         self._states = states
-        
+
     @property
     def label(self):
         labels = []

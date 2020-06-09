@@ -111,7 +111,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         self.agents = AgentsWrapper(mdp_params)
 
         # Reward function.
-        self.reward_calculator = build_rewards(mdp_params)
+        self.reward = build_rewards(mdp_params)
 
         self.actions_log = {}
         self.states_log = {}
@@ -436,7 +436,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         -------
         reward : float or list of float
         """
-        return self.reward_calculator.calculate(self.get_observation_space())
+        return self.reward(self.get_observation_space())
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
