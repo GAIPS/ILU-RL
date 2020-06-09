@@ -133,16 +133,16 @@ class MetaStateCollection(MetaState):
         return super().__new__(meta, name, base, body)
 
 
-class MetaStateCalculator(type):
+class MetaStateCategorizer(type):
     """Adaptive Traffic Signal Control (ATSC): 
         is a domain that demands function approximations
 
     """
     def __new__(meta, name, base, body):
 
-        calculator_methods = ('calculate',)
+        categorizer_methods = ('categorize',)
 
-        for attr in calculator_methods:
+        for attr in categorizer_methods:
             if attr not in body:
                 raise TypeError(f'State must implement {attr}')
 

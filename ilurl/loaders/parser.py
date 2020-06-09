@@ -119,11 +119,13 @@ class Parser(object):
         mdp_params = MDPParams(
                         states=literal_eval(mdp_args['states']),
                         category_counts=json.loads(mdp_args['category_counts']),
+                        category_delays=json.loads(mdp_args['category_delays']),
                         category_speeds=json.loads(mdp_args['category_speeds']),
                         normalize_state_space=str2bool(mdp_args['normalize_state_space']),
                         discretize_state_space=str2bool(mdp_args['discretize_state_space']),
                         reward=literal_eval(mdp_args['reward']),
-                        target_velocity=literal_eval(mdp_args['target_velocity'])
+                        target_velocity=literal_eval(mdp_args['target_velocity']),
+                        velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
         )
 
         return mdp_params
