@@ -3,7 +3,7 @@
 This experimental project researches the development of RL-based traffic signal controllers.
 
 ## Installation 
-This project requires the installation of the computational framework for reinforcement learning (RL) in traffic control [FLOW](https://github.com/flow-project/flow) and the RL algorithms package [OpenAI Baselines](https://github.com/openai/baselines).
+This project requires the installation of the computational framework for reinforcement learning (RL) in traffic control [FLOW](https://github.com/flow-project/flow) and the RL framework [acme](https://github.com/deepmind/acme).
 
 ### 1) Flow 
 Locally install the flow package. An installation guide can be found [here](https://flow.readthedocs.io/en/latest/flow_setup.html).
