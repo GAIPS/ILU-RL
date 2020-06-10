@@ -53,29 +53,24 @@ Locally install the ILU-RL package.
 	virtualenv -p python3 env_ILU-RL
 	source env_ILU-RL/bin/activate
 	```
- 2. Clone OpenAI baselines and install tensorflow
-	```bash
-	git clone https://github.com/PPSantos/baselines
-	```
-	Install tensorflow:
-	```bash
-	pip install tensorflow-gpu==1.14
-	```
-	or
-	```bash
-	pip install tensorflow==1.14
-	```
- 3. Clone [ILU-RL](https://github.com/PPSantos/ILU-RL) repository
+ 2. Clone [ILU-RL](https://github.com/PPSantos/ILU-RL) repository
 	```bash
 	git clone https://github.com/PPSantos/ILU-RL
 	```
-4. Install packages
+3. Install packages
 	```bash
 	cd ILU-RL
 	pip install -r requirements.txt
 	pip install -e ../flow
-	pip install -e ../baselines
 	pip install -e .
+	cd ..
+	```
+4. Install acme framework
+	```bash
+	git clone https://github.com/deepmind/acme.git
+	pip install -e acme/
+	pip install dm-acme[reverb]
+	pip install dm-acme[tf]
 	```
 4. Export root ILU-RL directory enviroment variable (configure .bashrc file)
 	```bash
