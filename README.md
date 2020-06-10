@@ -7,7 +7,7 @@ This project requires the installation of the computational framework for reinfo
 
 ### 1) Flow 
 Locally install the flow package. An installation guide can be found [here](https://flow.readthedocs.io/en/latest/flow_setup.html).
- 1. Create a python 3 virtual environment for flow installation (tested with python 3.6.8)
+ 1. Create a python 3 virtual environment for flow installation (tested with python 3.6.10)
 	```bash
 	virtualenv -p python3 env_flow
 	source env_flow/bin/activate
