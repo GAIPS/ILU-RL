@@ -8,7 +8,7 @@ import dm_env
 import acme
 from acme import specs
 from ilurl.core.dqn import acme_agent
-from acme import networks
+from acme.tf import networks
 
 
 class DQN(object, metaclass=MetaAgent):
