@@ -59,11 +59,9 @@ Locally install the ILU-RL package.
 	```
 3. Install packages
 	```bash
-	cd ILU-RL
-	pip install -r requirements.txt
-	pip install -e ../flow
-	pip install -e .
-	cd ..
+	pip install -r ILU-RL/requirements.txt
+	pip install -e flow/
+	pip install -e ILU-RL/
 	```
 4. Install acme framework
 	```bash
