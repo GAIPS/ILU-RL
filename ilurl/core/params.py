@@ -342,139 +342,107 @@ class DQNParams:
 
     def __init__(
             self,
-            lr=5e-4,
-            gamma=0.8,
-            buffer_size=20000,
-            batch_size=64,
-            prioritized_replay=False,
-            prioritized_replay_alpha=0.6,
-            prioritized_replay_beta0=0.4,
-            prioritized_replay_beta_iters=40000,
-            prioritized_replay_eps=1e-6,
-            exp_initial_p=1.0,
-            exp_final_p=0.02,
-            exp_schedule_timesteps=40000,
-            learning_starts=2000,
-            target_net_update_interval=2000,
-            network_type='mlp',
-            head_network_mlp_hiddens=[],
-            head_network_layer_norm=False,
-            head_network_dueling=False,
-            mlp_hiddens=[8],
-            mlp_layer_norm=False,
+            learning_rate=1e-3,
+            gamma=0.9,
+            batch_size=256,
+            prefetch_size=4,
+            target_update_period=100,
+            samples_per_insert=32.0,
+            min_replay_size=1000,
+            max_replay_size=1000000,
+            importance_sampling_exponent=0.2,
+            priority_exponent=0.6,
+            n_step=5,
+            epsilon=0.05,
         ):
         """Instantiate Deep Q-network parameters.
 
         Parameters:
         ----------
-        * lr: float
+        * learning_rate: float
             learning rate.
 
         * gamma: float
-            the discount rate.
-
-        * buffer_size: int
-            the size of the replay buffer.
+            the discount factor.
 
         * batch_size: int
             the size of the batches sampled from the replay buffer.
 
-        * prioritized_replay: bool
-            Whether to use prioritized replay buffer.
-            REF: https://arxiv.org/pdf/1511.05952.pdf
+        * prefetch_size: int
 
-        * prioritized_replay_alpha: float
-            alpha parameter for prioritized replay buffer
-
-        * prioritized_replay_beta0: float
-            initial value of beta for prioritized replay buffer
-
-        * prioritized_replay_beta_iters: int
-            number of iterations over which beta will be annealed from initial value
-            to 1.0.
-
-        * prioritized_replay_eps: float
-            epsilon to add to the TD errors when updating priorities.
-
-        * exp_initial_p: float
-            initial exploration rate.
-
-        * exp_final_p: float
-            final exploration rate.
-
-        * exp_schedule_timesteps: int
-            exploration decay interval i.e. the number of steps
-            it takes to decay exp_initial_p to exp_final_p.
-
-        * learning_starts: int
-            the number of steps before the learning starts.
-
-        * target_net_update_interval: int
+        * target_update_period: int
             target network updates interval.
 
-        * network_type: str
-            See baselines.common.models for available models.
+        * samples_per_insert: float
+            number of samples to take from replay for every insert
+            that is made.
+        
+        * min_replay_size: int
+            minimum replay size before updating. This and all
+            following arguments are related to dataset construction and will be
+            ignored if a dataset argument is passed.
 
-        * head_network_mlp_hiddens: list
-            List with the hidden nodes (Q-network head).
+        * max_replay_size: int
+            maximum replay size.
 
-        * head_network_layer_norm: bool
-            Layer normalization (Q-network head).
+        * importance_sampling_exponent: float
+            power to which importance weights are raised
+            before normalizing.
 
-        * head_network_dueling: bool,
-            Dueling network.
-            REF: http://proceedings.mlr.press/v48/wangf16.pdf
+        * priority_exponent: float
+            exponent used in prioritized sampling.
 
-        * mlp_hiddens: list
-            List with the hidden nodes (Applies if network_type= 'mlp').
+        * n_step: int
+            number of steps to squash into a single transition.
 
-        * mlp_layer_norm: bool
-            Layer normalization (Applies if network_type= 'mlp').
+        * epsilon: float
+            probability of taking a random action; ignored if a policy
+            network is given.
 
         """
         kwargs = locals()
 
-        if lr <= 0 or lr >= 1:
+        if learning_rate <= 0 or learning_rate >= 1:
             raise ValueError('''The ineq 0 < lr < 1 must hold.
-                    Got lr = {}.'''.format(lr))
+                    Got lr = {}.'''.format(learning_rate))
 
         if gamma <= 0 or gamma > 1:
             raise ValueError('''The ineq 0 < gamma <= 1 must hold.
                     Got gamma = {}.'''.format(gamma))
 
-        if exp_initial_p < 0 or exp_initial_p > 1:
-            raise ValueError('''The ineq 0 < exp_initial_p < 1 must hold.
-                    Got exp_initial_p = {}.'''.format(exp_initial_p))
+        if epsilon <= 0 or epsilon > 1:
+            raise ValueError('''The ineq 0 < epsilon <= 1 must hold.
+                    Got epsilon = {}.'''.format(epsilon))
 
-        if exp_final_p < 0 or exp_final_p > 1:
-            raise ValueError('''The ineq 0 < exp_final_p < 1 must hold.
-                    Got exp_final_p = {}.'''.format(exp_final_p))
+        if samples_per_insert <= 0:
+            raise ValueError('''The ineq samples_per_insert > 0
+                    must hold. Got samples_per_insert = {}
+                    '''.format(samples_per_insert))
 
-        if exp_schedule_timesteps < 0:
-            raise ValueError('''The ineq 0 < exp_schedule_timesteps.
-                    Got exp_schedule_timesteps = {}.'''.format(
-                        exp_schedule_timesteps))
-
-        if buffer_size <= 0:
-            raise ValueError('''The ineq buffer_size > 0
-                    must hold. Got buffer_size = {}
-                    '''.format(buffer_size))
+        if max_replay_size <= 0:
+            raise ValueError('''The ineq max_replay_size > 0
+                    must hold. Got max_replay_size = {}
+                    '''.format(max_replay_size))
 
         if batch_size <= 0 \
-            or batch_size > buffer_size:
-            raise ValueError('''The ineq buffer_size >=
+            or batch_size > max_replay_size:
+            raise ValueError('''The ineq max_replay_size >=
                     batch_size > 0 must hold.
                     Got batch_size = {}
                     '''.format(batch_size))
 
-        if learning_starts < 0:
-            raise ValueError('''The ineq 0 <= learning_starts.
-                    Got learning_starts = {}.'''.format(learning_starts))
+        if min_replay_size < 0:
+            raise ValueError('''The ineq 0 <= min_replay_size.
+                    Got min_replay_size = {}.'''.format(min_replay_size))
 
-        if target_net_update_interval <= 0:
+        if target_update_period <= 0:
             raise ValueError('''The ineq 0 < target_net_update_interval.
                     Got target_net_update_interval = {}.'''.format(
-                        target_net_update_interval))
+                        target_update_period))
+
+        if n_step <= 0:
+            raise ValueError('''The ineq 0 < n_step.
+                    Got n_step = {}.'''.format(n_step))
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)

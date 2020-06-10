@@ -48,7 +48,7 @@ class DQN(agent.Agent):
             self,
             environment_spec: specs.EnvironmentSpec,
             network: snt.Module,
-            batch_size: int = 20,
+            batch_size: int = 256,
             prefetch_size: int = 4,
             target_update_period: int = 100,
             samples_per_insert: float = 32.0,

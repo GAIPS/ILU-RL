@@ -65,8 +65,22 @@ class DQN(object, metaclass=MetaAgent):
 
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
         network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
-                                                hidden_sizes=[8])
-        self.agent = acme_agent.DQN(env_spec, network, logger=agent_logger)
+                                                hidden_sizes=[8]) # TODO: FIX NETWORK PARAMS
+        self.agent = acme_agent.DQN(environment_spec=env_spec,
+                                    network=network,
+                                    batch_size=params.batch_size,
+                                    prefetch_size=params.prefetch_size,
+                                    target_update_period=params.target_update_period,
+                                    samples_per_insert=params.samples_per_insert,
+                                    min_replay_size=params.min_replay_size,
+                                    max_replay_size=params.max_replay_size,
+                                    importance_sampling_exponent=params.importance_sampling_exponent,
+                                    priority_exponent=params.priority_exponent,
+                                    n_step=params.n_step,
+                                    epsilon=params.epsilon,
+                                    learning_rate=params.learning_rate,
+                                    discount=params.gamma,
+                                    logger=agent_logger)
 
         # Observations counter.
         self._obs_counter = 0
@@ -176,4 +190,5 @@ class DQN(object, metaclass=MetaAgent):
 
         print('LOADED')
         print(chkpt_path)
+
         self.agent.load(chkpt_path)
