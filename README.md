@@ -48,7 +48,7 @@ Locally install the flow package. An installation guide can be found [here](http
 	
 ### 2) ILU-RL project
 Locally install the ILU-RL package.
- 1. Create a python 3 virtual environment for flow installation (tested with python 3.6.8)
+ 1. Create a python 3 virtual environment for flow installation (tested with python 3.6.10)
 	```bash
 	virtualenv -p python3 env_ILU-RL
 	source env_ILU-RL/bin/activate
