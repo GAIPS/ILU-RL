@@ -34,7 +34,7 @@ from analysis.test_plots import main as test_plots
 from ilurl.loaders.xml2csv import main as xml2csv
 
 _ERROR_MESSAGE_1 = '''ERROR: Caught an exception while
-                    executing analysis/rollouts_plots.py script.''''
+                    executing analysis/rollouts_plots.py script.'''
 _ERROR_MESSAGE_2 = '''ERROR: Caught an exception while 
                     executing analysis/test_plots.py script.'''
 

@@ -8,17 +8,17 @@ from ilurl.core.meta import MetaAgent
 from ilurl.core.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.core.ql.define import dpq_tls
 from ilurl.core.ql.update import dpq_update
+from ilurl.core.ql.replay_buffer import ReplayBuffer
+from ilurl.core.ql.schedules import PowerSchedule
 
-# from baselines.deepq.replay_buffer import ReplayBuffer
-# from baselines.logger import Logger, TensorBoardOutputFormat, CSVOutputFormat
-# from baselines.common.schedules import PowerSchedule
+from ilurl.utils.default_logger import make_default_logger
 
 class QL(object, metaclass=MetaAgent):
     """
         Q-learning agent.
     """
 
-    def __init__(self, ql_params, name):
+    def __init__(self, ql_params, exp_path, name):
         """Instantiate Q-Learning agent.
 
         Parameters:
@@ -26,6 +26,9 @@ class QL(object, metaclass=MetaAgent):
 
         * ql_params: ilurl.core.params.QLParams object
             Q-learning agent parameters
+
+        * exp_path: str
+            Path to experiment's directory.
 
         * name: str
 
@@ -35,7 +38,7 @@ class QL(object, metaclass=MetaAgent):
         [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
             
         """
-        self.name = name
+        self._name = name
 
         # Whether learning stopped.
         self.stop = False
@@ -70,30 +73,21 @@ class QL(object, metaclass=MetaAgent):
         # UCB (extra-stuff).
         if self.choice_type in ('ucb',):
             raise NotImplementedError
-            # self.c = ql_params.c
-            # self.decision_counter = 0
-            # self.actions_counter = {
-            #     state: {
-            #         action: 1.0
-            #         for action in actions
-            #     }
-            #     for state, actions in self.Q.items()
-            # }
 
         # Replay buffer.
         self.replay_buffer = ql_params.replay_buffer
         if self.replay_buffer:
-            pass
             self.batch_size = ql_params.replay_buffer_batch_size
             self.warm_up = ql_params.replay_buffer_warm_up
 
             self.memory = ReplayBuffer(ql_params.replay_buffer_size)
 
-        # Tensorboard logger.
-        self.logger = None
+        # Logger.
+        dir_path = f'{exp_path}/logs/{self._name}'
+        self._logger = make_default_logger(directory=dir_path, label=self._name)
 
-        # Updates counter.
-        self.updates_counter = 0
+        # Observations counter.
+        self._obs_counter = 0
 
     @property
     def stop(self):
@@ -130,17 +124,12 @@ class QL(object, metaclass=MetaAgent):
 
             elif self.choice_type in ('optimistic',):
                 raise NotImplementedError
-
             elif self.choice_type in ('ucb',):
                 raise NotImplementedError
-                # self.decision_counter += 1 if not self.stop else 0
-                # choosen = choice_ucb(self.Q[s].items(),
-                #                      self.c,
-                #                      self.decision_counter,
-                #                      self.actions_counter[s])
-                # self.actions_counter[s][choosen] += 1 if not self.stop else 0
             else:
                 raise NotImplementedError
+
+        self._obs_counter += 1
 
         return choosen
 
@@ -182,7 +171,7 @@ class QL(object, metaclass=MetaAgent):
             # Calculate Q-table update distance.
             dist = np.abs(Q_old - self.Q[s][a])
 
-            if self.replay_buffer and self.updates_counter > self.warm_up:
+            if self.replay_buffer and self._obs_counter > self.warm_up:
 
                 s_samples, a_samples, r_samples, s1_samples, _ = self.memory.sample(
                                                                 self.batch_size)
@@ -196,20 +185,17 @@ class QL(object, metaclass=MetaAgent):
                     # Q-learning update.
                     dpq_update(self.gamma, lr, self.Q, s_, a_, r_, s1_)
 
-            # Tensorboard log.
-            if self.logger:
-                self.logger.logkv("action", a)
-                self.logger.logkv("reward", r)
-                self.logger.logkv("step", self.updates_counter)
-                self.logger.logkv("lr", lr)
-                self.logger.logkv("expl_eps", self.exploration.value(
-                    sum(self.state_action_counter[s].values())-1))
-
-                self.logger.logkv("q_dist", dist)
-
-                self.logger.dumpkvs()
-
-            self.updates_counter += 1
+            # Log values.
+            values = {
+                "action": a,
+                "reward": r,
+                "step": self._obs_counter,
+                "lr": lr,
+                "expl_eps": self.exploration.value(sum(
+                        self.state_action_counter[s].values())-1),
+                "q_dist": dist,
+            }
+            self._logger.write(values)
 
     def save_checkpoint(self, path):
         """
@@ -221,10 +207,13 @@ class QL(object, metaclass=MetaAgent):
             path to save directory.
 
         """
-        os.makedirs(f"{path}/checkpoints", exist_ok=True)
+        os.makedirs(f"{path}/checkpoints/{self._obs_counter}", exist_ok=True)
 
-        checkpoint_file = "{0}/checkpoints/{1}-{2}.chkpt".format(
-            path, self.name, self.updates_counter)
+        checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
+            path, self._obs_counter, self._name)
+
+        print('SAVED')
+        print(checkpoint_file)
 
         with open(checkpoint_file, 'wb') as f:
             t = Thread(target=pickle.dump(self.Q, f))
@@ -243,25 +232,13 @@ class QL(object, metaclass=MetaAgent):
             the number of the checkpoint to load.
 
         """
-        chkpt_path = '{0}/{1}-{2}.chkpt'.format(chkpts_dir_path,
-                                                    self.name,
-                                                    chkpt_num)
+        chkpt_path = '{0}/{1}/{2}.chkpt'.format(chkpts_dir_path,
+                                                    chkpt_num,
+                                                    self._name)
+
+        print('LOADED')
+        print(chkpt_path)
+
         with open(chkpt_path, 'rb') as f:
             self.Q =  dill.load(f)
 
-    def setup_logger(self, path):
-        """
-        Setup train logger (tensorboard).
- 
-        Parameters:
-        ----------
-        * path: str 
-            path to log directory.
-
-        """
-        os.makedirs(f"{path}/logs", exist_ok=True)
-
-        log_file = f'{path}/logs/{self.name}'
-        tb_logger = TensorBoardOutputFormat(log_file)
-        csv_logger = CSVOutputFormat(f'{log_file}.csv')
-        self.logger = Logger(dir=path, output_formats=[tb_logger, csv_logger])

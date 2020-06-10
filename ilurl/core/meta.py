@@ -85,8 +85,7 @@ class MetaAgent(type):
                          'update',
                          'stop',
                          'save_checkpoint',
-                         'load_checkpoint',
-                         'setup_logger')
+                         'load_checkpoint')
         for attr in agent_methods:
             if attr not in body:
                 raise TypeError(f'AgentQ must implement {attr}')

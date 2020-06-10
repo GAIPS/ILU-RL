@@ -46,8 +46,7 @@ class AgentsWrapper(object):
 
             # Agents factory.
             if agent_type == 'QL':
-                #agents[tid] = QL(agent_params_, name=tid)
-                pass
+                agents[tid] = QL(agent_params_, exp_path, name=tid)
             elif agent_type == 'DQN':
                 agents[tid] = DQN(agent_params_, exp_path, name=tid)
             else:

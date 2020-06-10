@@ -6,7 +6,7 @@ __date__ = "2019-07-25"
 from numpy import argmax, sqrt, log, isnan
 from numpy.random import choice, rand
 
-CHOICE_TYPES = ('eps-greedy', 'optimistic', 'ucb')
+CHOICE_TYPES = ('eps-greedy') #, 'optimistic', 'ucb')
 
 def all_eq(values):
     # returns True if every element of values is the same

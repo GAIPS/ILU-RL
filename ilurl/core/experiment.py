@@ -171,10 +171,6 @@ class Experiment:
 
         agent_updates_counter = 0
 
-        # Setup agent loggers (tensorboard).
-        # if self.log_info:
-        #     self.env.agents.setup_logs(self.exp_path)
-
         # Setup logs folder.
         os.makedirs(self.exp_path / 'logs', exist_ok=True)
         train_log_path = self.exp_path / 'logs' / "train_log.json"

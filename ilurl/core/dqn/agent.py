@@ -19,15 +19,18 @@ class DQN(object, metaclass=MetaAgent):
     def __init__(self, params, exp_path, name):
         """Instantiate DQN agent.
 
-        PARAMETERS
+        Parameters:
         ----------
         * params: ilurl.core.params.DQNParams object.
             object containing DQN parameters.
 
+        * exp_path: str
+            Path to experiment's directory.
+
         * name: str
 
         """
-        self.name = name
+        self._name = name
 
         # Whether learning stopped.
         self.stop = False
@@ -57,10 +60,10 @@ class DQN(object, metaclass=MetaAgent):
                                           discounts=discount_spec)
 
         # Logger.
-        dir_path = f'{exp_path}/logs/{self.name}'
-        self._logger = make_default_logger(directory=dir_path, label=self.name)
+        dir_path = f'{exp_path}/logs/{self._name}'
+        self._logger = make_default_logger(directory=dir_path, label=self._name)
 
-        agent_logger = make_default_logger(directory=dir_path, label=f'{self.name}-learning')
+        agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
         network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
                                                 hidden_sizes=[8])
         self.agent = acme_agent.DQN(env_spec, network, logger=agent_logger)
@@ -128,8 +131,7 @@ class DQN(object, metaclass=MetaAgent):
             self.agent.observe(a, timestep)
             self.agent.update()
 
-        # Log values.
-        if self._logger:
+            # Log values.
             values = {
                 'step': self._obs_counter,
                 'action': a,
@@ -148,7 +150,7 @@ class DQN(object, metaclass=MetaAgent):
 
         """
         checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
-            path, self._obs_counter, self.name)
+            path, self._obs_counter, self._name)
 
         print('SAVED')
         print(checkpoint_file)
@@ -170,22 +172,8 @@ class DQN(object, metaclass=MetaAgent):
         """
         chkpt_path = '{0}/{1}/{2}.chkpt'.format(chkpts_dir_path,
                                                     chkpt_num,
-                                                    self.name)
+                                                    self._name)
 
         print('LOADED')
         print(chkpt_path)
         self.agent.load(chkpt_path)
-
-    def setup_logger(self, path):
-        """
-        Setup train logger.
- 
-        Args:
-        ----
-        * path: str 
-            path to log directory.
-
-        """
-        pass
-        """ dir_path = f'{path}/logs/{self.name}'
-        self.logger = make_default_logger(directory=dir_path, label=self.name) """
