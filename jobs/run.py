@@ -47,14 +47,14 @@ if __name__ == '__main__':
     train_plots(experiment_root_path)
 
     # 3) Execute rollouts.
-    eval_path = rollouts(experiment_dir=experiment_root_path)
+    # eval_path = rollouts(experiment_dir=experiment_root_path)
 
     # 4) Create rollouts plots.
-    try:
-        rollouts_plots(eval_path)
-    except Exception:
-        print(_ERROR_MESSAGE_1)
-        pass
+    # try:
+    #     rollouts_plots(eval_path)
+    # except Exception:
+    #     print(_ERROR_MESSAGE_1)
+    #     pass
 
     # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, experiment_dir=experiment_root_path)

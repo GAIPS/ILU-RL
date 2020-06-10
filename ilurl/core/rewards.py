@@ -67,17 +67,21 @@ def build_rewards(mdp_params):
         raise ValueError(f'build_rewards: {target} not in {names}')
 
     if target == 'reward_max_speed_count':
-        # instanciate every scope variable
+        # instantiate every scope variable
         target_velocity = mdp_params.target_velocity
 
-        def ret(x):
+        def r(x):
             return reward_max_speed_count(target_velocity, x)
     else:
         idx = names.index(target)
         fn = funcs[idx]
 
-        def ret(x):
+        def r(x):
             return fn(x)
+
+    # Rescale rewards.
+    def ret(x):
+        return rescale_rewards(r(x), scale_factor=mdp_params.reward_rescale)
 
     return ret
 
@@ -107,3 +111,7 @@ def reward_min_delay(states):
     for tls_id, phase_obs in states.state.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
     return ret
+
+
+def rescale_rewards(rewards, scale_factor):
+    return {key: r*scale_factor for (key, r) in rewards.items()}

@@ -60,6 +60,7 @@ class MDPParams:
                 category_delays=[5, 30],
                 category_speeds=[2.28, 5.50],   # TODO
                 reward = 'MaxSpeedCountReward',
+                reward_rescale=1.0,
                 target_velocity=1.0,
                 velocity_threshold=None, 
             ):
@@ -81,6 +82,9 @@ class MDPParams:
         * category_speeds: TODO
 
         * reward: namedtuple (see Reward definition above)
+
+        * reward_rescale: float
+            Reward rescaling factor.
 
         """
         kwargs = locals()
