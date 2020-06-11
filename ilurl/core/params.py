@@ -15,7 +15,7 @@ from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
 from ilurl.loaders.demands import get_demand
 
-STATE_FEATURES = ('speed', 'count', 'delay') #, 'flow', 'queue'
+STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
 ''' Bounds : namedtuple
         provide the settings to describe discrete variables ( e.g actions ). Or
@@ -59,6 +59,7 @@ class MDPParams:
                 category_counts=[8.56, 13.00],  # TODO
                 category_delays=[5, 30],
                 category_speeds=[2.28, 5.50],   # TODO
+                category_queues=[1, 10],   # TODO
                 reward = 'MaxSpeedCountReward',
                 target_velocity=1.0,
                 velocity_threshold=None, 

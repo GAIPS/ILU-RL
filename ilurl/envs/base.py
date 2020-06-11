@@ -104,7 +104,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Problem formulation params.
         self.mdp_params = mdp_params
 
-
         # Object that handles RL agents logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
@@ -144,10 +143,6 @@ class TrafficLightEnv(AccelEnv, Serializer):
     # instance of class
     @lazy_property
     def tls_ids(self):
-        return self.network.tls_ids
-
-    @lazy_property
-    def tls_max_capacity(self):
         return self.network.tls_ids
 
     @lazy_property
@@ -196,14 +191,18 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
             speeds = [
                self.k.vehicle.get_speed(veh_id)
-                for veh_id in veh_ids
-            ]
-            return veh_ids, speeds
+               for veh_id in veh_ids]
+
+            lanes = [
+                self.k.vehicle.get_lane(veh_id)
+                for veh_id in veh_ids]
+            return veh_ids, speeds, lanes
 
         for node_id in self.tls_ids:
             for phase, data in self.tls_phases[node_id].items():
                 self.incoming[node_id][phase][self.duration] = \
                                     observe(data['components'])
+
     def get_observation_space(self):
         """
         Consolidates the observation space.
@@ -242,25 +241,29 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         veh_ids = {}
         veh_speeds = {}
+        veh_lanes = {}
         for nid in self.tls_ids:
 
-            
             tls_veh_ids = {}
             tls_veh_speeds = {}
+            tls_veh_lanes = {}
             for phase, values in self.incoming[nid].items():
 
                 if prev in values and any(values[prev]):
-                    tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
+                    tls_veh_ids[phase], tls_veh_speeds[phase], tls_veh_lanes[phase] = \
+                        values[prev]
+
                 else:
                     tls_veh_ids[phase] = []
                     tls_veh_speeds[phase] = []
+                    tls_veh_lanes[phase] = []
 
             veh_ids[nid] = tls_veh_ids
             veh_speeds[nid] = tls_veh_speeds
+            veh_lanes[nid] = tls_veh_lanes
 
-           
         self.observation_space.update(
-            prev, veh_ids, veh_speeds, None
+            prev, veh_ids, veh_speeds, veh_lanes, None
         )
 
         return self.observation_space

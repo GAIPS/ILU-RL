@@ -1,7 +1,8 @@
 """Implementation of states as perceived by agent"""
-
+import pdb
 import inspect
 from sys import modules
+from heapq import nlargest
 
 from operator import itemgetter
 from collections import defaultdict
@@ -107,12 +108,15 @@ def build_states(network, mdp_params):
                     categorizer = StateCategorizer(mdp_params.category_counts)
                 elif state_cls == DelayState:
                     categorizer = StateCategorizer(mdp_params.category_delays)
+                elif state_cls == QueueState:
+                    categorizer = StateCategorizer(mdp_params.category_queues)
                 else:
                     raise ValueError(f'No discretization bins for {state_cls}')
 
             # 5) Function specific parameters
             velocity_threshold = None
-            if mdp_params.reward == 'reward_min_delay':
+            if mdp_params.reward in ('reward_min_delay',
+                                     'reward_min_queue_squared'):
                 velocity_threshold = mdp_params.velocity_threshold
 
             state = state_cls(tls_ids, tls_phases,
@@ -163,7 +167,7 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def tls_phases(self, tls_phases):
         self._tls_phases = tls_phases
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
+    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
 
         for tls_id in self.tls_ids:
             if tls_id in veh_ids and tls_id in veh_speeds:
@@ -172,6 +176,7 @@ class StateCollection(object, metaclass=MetaStateCollection):
                         state.update(time,
                                      veh_ids,
                                      veh_speeds,
+                                     veh_lanes,
                                      tls_states)
 
     def reset(self):
@@ -241,6 +246,138 @@ class StateCollection(object, metaclass=MetaStateCollection):
                for tls_id, data in ret.items()}
         return ret
 
+class QueueState(object, metaclass=MetaState):
+
+    def __init__(self, tls_ids, tls_phases, tls_max_caps,
+                 normalize, categorizer=None, velocity_threshold=None,
+                 **kwargs):
+
+        self._tls_ids = tls_ids
+        self._tls_phases = tls_phases
+        self._tls_caps = {tid: {p: c[1] for p, c in phase_caps.items()}
+                          for tid, phase_caps in tls_max_caps.items()
+                          if tid in tls_ids}
+
+        self._normalize = normalize
+        if velocity_threshold is None:
+            raise ValueError(
+                f'QueueState: velocity_threshold must be provided')
+        else:
+            self.velocity_threshold = velocity_threshold
+
+        if categorizer is not None:
+            self.categorizer = categorizer
+
+        self.reset()
+
+    @property
+    def label(self):
+        return 'queue'
+
+    @property
+    def tls_ids(self):
+        return self._tls_ids
+
+    @property
+    def tls_phases(self):
+        return self._tls_phases
+
+    @property
+    def tls_caps(self):
+        return self._tls_caps
+
+    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+
+        # 1) New decision point: reset memory.
+        if time == 0.0:
+            self.reset(soft=True)
+
+        # 2) Update memory with current state.
+        # TODO include veh_edges
+        norm = self._normalize
+        thresh = self.velocity_threshold
+        for tls_id in self.tls_ids:
+            mem = self._memory[tls_id]
+            for phase, _veh_ids in veh_ids[tls_id].items():
+                cap = self.tls_caps[tls_id][phase] if norm else 1
+
+                _veh_lanes = veh_lanes[tls_id][phase]
+                _veh_speeds = veh_speeds[tls_id][phase]
+                uniq_veh_lanes = sorted(set(_veh_lanes))
+
+                if time not in mem:
+                    mem[time] = {}
+
+                if any(_veh_ids):
+                    _triplet = zip(_veh_lanes, _veh_speeds, _veh_ids)
+
+                    queues = {
+                        lane: [vh for ln, vl, vh in _triplet
+                               if ln == lane and (vl / cap) <= thresh]
+                        for lane in uniq_veh_lanes
+                    }
+
+                else:
+                    queues = {lane: [] for lane in uniq_veh_lanes}
+
+                mem[time][phase] = queues
+
+            self._memory[tls_id] = mem
+
+    def reset(self, soft=False):
+        """Memory reset
+
+        Params:
+        ------
+        * soft .: bool
+            If True will keep the last observation
+        """
+        mem = {tls_id: {} for tls_id in self.tls_ids}
+        if soft:
+            for tls_id, _mem in self._memory.items():
+                if any(_mem):
+                    mem[tls_id] = \
+                        dict([max(_mem.items(), key=itemgetter(0))])
+        self._memory = mem
+
+    @property
+    def state(self):
+        ret = []
+        # 1) Decision points data should be independent.
+        for tls_id, nph in self.tls_phases.items():
+            mem = self._memory[tls_id]
+
+            # 2) Gets the two most recent observations
+            curr, *prev = nlargest(2, mem.items(), key=itemgetter(0))
+            veh_ids = curr[-1]
+            tls_obs = []
+
+            if any(prev):
+                prev_veh_ids = prev[0][-1]
+
+                for phase in range(nph):
+                    _veh_ids = veh_ids[phase]
+                    _prev_veh_ids = prev_veh_ids[phase]
+                    delta = 0
+                    for lane in _veh_ids:
+                        set_veh_ids = set(_veh_ids.get(lane, []))
+                        set_prev_veh_ids = set(_prev_veh_ids.get(lane,[]))
+
+                        n_enqueued = len(set_veh_ids - set_prev_veh_ids)
+                        n_dequeued = len(set_prev_veh_ids - set_veh_ids)
+                        delta = max(n_enqueued - n_dequeued, delta)
+                    tls_obs.append(delta)
+            else:
+               tls_obs += [0] * nph
+            ret.append(tls_obs)
+
+        return ret
+
+    def categorize(self):
+        state = self.state
+        if hasattr(self, 'categorizer'):
+            return self.categorizer.categorize(self.state)
+
 
 class CountState(object, metaclass=MetaState):
 
@@ -274,8 +411,7 @@ class CountState(object, metaclass=MetaState):
     def tls_caps(self):
         return self._tls_caps
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
-
+    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
 
         # TODO: context manager
         for tls_id in self.tls_ids:
@@ -351,7 +487,7 @@ class SpeedState(object, metaclass=MetaState):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
+    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
         # TODO: Add mem context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
@@ -436,7 +572,7 @@ class DelayState(object, metaclass=MetaState):
     def reset(self):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
+    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
         # 1) New decision point: reset memory
         if time == 0.0:
             self.reset()
