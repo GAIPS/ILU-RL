@@ -85,6 +85,7 @@ class DQN(agent.Agent):
             network is given.
         learning_rate: learning rate for the q-network update.
         discount: discount to use for TD updates.
+        logger: logger object to be used by learner.
         """
 
         # Create a replay server to add data to. This uses no limiter behavior in
@@ -143,7 +144,8 @@ class DQN(agent.Agent):
             target_update_period=target_update_period,
             dataset=dataset,
             replay_client=replay_client,
-            logger=logger)
+            logger=logger,
+            checkpoint=False)
 
         self._saver = tf2_savers.Saver(learner.state)
 
