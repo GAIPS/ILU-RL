@@ -24,7 +24,7 @@ from acme.adders import reverb as adders
 from acme.agents.tf import actors as actors_tf2
 from acme.agents import agent
 from acme.agents.tf.dqn import learning
-from acme.utils import tf2_utils
+from acme.tf import utils as tf2_utils
 from acme.utils import loggers
 
 import reverb
