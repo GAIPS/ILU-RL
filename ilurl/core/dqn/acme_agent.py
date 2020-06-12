@@ -104,8 +104,7 @@ class DQN(agent.Agent):
             client=reverb.Client(address),
             n_step=n_step,
             discount=discount)
-
-        # adder.reset()
+        adder.reset()
 
         # The dataset provides an interface to sample from replay.
         replay_client = reverb.TFClient(address)
@@ -155,6 +154,8 @@ class DQN(agent.Agent):
             lambda q: trfl.epsilon_greedy(q, epsilon=0.0).sample(),
         ])
         self._deterministic_actor = actors_tf2.FeedForwardActor(max_Q_network)
+
+        #print(float(batch_size) / samples_per_insert)
 
         super().__init__(
             actor=actor,
