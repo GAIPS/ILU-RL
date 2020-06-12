@@ -39,13 +39,19 @@ if __name__ == '__main__':
     experiment_root_path = train()
 
     # 2) Create train plots.
-    train_plots(experiment_root_path)
+    try:
+        train_plots(experiment_root_path)
+    except Exception:
+        print('SKIP train_plots...')
 
     # 3) Execute rollouts.
-    # eval_path = rollouts(experiment_dir=experiment_root_path)
+    eval_path = rollouts(experiment_dir=experiment_root_path)
 
     # 4) Create rollouts plots.
-    # rollouts_plots(eval_path)
+    try:
+        rollouts_plots(eval_path)
+    except Exception:
+        print('SKIP rollouts_plots')
 
     # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, experiment_dir=experiment_root_path)
