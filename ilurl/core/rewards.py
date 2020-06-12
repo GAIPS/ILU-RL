@@ -9,6 +9,8 @@ from sys import modules
 
 import numpy as np
 
+QUEUE = {}
+
 
 def get_rewards():
     """Rewards defined within the module
@@ -70,26 +72,25 @@ def build_rewards(mdp_params):
         # instanciate every scope variable
         target_velocity = mdp_params.target_velocity
 
-        def ret(x):
-            return reward_max_speed_count(target_velocity, x)
+        def ret(x, *args):
+            return reward_max_speed_count(target_velocity, x, *args)
 
     elif target == 'reward_min_queue_squared':
 
-        def ret(x):
-            queue = {}
-            return reward_min_queue_squared(queue, x)
+        def ret(x, *args):
+            return reward_min_queue_squared(x, *args)
 
     else:
         idx = names.index(target)
         fn = funcs[idx]
 
-        def ret(x):
-            return fn(x)
+        def ret(x, *args):
+            return fn(x, *args)
 
     return ret
 
 
-def reward_max_speed_count(target_velocity, state):
+def reward_max_speed_count(target_velocity, state, *args):
     """Max. Speed and Count
 
     Params:
@@ -137,7 +138,7 @@ def reward_max_speed_count(target_velocity, state):
     return ret
 
 
-def reward_min_delay(states):
+def reward_min_delay(states, *args):
     """Minimizing the delta of queue length squared 
 
     Reward definition 1: Minimizing the delay
@@ -176,7 +177,7 @@ def reward_min_delay(states):
     return ret
 
 
-def reward_min_queue_squared(queue, state):
+def reward_min_queue_squared(state, duration):
     """Minimizing the delta of queue length squared 
 
     Reward definition 3: Minimizing and Balancing Queue Length
@@ -205,11 +206,14 @@ def reward_min_queue_squared(queue, state):
     * Camponogara and Kraus, 2003
         "Distributed learning agents in urban traffic control."
     """
+    global QUEUE
     ret = {}
-    for tls_id, max_queue in state.state.items():
-        _max_q = np.concatenate(max_queue, axis=0)
-        _prev_q = queue.get(tls_id, np.zeros(_max_q.shape))
+    for tls_id, _max_q in state.state.items():
+        _max_q = np.concatenate(_max_q, axis=0)
+        _prev_q = QUEUE.get(tls_id, np.zeros(_max_q.shape))
 
         ret[tls_id] = _max_q.dot(_max_q) - _prev_q.dot(_prev_q)
-        queue[tls_id] = _max_q
+        # 2) Store: if this is a decision point.
+        if duration == 0.0:
+            QUEUE[tls_id] = _max_q
     return ret

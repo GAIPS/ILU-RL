@@ -246,7 +246,55 @@ class StateCollection(object, metaclass=MetaStateCollection):
                for tls_id, data in ret.items()}
         return ret
 
+
 class QueueState(object, metaclass=MetaState):
+    """Measures the max queue wrt to each lane on a phase,
+        over a cycle.
+
+    Let k be decision step and d elapsed time, after
+       decision k was made (duration), t is the time and
+       duration is t - tk.
+
+    The maximum queue is taken over all lanes that belong
+    to the lane group corresponding phase i, Li. Averaged
+    over duration (t-tk).
+
+    s^k_i = mean{max{q^d_l, l in Li}, d in [0:cycle_time - 1]}
+
+    where:
+       * i phase
+       * l in Li for all i = {1, 2, 3, ...N}
+       * k is the decision step.
+       * q^d_l is the number of queued vehicles
+               in lane l at duration t.
+
+       q^d_l = len([veh for veh in V^t_l if vel < thresh])
+
+    where:
+       * V^t_l the set of all veh_ids on lane l
+               at time t.
+
+    * Equivalent to state definition 1: Queue Length
+
+     Reference:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    See also:
+    --------
+    * Balaji et al., 2010
+        "Urban traffic signal control using reinforcement learning agent"
+
+    * Richter, S., Aberdeen, D., & Yu, J., 2007
+        "Natural actor-critic for road traffic optimisation."
+
+    * Abdulhai et al., 2003
+        "Reinforcement learning for true adaptive traffic signal
+        control."
+    """
+
+
 
     def __init__(self, tls_ids, tls_phases, tls_max_caps,
                  normalize, categorizer=None, velocity_threshold=None,
@@ -287,16 +335,33 @@ class QueueState(object, metaclass=MetaState):
         return self._tls_caps
 
     def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+        """Q^k_l the set of all veh_ids on lane l decision step k.
 
-        # 1) New decision point: reset memory.
-        if time == 0.0:
-            self.reset(soft=True)
+            * Computes V^k_l the set of all veh_ids on lane l at time k.
+            * Every car moving below velocity_threshold is
+                considered to be enqueued.
+
+            * Stores for each time, the ids for the enqueued
+                vehicles.
+
+
+            * Computes V^k_l the set of all veh_ids on lane l at time k.
+
+                q^k_l = len([veh for veh in V^k_l if ind(veh)])
+
+        """
+        # TODO: Add edges
 
         # 2) Update memory with current state.
         # TODO include veh_edges
         norm = self._normalize
         thresh = self.velocity_threshold
         for tls_id in self.tls_ids:
+
+            # 1) New decision point: reset
+            if time == 0.0:
+                self.reset(tls_id)
+
             mem = self._memory[tls_id]
             for phase, _veh_ids in veh_ids[tls_id].items():
                 cap = self.tls_caps[tls_id][phase] if norm else 1
@@ -324,20 +389,19 @@ class QueueState(object, metaclass=MetaState):
 
             self._memory[tls_id] = mem
 
-    def reset(self, soft=False):
+    def reset(self, tls_id=None):
         """Memory reset
 
         Params:
         ------
-        * soft .: bool
-            If True will keep the last observation
+        * tls_id .: str
+            traffic light signal id if None reset all
+
         """
-        mem = {tls_id: {} for tls_id in self.tls_ids}
-        if soft:
-            for tls_id, _mem in self._memory.items():
-                if any(_mem):
-                    mem[tls_id] = \
-                        dict([max(_mem.items(), key=itemgetter(0))])
+        def fn(x):
+            return tls_id is None or tls_id == x
+
+        mem = {tid: {} for tid in self.tls_ids if fn(tid)}
         self._memory = mem
 
     @property
@@ -346,31 +410,21 @@ class QueueState(object, metaclass=MetaState):
         # 1) Decision points data should be independent.
         for tls_id, nph in self.tls_phases.items():
             mem = self._memory[tls_id]
-
-            # 2) Gets the two most recent observations
-            curr, *prev = nlargest(2, mem.items(), key=itemgetter(0))
-            veh_ids = curr[-1]
-            tls_obs = []
-
-            if any(prev):
-                prev_veh_ids = prev[0][-1]
+            tls_ret = []
+            # 2) Gets the recent observations
+            for duration, data in mem.items():
+                tls_obs = []
 
                 for phase in range(nph):
-                    _veh_ids = veh_ids[phase]
-                    _prev_veh_ids = prev_veh_ids[phase]
                     delta = 0
-                    for lane in _veh_ids:
-                        set_veh_ids = set(_veh_ids.get(lane, []))
-                        set_prev_veh_ids = set(_prev_veh_ids.get(lane,[]))
+                    phase_data = data[phase]
 
-                        n_enqueued = len(set_veh_ids - set_prev_veh_ids)
-                        n_dequeued = len(set_prev_veh_ids - set_veh_ids)
-                        delta = max(n_enqueued - n_dequeued, delta)
+                    for veh_ids in phase_data.values():
+                        set_veh_ids = set(veh_ids)
+                        delta = max(len(set_veh_ids), delta)
                     tls_obs.append(delta)
-            else:
-               tls_obs += [0] * nph
-            ret.append(tls_obs)
-
+                tls_ret.append(tls_obs)
+            ret.append(np.mean(np.array(tls_ret), axis=0).tolist())
         return ret
 
     def categorize(self):

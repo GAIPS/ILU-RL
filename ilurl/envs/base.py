@@ -439,7 +439,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         -------
         reward : float or list of float
         """
-        return self.reward(self.get_observation_space())
+        return self.reward(self.get_observation_space(), self.duration)
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
