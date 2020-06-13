@@ -12,6 +12,7 @@ from acme.tf import networks
 
 from ilurl.core.agent_worker import AgentWorker
 
+import tensorflow as tf
 
 class DQN(AgentWorker):
     """
@@ -34,6 +35,8 @@ class DQN(AgentWorker):
         * name: str
 
         """
+        tf.config.set_visible_devices([], 'GPU')
+
         self._name = name
 
         # Whether learning stopped.
