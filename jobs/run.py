@@ -38,12 +38,12 @@ _ERROR_MESSAGE_1 = '''ERROR: Caught an exception while
 _ERROR_MESSAGE_2 = '''ERROR: Caught an exception while 
                     executing analysis/test_plots.py script.'''
 
-import multiprocessing
+#import multiprocessing
 
 if __name__ == '__main__':
 
-    multiprocessing.set_start_method('spawn')
-    print(multiprocessing.get_start_method())
+    #multiprocessing.set_start_method('spawn')
+    #print(multiprocessing.get_start_method())
 
     # 1) Train agent(s).
     experiment_root_path = train()

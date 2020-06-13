@@ -21,6 +21,25 @@ CONFIG_PATH = \
 
 LOCK = mp.Lock()
 
+class NoDaemonProcess(mp.Process):
+    # make 'daemon' attribute always return False
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, val):
+        pass
+
+
+class NoDaemonProcessPool(mp.pool.Pool):
+
+    def Process(self, *args, **kwds):
+        proc = super(NoDaemonProcessPool, self).Process(*args, **kwds)
+        proc.__class__ = NoDaemonProcess
+
+        return proc
+
 @benchmarked
 def benchmarked_train(*args, **kwargs):
     return train(*args, **kwargs)
@@ -110,7 +129,7 @@ def train_batch():
         # TODO: option without pooling not working. why?
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = mp.Pool(num_processors)
+            pool = NoDaemonProcessPool(num_processors)
             rvs = pool.map(delay_train, [cfg for cfg in train_configs])
             pool.close()
         else:

@@ -1,6 +1,8 @@
 import multiprocessing
 
-class AgentWorker(multiprocessing.Process):
+mp = multiprocessing.get_context('spawn')
+
+class AgentWorker(mp.Process):
     
     def __init__(self, pipe):
         multiprocessing.Process.__init__(self)
@@ -24,11 +26,3 @@ class AgentWorker(multiprocessing.Process):
             self.pipe.send(ret)
 
         return
-
-    @property
-    def daemon(self):
-        return False
-
-    @daemon.setter
-    def daemon(self, val):
-        pass

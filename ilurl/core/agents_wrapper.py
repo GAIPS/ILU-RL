@@ -24,7 +24,8 @@ class AgentsWrapper(object):
         agent_type, agent_params = config_parser.parse_agent_params()
 
         # Create agents.
-        multiprocessing.set_start_method('spawn')
+        #multiprocessing.set_start_method('spawn')
+        mp = multiprocessing.get_context('spawn')
 
         pipes = {}
         agents = {}
@@ -36,7 +37,7 @@ class AgentsWrapper(object):
                 pass
                 #agents[tid] = QL(agent_params_, exp_path, name=tid)
             elif agent_type == 'DQN':
-                comm_pipe = multiprocessing.Pipe()
+                comm_pipe = mp.Pipe()
                 agents[tid] = DQN(comm_pipe[1])
                 pipes[tid] = comm_pipe[0]
             else:
