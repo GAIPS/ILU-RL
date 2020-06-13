@@ -73,7 +73,8 @@ class AgentsWrapper(object):
                 #agents[tid] = QL(agent_params_, exp_path, name=tid)
             elif agent_type == 'DQN':
                 args = (agent_params_, exp_path, tid)
-                pipes[tid].send(('init', args))
+                func_call = ('init', args)
+                pipes[tid].send(func_call)
             else:
                 raise ValueError(f'''
                 Agent type must be in {AGENT_TYPES}.
@@ -102,7 +103,8 @@ class AgentsWrapper(object):
 
         for tid, agent in self.agents.items():
             args = (state[tid],)
-            self.pipes[tid].send(('act', args))
+            func_call = ('act', args)
+            self.pipes[tid].send(func_call)
 
         for tid, agent in self.agents.items():
             choices[tid] = int(self.pipes[tid].recv())
@@ -114,7 +116,8 @@ class AgentsWrapper(object):
             #s_, a_, r_, s1_ = s[tid], a[tid], r[tid], s1[tid]
             #agent.update(s_, a_, r_, s1_)
             args = (s[tid], a[tid], r[tid], s1[tid])
-            self.pipes[tid].send(('update', args))
+            func_call = ('update', args)
+            self.pipes[tid].send(func_call)
 
         for tid, agent in self.agents.items():
             self.pipes[tid].recv()
@@ -131,8 +134,9 @@ class AgentsWrapper(object):
 
         """
         for tid, agent in self.agents.items():
-            args = (path)
-            self.pipes[tid].send('save_checkpoint', args)
+            args = (path,)
+            func_call = ('save_checkpoint', args)
+            self.pipes[tid].send(func_call)
             #agent.save_checkpoint(path)
 
         for tid, agent in self.agents.items():
@@ -153,21 +157,9 @@ class AgentsWrapper(object):
         """
         for tid, agent in self.agents.items():
             args = (chkpts_dir_path, chkpt_num)
-            self.pipes[tid].send('load_checkpoint', args)
+            func_call = ('load_checkpoint', args)
+            self.pipes[tid].send(func_call)
             #agent.load_checkpoint(chkpts_dir_path, chkpt_num)
 
         for tid, agent in self.agents.items():
             self.pipes[tid].recv()
-
-    # def setup_logs(self, path):
-    #     """
-    #     Setup train loggers (tensorboard).
- 
-    #     Parameters:
-    #     ----------
-    #     * path: str 
-    #         path to log directory.
-
-    #     """
-    #     for agent in self.agents.values():
-    #         agent.setup_logger(path)

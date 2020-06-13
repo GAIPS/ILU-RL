@@ -19,9 +19,10 @@ ILURL_HOME = os.environ['ILURL_HOME']
 CONFIG_PATH = \
     f'{ILURL_HOME}/config/'
 
+mp = multiprocessing.get_context('spawn')
+
 LOCK = mp.Lock()
 
-mp = multiprocessing.get_context('spawn')
 
 class NoDaemonProcess(mp.Process):
     @property
@@ -32,7 +33,7 @@ class NoDaemonProcess(mp.Process):
     def daemon(self, val):
         pass
 
-class NoDaemonProcessPool(mp.pool.Pool):
+class NoDaemonProcessPool(multiprocessing.pool.Pool):
     def Process(self, *args, **kwds):
         proc = super(NoDaemonProcessPool, self).Process(*args, **kwds)
         proc.__class__ = NoDaemonProcess

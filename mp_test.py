@@ -33,26 +33,25 @@ class AgentWorker(multiprocessing.Process):
     
     def __init__(self, pipe):
         multiprocessing.Process.__init__(self)
-
         self.pipe = pipe
-        #print(f'AgentWorker {self.name} - Pipe:', self.pipe)
 
     def run(self):
 
         #print(multiprocessing.get_context('spawn'))
 
         while True:
-            msg = self.pipe.recv()
-            if msg is None:
-                # Poison pill means shutdown
-                #print(f'{proc_name}: Exiting')
+            call = self.pipe.recv()
+            if call is None:
                 break
-            print(f'AgentWorker {self.name} - Received: {msg}')
+            print(f'AgentWorker {self.name} - Received: {call}')
 
             # Call method.
-            ret = getattr(self, msg[0])(*msg[1])
+            ret = getattr(self, call[0])(*call[1])
 
+            # Fake work.
             time.sleep(2)
+
+            # Send response.
             self.pipe.send(ret)
 
         return
@@ -87,8 +86,7 @@ if __name__ == '__main__':
 
     NUM_CONSUMERS = 2
 
-    # TODO: uncomment
-    #multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method('spawn')
 
     A = np.array([[2,3,4], [1,2,1]])
 
