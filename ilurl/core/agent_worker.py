@@ -17,10 +17,18 @@ class AgentWorker(multiprocessing.Process):
             if msg is None:
                 #print(f'{proc_name}: Exiting')
                 break
-            print(f'{self.name} - Received: {msg}')
+            #print(f'{self.name} - Received: {msg}')
 
             # Call method.
             ret = getattr(self, msg[0])(*msg[1])
             self.pipe.send(ret)
 
         return
+
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, val):
+        pass

@@ -87,7 +87,8 @@ if __name__ == '__main__':
 
     NUM_CONSUMERS = 2
 
-    multiprocessing.set_start_method('spawn')
+    # TODO: uncomment
+    #multiprocessing.set_start_method('spawn')
 
     A = np.array([[2,3,4], [1,2,1]])
 
