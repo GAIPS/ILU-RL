@@ -8,7 +8,7 @@ import os
 import json
 import tempfile
 import configparser
-import multiprocessing as mp
+import multiprocessing
 import time
 
 from models.train import main as train
@@ -21,8 +21,9 @@ CONFIG_PATH = \
 
 LOCK = mp.Lock()
 
+mp = multiprocessing.get_context('spawn')
+
 class NoDaemonProcess(mp.Process):
-    # make 'daemon' attribute always return False
     @property
     def daemon(self):
         return False
@@ -31,13 +32,10 @@ class NoDaemonProcess(mp.Process):
     def daemon(self, val):
         pass
 
-
 class NoDaemonProcessPool(mp.pool.Pool):
-
     def Process(self, *args, **kwds):
         proc = super(NoDaemonProcessPool, self).Process(*args, **kwds)
         proc.__class__ = NoDaemonProcess
-
         return proc
 
 @benchmarked
