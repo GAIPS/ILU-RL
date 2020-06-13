@@ -6,6 +6,7 @@ import tensorflow as tf
 
 import abc
 
+
 class AgentInterface(abc.ABC):
 
     @abc.abstractmethod
@@ -29,30 +30,31 @@ class AgentInterface(abc.ABC):
         """ Load checkpoint """
 
 
-class AgentWorker(multiprocessing.Process):
+mp = multiprocessing.get_context('spawn')
+class AgentWorker(mp.Process):
     
     def __init__(self, pipe):
-        multiprocessing.Process.__init__(self)
+        mp.Process.__init__(self)
         self.pipe = pipe
 
     def run(self):
-
         #print(multiprocessing.get_context('spawn'))
 
         while True:
             call = self.pipe.recv()
             if call is None:
                 break
-            print(f'AgentWorker {self.name} - Received: {call}')
 
             # Call method.
             ret = getattr(self, call[0])(*call[1])
+            print(f'{self.name} - Received: {call}')
 
             # Fake work.
-            time.sleep(2)
+            time.sleep(5)
 
             # Send response.
             self.pipe.send(ret)
+            print(f'{self.name} - Sent: {ret}')
 
         return
 
@@ -63,87 +65,109 @@ class Agent(AgentWorker,AgentInterface):
         super(Agent, self).__init__(*args, **kwargs)
 
     def init(self):
-        print(f'Agent {self.name}: self.init()')
         self.A = tf.random.uniform((2,2))
-        print(f'Agent {self.name}: self.A = {self.A}')
         return self.A
 
-    def act(self):
-        print(f'Agent {self.name}: self.act()')
-        return f'acting {self.name}'
+    def act(self, s):
+        return f'Acting {self.name}'
 
     def update(self, x, y, z):
-        print(f'Agent {self.name}: self.update({x}, {y}, {z})')
+        return
 
     def save_checkpoint(self, path):
-        print(f'Agent {self.name}: self.save_checkpoint({path})')
+        return
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
-        print(f'Agent {self.name}: self.load_checkpoint({chkpts_dir_path}, {chkpt_num})')
+        return
+
+
+class AgentClient(object):
+
+    def __init__(self):
+        # Create communication pipe.
+        mp = multiprocessing.get_context('spawn')
+        comm_pipe = mp.Pipe()
+
+        self.agent = Agent(comm_pipe[1])
+        self.pipe = comm_pipe[0]
+
+        # Start agent.
+        self.agent.start()
+
+        # Initialize agent.
+        args = ()
+        func_call = ('init', args)
+        self.pipe.send(func_call)
+
+        # Synchronize.
+        self.pipe.recv()
+
+    def act(self, state):
+        args = (state,)
+        func_call = ('act', args)
+        self.pipe.send(func_call)
+
+    def receive(self):
+        return self.pipe.recv()
+
+    def close(self):
+        self.pipe.send(None)
+
+
+class AgentsWrapper(object):
+
+    def __init__(self, tids):
+
+        self.tids = tids
+
+        agents = {}
+
+        # Create processes.
+        for tid in self.tids:
+            agents[tid] = AgentClient()
+
+        self.agents = agents
+        print(self.agents)
+
+    def act(self, state):
+
+        # Send request.
+        for (tid, agent) in self.agents.items():
+            agent.act(state[tid])
+
+        # Retrieve request.
+        choices = {}
+        for (tid, agent) in self.agents.items():
+            choices[tid] = agent.receive()
+
+        return choices
+    
+    def update(self):
+        pass
+
+    def save_checkpoint(self):
+        pass
+
+    def load_checkpoint(self):
+        pass
+
+    def close(self):
+
+        # Send request.
+        for (tid, agent) in self.agents.items():
+            agent.close()
 
 
 if __name__ == '__main__':
 
-    NUM_CONSUMERS = 2
+    tids = ['gneJ0', 'gneJ1', 'gneJ2']
 
-    multiprocessing.set_start_method('spawn')
+    agents_wrapper = AgentsWrapper(tids)
 
-    A = np.array([[2,3,4], [1,2,1]])
+    s = {'gneJ0': (9,), 'gneJ1': (9,9), 'gneJ2': (9,9,9)}
+    ret = agents_wrapper.act(s)
+    print(ret)
 
-    # Create communication queues.
-    pipes, consumers = {}, {}
-    for i in range(NUM_CONSUMERS):
-        comm_pipe = multiprocessing.Pipe()
-        #print(f'MASTER - Comm pipe {comm_pipe}')
+    agents_wrapper.close()
 
-        consumers[i] = Agent(comm_pipe[1])
-        pipes[i] = comm_pipe[0]
-
-    #print('MASTER - Pipes:')
-    #print(pipes)
-
-    for i in consumers.keys():
-        #print(f'MASTER - Started consumer {i}')
-        consumers[i].start()
-
-    #print('-'*50)
-
-    """
-        Init
-    """
-    for i in consumers.keys():
-        pipes[i].send(('init', ()))
-
-    for i in consumers.keys():
-        msg = pipes[i].recv()
-        print(f'MASTER - Received from {i}: {msg}')
-
-    """
-        Update
-    """
-    updates = [(345,34,-6), (4,4,-4)]
-    for i in consumers.keys():
-        pipes[i].send(('update', updates[i]))
-
-    for i in consumers.keys():
-        msg = pipes[i].recv()
-        print(f'MASTER - Received from {i}: {msg}')
-
-    """
-        Act
-    """
-    for i in consumers.keys():
-        pipes[i].send(('act', ()))
-
-    for i in consumers.keys():
-        msg = pipes[i].recv()
-        print(f'MASTER - Received from {i}: {msg}')
-
-    """
-        End
-    """
-    # End consumers.
-    for i in consumers.keys():
-        pipes[i].send(None)
-    
-    print(f'MASTER ENDED')
+    print(f'MAIN ENDED')
