@@ -17,7 +17,7 @@ import configargparse
 import numpy as np
 import random
 
-import tensorflow as tf
+#import tensorflow as tf
 
 from flow.core.params import SumoParams, EnvParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
@@ -136,7 +136,7 @@ def main(config_file_path=None):
         random.seed(args.seed)
         np.random.seed(args.seed)
         sumo_args['seed'] = args.seed
-        tf.random.set_seed(train_args.experiment_seed)
+        #tf.random.set_seed(train_args.experiment_seed)
 
     # Setup emission path.
     if args.sumo_emission:

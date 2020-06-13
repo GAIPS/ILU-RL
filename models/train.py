@@ -19,7 +19,7 @@ from shutil import copyfile
 
 import numpy as np
 
-import tensorflow as tf
+#import tensorflow as tf
 
 from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
@@ -74,7 +74,7 @@ def main(train_config_path=None):
         random.seed(train_args.experiment_seed)
         np.random.seed(train_args.experiment_seed)
         sumo_args['seed'] = train_args.experiment_seed
-        tf.random.set_seed(train_args.experiment_seed)
+        #tf.random.set_seed(train_args.experiment_seed)
 
     # Setup emission path.
     if train_args.sumo_emission:

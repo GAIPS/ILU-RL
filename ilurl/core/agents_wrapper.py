@@ -1,4 +1,5 @@
 from copy import deepcopy
+import multiprocessing
 
 import numpy as np
 
@@ -23,13 +24,34 @@ class AgentsWrapper(object):
         agent_type, agent_params = config_parser.parse_agent_params()
 
         # Create agents.
+        multiprocessing.set_start_method('spawn')
+
+        pipes = {}
         agents = {}
 
-        num_variables = len(mdp_params.states_labels)
+        for tid in mdp_params.phases_per_traffic_light.keys():
 
-        # TODO: Afterwards this needs to come from a config file 
-        # telling what each agent is controlling.
-        # TODO: ATM it assumes each agent controls 1 intersection.
+            # Agents factory.
+            if agent_type == 'QL':
+                pass
+                #agents[tid] = QL(agent_params_, exp_path, name=tid)
+            elif agent_type == 'DQN':
+                comm_pipe = multiprocessing.Pipe()
+                agents[tid] = DQN(comm_pipe[1])
+                pipes[tid] = comm_pipe[0]
+            else:
+                raise ValueError(f'''
+                Agent type must be in {AGENT_TYPES}.
+                Got {agent_type} type instead.''')
+
+        for tid in mdp_params.phases_per_traffic_light.keys():
+            agents[tid].start()
+
+        print('AGENTS WRAPPER: AGENTS STARTED')
+        print('Agents', agents)
+        print('Pipes', pipes)
+
+        num_variables = len(mdp_params.states_labels)
         for tid in mdp_params.phases_per_traffic_light.keys():
 
             agent_params_ = deepcopy(agent_params)
@@ -46,15 +68,22 @@ class AgentsWrapper(object):
 
             # Agents factory.
             if agent_type == 'QL':
-                agents[tid] = QL(agent_params_, exp_path, name=tid)
+                pass
+                #agents[tid] = QL(agent_params_, exp_path, name=tid)
             elif agent_type == 'DQN':
-                agents[tid] = DQN(agent_params_, exp_path, name=tid)
+                args = (agent_params_, exp_path, tid)
+                pipes[tid].send(('init', args))
             else:
                 raise ValueError(f'''
                 Agent type must be in {AGENT_TYPES}.
                 Got {agent_type} type instead.''')
 
+        # Synchronize.
+        for tid in mdp_params.phases_per_traffic_light.keys():
+            pipes[tid].recv()
+
         self.agents = agents
+        self.pipes = pipes
 
     @property
     def stop(self):
@@ -71,14 +100,24 @@ class AgentsWrapper(object):
         choices = {}
 
         for tid, agent in self.agents.items():
-            choices[tid] = int(agent.act(state[tid]))
+            args = (state[tid],)
+            self.pipes[tid].send(('act', args))
+
+        for tid, agent in self.agents.items():
+            choices[tid] = int(self.pipes[tid].recv())
 
         return choices
 
     def update(self, s, a, r, s1):
         for tid, agent in self.agents.items():
-            s_, a_, r_, s1_ = s[tid], a[tid], r[tid], s1[tid]
-            agent.update(s_, a_, r_, s1_)
+            #s_, a_, r_, s1_ = s[tid], a[tid], r[tid], s1[tid]
+            #agent.update(s_, a_, r_, s1_)
+            args = (s[tid], a[tid], r[tid], s1[tid])
+            self.pipes[tid].send(('update', args))
+
+        for tid, agent in self.agents.items():
+            self.pipes[tid].recv()
+
 
     def save_checkpoint(self, path):
         """
@@ -90,8 +129,13 @@ class AgentsWrapper(object):
             path to save directory.
 
         """
-        for agent in self.agents.values():
-            agent.save_checkpoint(path)
+        for tid, agent in self.agents.items():
+            args = (path)
+            self.pipes[tid].send('save_checkpoint', args)
+            #agent.save_checkpoint(path)
+
+        for tid, agent in self.agents.items():
+            self.pipes[tid].recv()
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
         """
@@ -106,18 +150,23 @@ class AgentsWrapper(object):
             the number of the checkpoints to load.
 
         """
-        for agent in self.agents.values():
-            agent.load_checkpoint(chkpts_dir_path, chkpt_num)
+        for tid, agent in self.agents.items():
+            args = (chkpts_dir_path, chkpt_num)
+            self.pipes[tid].send('load_checkpoint', args)
+            #agent.load_checkpoint(chkpts_dir_path, chkpt_num)
 
-    def setup_logs(self, path):
-        """
-        Setup train loggers (tensorboard).
+        for tid, agent in self.agents.items():
+            self.pipes[tid].recv()
+
+    # def setup_logs(self, path):
+    #     """
+    #     Setup train loggers (tensorboard).
  
-        Parameters:
-        ----------
-        * path: str 
-            path to log directory.
+    #     Parameters:
+    #     ----------
+    #     * path: str 
+    #         path to log directory.
 
-        """
-        for agent in self.agents.values():
-            agent.setup_logger(path)
+    #     """
+    #     for agent in self.agents.values():
+    #         agent.setup_logger(path)

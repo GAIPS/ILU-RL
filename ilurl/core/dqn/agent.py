@@ -10,13 +10,17 @@ from acme import specs
 from ilurl.core.dqn import acme_agent
 from acme.tf import networks
 
+from ilurl.core.agent_worker import AgentWorker
 
-class DQN(object, metaclass=MetaAgent):
+
+class DQN(AgentWorker):
     """
         DQN agent.
     """
+    def __init__(self, *args, **kwargs):
+        super(DQN, self).__init__(*args, **kwargs)
 
-    def __init__(self, params, exp_path, name):
+    def init(self, params, exp_path, name):
         """Instantiate DQN agent.
 
         Parameters:
