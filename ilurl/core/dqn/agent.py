@@ -36,7 +36,9 @@ class DQN(AgentWorker):
 
         """
         tf.config.set_visible_devices([], 'GPU')
-
+        NUM_THREADS = 32
+        tf.config.threading.set_inter_op_parallelism_threads(NUM_THREADS)
+        tf.config.threading.set_intra_op_parallelism_threads(NUM_THREADS)
         self._name = name
 
         # Whether learning stopped.
