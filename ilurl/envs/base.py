@@ -7,10 +7,13 @@ __date__ = "2019-12-10"
 import os
 import json
 import numpy as np
+# TODO: remove me
+from operator import itemgetter
 
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
 
+from ilurl.envs.elements import build_vehicles
 from ilurl.core.states import build_states
 from ilurl.core.rewards import build_rewards
 
@@ -172,15 +175,19 @@ class TrafficLightEnv(AccelEnv, Serializer):
         * incoming: nested dict
             1st order (outer) keys: int
                     traffic_light_id
+
             2nd order keys: int
                     TLS phase
+
             3rd order (inner) keys: float
                     frame_id of observations ranging from 0 to duration 
+
             values: list
                     vehicle ids and speeds for the given TLS, phase and edges
 
             """
-        def observe(components):
+
+        def observe(node_id, components):
             veh_ids = []
             for component in components:
                 edge_id, lanes = component
@@ -196,12 +203,34 @@ class TrafficLightEnv(AccelEnv, Serializer):
             lanes = [
                 self.k.vehicle.get_lane(veh_id)
                 for veh_id in veh_ids]
-            return veh_ids, speeds, lanes
+
+            veh_speeds = [veh[1] for veh in sorted(zip(veh_ids, speeds),
+                                                        key=itemgetter(0))]
+
+            veh_lanes = [veh[1] for veh in sorted(zip(veh_ids, lanes),
+                                                        key=itemgetter(0))]
+
+            veh_ids = sorted(veh_ids)
+            return veh_ids, veh_speeds, veh_lanes
 
         for node_id in self.tls_ids:
             for phase, data in self.tls_phases[node_id].items():
-                self.incoming[node_id][phase][self.duration] = \
-                                    observe(data['components'])
+                true_approach = observe(node_id, data['components'])
+                vehs = build_vehicles(node_id, data['components'],
+                                      self.k.vehicle)
+
+                veh_ids = [veh.id for veh in vehs]
+                veh_speeds = [veh.speed for veh in vehs]
+                veh_lanes = [veh.lane for veh in vehs]
+                approach_data = veh_ids, veh_speeds, veh_lanes
+
+                try:
+                    assert approach_data == true_approach
+                except AssertionError:
+                    import pdb
+                    pdb.set_trace()
+                else:
+                    self.incoming[node_id][phase][self.duration] = true_approach
 
     def get_observation_space(self):
         """
