@@ -47,7 +47,16 @@ TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 DEMAND_TYPES = ('constant', 'variable') # TODO: Add switch demand type.
 
 
-class MDPParams:
+class Printable(object):
+    def __repr__(self):
+        """Returns a string containing the attributes of the class."""
+        text_repr = f"\n{self.__class__.__name__}:\n"
+        for (attr, val) in self.__dict__.items():
+            text_repr += f"{attr}: {val}\n"
+        return text_repr
+
+
+class MDPParams(Printable):
     """
         Holds general problem formulation params (MDP).
     """
@@ -56,9 +65,9 @@ class MDPParams:
                 states=('speed', 'count'),
                 discretize_state_space=True,    # TODO
                 normalize_state_space=True,     # TODO
-                category_counts=[8.56, 13.00],  # TODO
+                category_counts=[8.56, 13.00],
                 category_delays=[5, 30],
-                category_speeds=[2.28, 5.50],   # TODO
+                category_speeds=[2.28, 5.50],
                 reward = 'MaxSpeedCountReward',
                 reward_rescale=1.0,
                 target_velocity=1.0,
@@ -80,6 +89,8 @@ class MDPParams:
         * category_counts: TODO
 
         * category_speeds: TODO
+
+        * category_delays: TODO
 
         * reward: namedtuple (see Reward definition above)
 
@@ -233,7 +244,7 @@ class MDPParams:
     #     return np.digitize(count, bins=self.category_counts).tolist()
 
 
-class QLParams:
+class QLParams(Printable):
     """
         Base Q-learning parameters.
     """
@@ -336,10 +347,11 @@ class QLParams:
                     '''.format(replay_buffer_warm_up))
 
         for attr, value in kwargs.items():
-            setattr(self, attr, value)
+            if attr not in ('self'):
+                setattr(self, attr, value)
 
 
-class DQNParams:
+class DQNParams(Printable):
     """
         Base Deep Q-network parameters.
     """
@@ -449,10 +461,11 @@ class DQNParams:
                     Got n_step = {}.'''.format(n_step))
 
         for attr, value in kwargs.items():
-            setattr(self, attr, value)
+            if attr not in ('self'):
+                setattr(self, attr, value)
 
 
-class TrainParams:
+class TrainParams(Printable):
     """
         Base train.py parameters.
     """
@@ -542,10 +555,11 @@ class TrainParams:
                     Got demand_type = {}.'''.format(demand_type))
 
         for attr, value in kwargs.items():
-            setattr(self, attr, value)
+            if attr not in ('self'):
+                setattr(self, attr, value)
 
 
-class InFlows(flow_params.InFlows):
+class InFlows(flow_params.InFlows,Printable):
     """InFlow: plus load & dump functionality"""
 
     @classmethod
@@ -679,7 +693,8 @@ class InFlows(flow_params.InFlows):
         for args, kwargs in params:
             self.add(*args, **kwargs)
 
-class NetParams(flow_params.NetParams):
+
+class NetParams(flow_params.NetParams,Printable):
     """Extends NetParams to work with saved templates"""
 
     @classmethod
