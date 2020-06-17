@@ -124,7 +124,7 @@ class QL(AgentWorker,AgentInterface):
 
         self._obs_counter += 1
 
-        return choosen
+        return int(choosen)
 
     def update(self, s, a, r, s1):
         if not self.stop:

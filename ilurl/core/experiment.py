@@ -17,7 +17,7 @@ import datetime
 import json
 import logging
 import time
-#from threading import Thread
+from threading import Thread
 
 from tqdm import tqdm
 
@@ -217,15 +217,15 @@ class Experiment:
                     info_dict["actions"] = [a for a in self.env.actions_log.values()]
                     info_dict["states"] = [s for s in self.env.states_log.values()]
 
-                    # with train_log_path.open('w') as f:
-                    #     t = Thread(target=json.dump(info_dict, f))
-                    #     t.start()
+                    with train_log_path.open('w') as f:
+                        t = Thread(target=json.dump(info_dict, f))
+                        t.start()
 
             if done and stop_on_teleports:
                 break
 
             if self.save_agent and self._is_save_agent_step(agent_updates_counter):
-                self.env.agents.save_checkpoint(self.exp_path)
+                self.env.mas.save_checkpoint(self.exp_path)
 
         # Save train log (data is aggregated per traffic signal).
         info_dict["rewards"] = rewards
@@ -235,6 +235,7 @@ class Experiment:
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
+        self.env.mas.terminate()
         self.env.terminate()
 
         return info_dict
