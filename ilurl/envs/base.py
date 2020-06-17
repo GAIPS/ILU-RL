@@ -28,49 +28,7 @@ NEW_STATES = None
 
 class TrafficLightEnv(AccelEnv, Serializer):
     """
-    Environment used to train traffic light systems.
-
-    This is a single TFLQLAgent controlling a variable number of
-    traffic lights (TFL) with discrete features defined as such:
-
-    1. One TFLQLAgent controlling k = 1, 2, ..., K TFL
-
-    2. The actions for the agent is for each of the
-       K-TFL is to:
-        2.1 0 - short green (direction 0), Ex:
-            (10s Green, 5s Yellow, 25s Red)
-        2.2 1 - long green (direction 0), Ex:
-            (25s Green, 5s Yellow, 10s Red)
-        2.3 short green (direction 0) implies long
-            green (direction 1) and vice-versa.
-
-    3. Each k-TFL can only observe it's subjacent edges -
-        meaning the state is described by the cars locally
-        available on the neighborhood of K-TFL.
-        
-
-    4. The state Sk for each of the K-TFL can be represented by
-       a tuple such that Sk = (vk, nk) where:
-        4.1 vk is the mean speed over all adjacent edges.
-        4.2 nk is the total number of all adjacent edges.
-
-    5. The state S is a set describes all the possible configurations
-        such that S = (S1, S2 ..., SK) for ease of implementation
-        the S representation is flattened such that:
-
-            S = (v1, n1, v2, n2  ..vK, nK)
-
-    PARAMETERS:
-    -----------
-
-    * switch_time: minimum time a light must be constant before it
-                    switches (in seconds). Earlier RL commands are
-                    ignored.
-    * tls_type: whether the traffic lights should be actuated by sumo or
-                RL, options are respectively "actuated" and "controlled"
-    * discrete: determines whether the action space is meant to be
-                discrete or continuous.
-
+        Environment used to train traffic light systems.
     """
     def __init__(self,
                  env_params,
@@ -78,6 +36,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
                  mdp_params,
                  network,
                  exp_path,
+                 seed,
                  simulator='traci'):
 
         super(TrafficLightEnv, self).__init__(env_params,
@@ -108,7 +67,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Object that handles the Multi-Agent RL System logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
-        self.mas = DecentralizedMAS(mdp_params, exp_path)
+        self.mas = DecentralizedMAS(mdp_params, exp_path, seed)
 
         # Reward function.
         self.reward = build_rewards(mdp_params)

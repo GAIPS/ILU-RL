@@ -15,7 +15,8 @@ class DecentralizedMAS(MASInterface):
 
     def __init__(self, 
                 mdp_params,
-                exp_path):
+                exp_path,
+                seed):
 
         # Load agent parameters from config file (train.config).
         agent_type, agent_params = config_parser.parse_agent_params()
@@ -38,12 +39,19 @@ class DecentralizedMAS(MASInterface):
             states_depth = len(mdp_params.category_counts) + 1
             agent_params_.states = Bounds(states_rank, states_depth)
 
+            # Experience path.
+            agent_params_.exp_path = exp_path
+
+            # Name.
+            agent_params_.name = tid
+
+            # Seed.
+            agent_params_.seed = seed
+
             print(AgentFactory.get(agent_type))
 
             agents[tid] = AgentClient(AgentFactory.get(agent_type),
-                                     params=agent_params_,
-                                     exp_path=exp_path,
-                                     name=tid)
+                                     params=agent_params_)
 
         self.agents = agents
 

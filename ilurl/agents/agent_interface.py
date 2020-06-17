@@ -6,17 +6,12 @@ class AgentInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def init(self, params, exp_path, name):
+    def init(self, params):
         """ Instantiate agent.
 
             Parameters:
             ----------
             * params: object agent's parameters.
-
-            * exp_path: str
-                Path to experiment's directory.
-
-            * name: str
 
         """
 

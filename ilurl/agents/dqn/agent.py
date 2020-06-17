@@ -26,14 +26,18 @@ class DQN(AgentWorker,AgentInterface):
     def __init__(self, *args, **kwargs):
         super(DQN, self).__init__(*args, **kwargs)
 
-    def init(self, params, exp_path, name):
+    def init(self, params):
 
         if not _TF_USE_GPU:
             tf.config.set_visible_devices([], 'GPU')
         tf.config.threading.set_inter_op_parallelism_threads(_TF_NUM_THREADS)
         tf.config.threading.set_intra_op_parallelism_threads(_TF_NUM_THREADS)
 
-        self._name = name
+        if params.seed:
+            print(f'SETTED SEED: {params.seed}')
+            tf.random.set_seed(params.seed)
+
+        self._name = params.name
 
         # Whether learning stopped.
         self.stop = False
@@ -63,7 +67,7 @@ class DQN(AgentWorker,AgentInterface):
                                           discounts=discount_spec)
 
         # Logger.
-        dir_path = f'{exp_path}/logs/{self._name}'
+        dir_path = f'{params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
 
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')

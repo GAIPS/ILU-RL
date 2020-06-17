@@ -10,15 +10,13 @@ class AgentClient(object):
         processes.
     """
 
-    def __init__(self, agent_cls, params, exp_path, name):
+    def __init__(self, agent_cls, params):
         """ Instantiate.
 
             Parameters:
             ----------
             * agent_cls: agent's class for instantiation.
             * params: agent's parameters.
-            * exp_path: experiment path.
-            * name: agent's name.
 
             Attributes:
             ----------
@@ -39,7 +37,7 @@ class AgentClient(object):
         self.agent.start()
 
         # Initialize agent.
-        args = (params, exp_path, name)
+        args = (params,)
         func_call = ('init', args)
         self.pipe.send(func_call)
 

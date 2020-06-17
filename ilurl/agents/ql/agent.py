@@ -23,7 +23,7 @@ class QL(AgentWorker,AgentInterface):
     def __init__(self, *args, **kwargs):
         super(QL, self).__init__(*args, **kwargs)
 
-    def init(self, ql_params, exp_path, name):
+    def init(self, ql_params):
         """Instantiate Q-Learning agent.
 
         Parameters:
@@ -32,18 +32,13 @@ class QL(AgentWorker,AgentInterface):
         * ql_params: ilurl.core.params.QLParams object
             Q-learning agent parameters
 
-        * exp_path: str
-            Path to experiment's directory.
-
-        * name: str
-
         References:
         ----------
 
         [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
             
         """
-        self._name = name
+        self._name = ql_params.name
 
         # Whether learning stopped.
         self.stop = False
@@ -88,7 +83,7 @@ class QL(AgentWorker,AgentInterface):
             self.memory = ReplayBuffer(ql_params.replay_buffer_size)
 
         # Logger.
-        dir_path = f'{exp_path}/logs/{self._name}'
+        dir_path = f'{ql_params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
 
         # Observations counter.
