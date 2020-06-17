@@ -4,21 +4,26 @@ import pickle
 import numpy as np
 from threading import Thread
 
-from ilurl.core.meta import MetaAgent
-from ilurl.core.ql.choice import choice_eps_greedy, choice_ucb
-from ilurl.core.ql.define import dpq_tls
-from ilurl.core.ql.update import dpq_update
-from ilurl.core.ql.replay_buffer import ReplayBuffer
-from ilurl.core.ql.schedules import PowerSchedule
-
 from ilurl.utils.default_logger import make_default_logger
 
-class QL(object, metaclass=MetaAgent):
+from ilurl.agents.agent_worker import AgentWorker
+from ilurl.agents.agent_interface import AgentInterface
+
+from ilurl.agents.ql.choice import choice_eps_greedy, choice_ucb
+from ilurl.agents.ql.define import dpq_tls
+from ilurl.agents.ql.update import dpq_update
+from ilurl.agents.ql.replay_buffer import ReplayBuffer
+from ilurl.agents.ql.schedules import PowerSchedule
+
+
+class QL(AgentWorker,AgentInterface):
     """
         Q-learning agent.
     """
+    def __init__(self, *args, **kwargs):
+        super(QL, self).__init__(*args, **kwargs)
 
-    def __init__(self, ql_params, exp_path, name):
+    def init(self, ql_params, exp_path, name):
         """Instantiate Q-Learning agent.
 
         Parameters:
@@ -89,25 +94,13 @@ class QL(object, metaclass=MetaAgent):
         # Observations counter.
         self._obs_counter = 0
 
-    @property
-    def stop(self):
-        """Stops learning."""
+    def get_stop(self):
         return self._stop
 
-    @stop.setter
-    def stop(self, stop):
+    def set_stop(self, stop):
         self._stop = stop
 
     def act(self, s):
-        """
-        Specify the actions to be performed by the RL agent(s).
-
-        Parameters:
-        ----------
-        * s: tuple
-            state representation.
-
-        """
         if self.stop:
             # Argmax greedy choice.
             actions, values = zip(*self.Q[s].items())
@@ -134,24 +127,6 @@ class QL(object, metaclass=MetaAgent):
         return choosen
 
     def update(self, s, a, r, s1):
-        """
-        Performs a learning update step.
-
-        Parameters:
-        ----------
-        * s: tuple 
-            state representation.
-
-        * a: int
-            action.
-
-        * r: float
-            reward.
-
-        * s1: tuple
-            state representation.
-
-        """
         if not self.stop:
 
             if self.replay_buffer:
@@ -198,15 +173,6 @@ class QL(object, metaclass=MetaAgent):
             self._logger.write(values)
 
     def save_checkpoint(self, path):
-        """
-        Save model's weights.
-
-        Parameters:
-        ----------
-        * path: str 
-            path to save directory.
-
-        """
         os.makedirs(f"{path}/checkpoints/{self._obs_counter}", exist_ok=True)
 
         checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
@@ -220,18 +186,6 @@ class QL(object, metaclass=MetaAgent):
             t.start()
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
-        """
-        Loads model's weights from file.
- 
-        Parameters:
-        ----------
-        * chkpts_dir_path: str
-            path to checkpoint's directory.
-
-        * chkpt_num: int
-            the number of the checkpoint to load.
-
-        """
         chkpt_path = '{0}/{1}/{2}.chkpt'.format(chkpts_dir_path,
                                                     chkpt_num,
                                                     self._name)
