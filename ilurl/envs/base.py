@@ -17,7 +17,7 @@ from ilurl.core.rewards import build_rewards
 from ilurl.utils.serialize import Serializer
 from ilurl.utils.properties import delegate_property, lazy_property
 
-from ilurl.core.agents_wrapper import AgentsWrapper
+from ilurl.mas.mas_decentralized import DecentralizedMAS # TODO: make this a factory
 
 ILURL_HOME = os.environ['ILURL_HOME']
 
@@ -105,10 +105,10 @@ class TrafficLightEnv(AccelEnv, Serializer):
         # Problem formulation params.
         self.mdp_params = mdp_params
 
-        # Object that handles RL agents logic.
+        # Object that handles the Multi-Agent RL System logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
-        self.agents = AgentsWrapper(mdp_params, exp_path)
+        self.mas = DecentralizedMAS(mdp_params, exp_path)
 
         # Reward function.
         self.reward = build_rewards(mdp_params)
@@ -133,11 +133,11 @@ class TrafficLightEnv(AccelEnv, Serializer):
     # TODO: create a delegate class
     @property
     def stop(self):
-        return self.agents.stop
+        return self.mas.stop
 
     @stop.setter
     def stop(self, stop):
-        self.agents.stop = stop
+        self.mas.stop = stop
 
     # TODO: restrict delegate property to an
     # instance of class
@@ -302,7 +302,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
         """
         if self.duration == 0:
-            action = self.agents.act(state)
+            action = self.mas.act(state)
         else:
             action = None
 
@@ -378,7 +378,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
                     reward = self.compute_reward(None)
                     prev_state = self.states_log[cycle_number - 1]
                     prev_action = self.actions_log[cycle_number - 1]
-                    self.agents.update(prev_state, prev_action, reward, state)
+                    self.mas.update(prev_state, prev_action, reward, state)
 
             # Update traffic lights' control signals.
             self._apply_cl_actions(self.cl_actions(static=self.static))

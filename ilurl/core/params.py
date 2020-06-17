@@ -8,7 +8,7 @@ import flow.core.params as flow_params
 
 from collections import namedtuple
 from ilurl.core.rewards import get_rewards 
-from ilurl.core.ql.choice import CHOICE_TYPES
+from ilurl.agents.ql.choice import CHOICE_TYPES
 
 from ilurl.dumpers.inflows import inflows_dump
 from ilurl.loaders.nets import get_edges, get_routes, get_path

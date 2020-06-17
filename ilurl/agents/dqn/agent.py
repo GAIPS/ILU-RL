@@ -1,20 +1,22 @@
 import os
 import numpy as np
 
-from ilurl.core.meta import MetaAgent
-from ilurl.utils.default_logger import make_default_logger
-
-import dm_env
 import acme
+import dm_env
 from acme import specs
-from ilurl.core.dqn import acme_agent
 from acme.tf import networks
 
-from ilurl.core.agent_worker import AgentWorker
+from ilurl.utils.default_logger import make_default_logger
+from ilurl.agents.agent_worker import AgentWorker
+from ilurl.agents.agent_interface import AgentInterface
+from ilurl.agents.dqn import acme_agent
 
 import tensorflow as tf
 
-class DQN(AgentWorker):
+_TF_USE_GPU = False
+_TF_NUM_THREADS = 32
+
+class DQN(AgentWorker,AgentInterface):
     """
         DQN agent.
     """
@@ -22,23 +24,12 @@ class DQN(AgentWorker):
         super(DQN, self).__init__(*args, **kwargs)
 
     def init(self, params, exp_path, name):
-        """Instantiate DQN agent.
 
-        Parameters:
-        ----------
-        * params: ilurl.core.params.DQNParams object.
-            object containing DQN parameters.
+        if not _TF_USE_GPU:
+            tf.config.set_visible_devices([], 'GPU')
+        tf.config.threading.set_inter_op_parallelism_threads(_TF_NUM_THREADS)
+        tf.config.threading.set_intra_op_parallelism_threads(_TF_NUM_THREADS)
 
-        * exp_path: str
-            Path to experiment's directory.
-
-        * name: str
-
-        """
-        tf.config.set_visible_devices([], 'GPU')
-        NUM_THREADS = 32
-        tf.config.threading.set_inter_op_parallelism_threads(NUM_THREADS)
-        tf.config.threading.set_intra_op_parallelism_threads(NUM_THREADS)
         self._name = name
 
         # Whether learning stopped.
@@ -94,25 +85,13 @@ class DQN(AgentWorker):
         # Observations counter.
         self._obs_counter = 0
 
-    @property
-    def stop(self):
-        """Stops learning."""
+    def get_stop(self):
         return self._stop
 
-    @stop.setter
-    def stop(self, stop):
+    def set_stop(self, stop):
         self._stop = stop
 
     def act(self, s):
-        """
-        Specify the actions to be performed by the RL agent(s).
-
-        Parameters:
-        ----------
-        * s: tuple
-            state representation.
-
-        """
         s = np.array(s, dtype=np.float32)
 
         # Make first observation.
@@ -128,24 +107,9 @@ class DQN(AgentWorker):
 
         self._obs_counter += 1
 
-        return action
+        return int(action)
 
     def update(self, _, a, r, s1):
-        """
-        Performs a learning update step.
-
-        Parameters:
-        ----------
-        * a: int
-            action.
-
-        * r: float
-            reward.
-
-        * s1: tuple
-            state representation.
-
-        """
         if not self.stop:
 
             s1 = np.array(s1, dtype=np.float32)
@@ -163,15 +127,6 @@ class DQN(AgentWorker):
             self._logger.write(values)
 
     def save_checkpoint(self, path):
-        """
-        Save model's weights.
-
-        Parameters:
-        ----------
-        * path: str 
-            path to save directory.
-
-        """
         checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
             path, self._obs_counter, self._name)
 
@@ -181,18 +136,6 @@ class DQN(AgentWorker):
         self.agent.save(checkpoint_file)
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
-        """
-        Loads model's weights from file.
- 
-        Parameters:
-        ----------
-        * chkpts_dir_path: str
-            path to checkpoint's directory.
-
-        * chkpt_num: int
-            the number of the checkpoint to load.
-
-        """
         chkpt_path = '{0}/{1}/{2}.chkpt'.format(chkpts_dir_path,
                                                     chkpt_num,
                                                     self._name)

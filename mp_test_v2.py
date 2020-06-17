@@ -1,7 +1,7 @@
 import abc
 import time
 import multiprocessing
-from typing import Callable, List
+from typing import Callable, List, Dict
 
 import tensorflow as tf
 
@@ -65,25 +65,21 @@ class AgentWorker(mp.Process):
 
 class AgentFactory(object):
 
-    # Internal registry.
-    registry = {}
-
-    @classmethod
-    def register(cls, name: str) -> Callable:
-        def inner_wrapper(wrapped_class: AgentInterface) -> Callable:
-            cls.registry[name] = wrapped_class
-            return wrapped_class
-        return inner_wrapper
-
     @classmethod
     def types(cls) -> List:
-        return list(cls.registry.keys())
+        return [cls_type.__name__
+            for cls_type in cls.__subclasses__()]
+
+    @classmethod
+    def _types(cls) -> Dict:
+        return {cls_type.__name__: cls_type
+            for cls_type in cls.__subclasses__()}
 
     @classmethod
     def get(cls, name : str):
-        if name not in list(cls.registry.keys()):
-            raise ValueError("unknown agent type.")
-        return cls.registry[name]
+        if name not in cls.types():
+            raise ValueError("Unknown agent type.")
+        return cls._types()[name]
 
 
 class QLParams(object):
@@ -96,8 +92,7 @@ class DQNParams(object):
         self.y = y
 
 
-@AgentFactory.register('QL')
-class QL(AgentWorker,AgentInterface):
+class QL(AgentWorker,AgentInterface,AgentFactory):
 
     def __init__(self, *args, **kwargs):
         super(QL, self).__init__(*args, **kwargs)
@@ -120,8 +115,7 @@ class QL(AgentWorker,AgentInterface):
         return f'Loading {self.name}'
 
 
-@AgentFactory.register('DQN')
-class DQN(AgentWorker,AgentInterface):
+class DQN(AgentWorker,AgentInterface,AgentFactory): 
 
     def __init__(self, *args, **kwargs):
         super(DQN, self).__init__(*args, **kwargs)
@@ -248,7 +242,8 @@ if __name__ == '__main__':
 
     tids = ['gneJ0', 'gneJ1', 'gneJ2']
 
-    print(AgentFactory.registry)
+    print(AgentFactory.types())
+    print(AgentFactory._types())
 
     agents_wrapper = DecentralizedMAS(tids)
 
