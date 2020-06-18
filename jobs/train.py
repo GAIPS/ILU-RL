@@ -9,6 +9,7 @@ import json
 import tempfile
 import configparser
 import multiprocessing
+import multiprocessing.pool
 import time
 
 from models.train import main as train
@@ -21,8 +22,7 @@ CONFIG_PATH = \
 
 mp = multiprocessing.get_context('spawn')
 
-LOCK = mp.Lock()
-
+#LOCK = mp.Lock()
 
 class NoDaemonProcess(mp.Process):
     @property
@@ -33,37 +33,38 @@ class NoDaemonProcess(mp.Process):
     def daemon(self, val):
         pass
 
-class NoDaemonProcessPool(multiprocessing.pool.Pool):
-    def Process(self, *args, **kwds):
-        proc = super(NoDaemonProcessPool, self).Process(*args, **kwds)
-        proc.__class__ = NoDaemonProcess
-        return proc
+
+class NoDaemonContext(type(multiprocessing.get_context('spawn'))):
+    Process = NoDaemonProcess
+
+
+class NonDaemonicPool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(NonDaemonicPool, self).__init__(*args, **kwargs)
+
 
 @benchmarked
 def benchmarked_train(*args, **kwargs):
     return train(*args, **kwargs)
 
 
-def delay_train(*args, **kwargs):
-    """Delays execution by 1 sec.
+def delay_train(args):
+    """Delays execution.
 
         Parameters:
         -----------
-        * fnc: function
-            An anonymous function decorated by the user
+        * args: tuple
+            Position 0: execution delay of the process.
+            Position 1: store the train config file.
 
         Returns:
         -------
         * fnc : function
-            An anonymous function to be executed 1 sec. after
-            calling
+            An anonymous function to be executed with a given delay
     """
-    LOCK.acquire()
-    try:
-        time.sleep(1)
-    finally:
-        LOCK.release()
-    return benchmarked_train(*args, **kwargs)
+    time.sleep(args[0])
+    return benchmarked_train(args[1])
 
 
 def train_batch():
@@ -125,12 +126,13 @@ def train_batch():
             tmp_cfg_file.close()
 
         # Run.
-        # TODO: option without pooling not working. why?
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = NoDaemonProcessPool(num_processors)
-            rvs = pool.map(delay_train, [cfg for cfg in train_configs])
+            pool = NonDaemonicPool(num_processors)
+            rvs = pool.map(delay_train, [(delay, cfg)
+                            for (delay, cfg) in zip(range(len(train_configs)), train_configs)])
             pool.close()
+            pool.join()
         else:
             rvs = []
             for cfg in train_configs:

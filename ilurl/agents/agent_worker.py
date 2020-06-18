@@ -27,7 +27,7 @@ class AgentWorker(mp.Process):
         while True:
             call = self.pipe.recv()
 
-            print(f"{self.name} - received: {call}")
+            #print(f"{self.name} - received: {call}")
 
             if call is None:
                 # Terminate.
@@ -36,8 +36,7 @@ class AgentWorker(mp.Process):
             # Call method.
             ret = getattr(self, call[0])(*call[1])
 
-            print(f"{self.name} - sent: {ret}")
-
+            #print(f"{self.name} - sent: {ret}")
 
             # Send response.
             self.pipe.send(ret)
