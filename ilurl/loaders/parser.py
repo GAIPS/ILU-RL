@@ -73,8 +73,6 @@ class Parser(object):
         train_params = TrainParams(
                         network=train_args['network'],
                         experiment_time=int(train_args['experiment_time']),
-                        experiment_log=str2bool(train_args['experiment_log']),
-                        experiment_log_interval=int(train_args['experiment_log_interval']),
                         experiment_save_agent=str2bool(train_args['experiment_save_agent']),
                         experiment_save_agent_interval=int(train_args['experiment_save_agent_interval']),
                         experiment_seed=seed,

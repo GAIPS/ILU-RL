@@ -4,23 +4,54 @@
 
 from pathlib import Path
 import itertools
+import time
 import sys
 from os import environ
 import json
 import tempfile
 import argparse
-import multiprocessing as mp
-import time
-from collections import defaultdict
 import configparser
+import multiprocessing
+import multiprocessing.pool
+from collections import defaultdict
 
 from ilurl.utils.decorators import processable
 from models.rollout import main as roll
 
 ILURL_HOME = environ['ILURL_HOME']
-CONFIG_PATH = Path(f'{ILURL_HOME}/config/')
+CONFIG_PATH = \
+    Path(f'{ILURL_HOME}/config/')
 
-LOCK = mp.Lock()
+mp = multiprocessing.get_context('spawn')
+
+
+class NoDaemonProcess(mp.Process):
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, val):
+        pass
+
+class NoDaemonContext(type(multiprocessing.get_context('spawn'))):
+    Process = NoDaemonProcess
+
+class NonDaemonicPool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(NonDaemonicPool, self).__init__(*args, **kwargs)
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def get_arguments():
     parser = argparse.ArgumentParser(
@@ -42,26 +73,24 @@ def get_arguments():
 
     return parsed
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
-def delay_roll(*args, **kwargs):
+def delay_roll(args):
+    """Delays execution.
+
+        Parameters:
+        -----------
+        * args: tuple
+            Position 0: execution delay of the process.
+            Position 1: store the train config file.
+
+        Returns:
+        -------
+        * fnc : function
+            An anonymous function to be executed with a given delay
     """
-        Delays execution by 1 sec.
-    """
-    LOCK.acquire()
-    try:
-        time.sleep(1)
-    finally:
-        LOCK.release()
-    return roll(*args, **kwargs)
+    time.sleep(args[0])
+    return roll(args[1])
+
 
 def concat(evaluations):
     """Receives an experiments' json and merges it's contents
@@ -242,8 +271,9 @@ def rollout_batch(test=False, experiment_dir=None):
 
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = mp.Pool(num_processors)
-            rvs = pool.map(delay_roll, [[cfg] for cfg in rollouts_cfg_paths])
+            pool = NonDaemonicPool(num_processors)
+            rvs = pool.map(delay_roll, [(delay, [cfg])
+                            for (delay, cfg) in zip(range(len(rollouts_cfg_paths)), rollouts_cfg_paths)])
             pool.close()
         else:
             rvs = []

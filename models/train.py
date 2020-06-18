@@ -109,8 +109,6 @@ def main(train_config_path=None):
             env=env,
             exp_path=experiment_path.as_posix(),
             train=True,
-            log_info=train_args.experiment_log,
-            log_info_interval=train_args.experiment_log_interval,
             save_agent=train_args.experiment_save_agent,
             save_agent_interval=train_args.experiment_save_agent_interval
     )

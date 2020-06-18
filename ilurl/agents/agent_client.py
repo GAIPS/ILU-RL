@@ -84,6 +84,7 @@ class AgentClient(object):
 
     def terminate(self):
         """
-            Terminates agent's process execution.
+            Terminates and waits for agent's process execution.
         """
         self.pipe.send(None)
+        self.agent.join()

@@ -14,10 +14,7 @@ import os
 from pathlib import Path
 import warnings
 import datetime
-import json
 import logging
-import time
-from threading import Thread
 
 from tqdm import tqdm
 
@@ -61,38 +58,32 @@ class Experiment:
 
         >>> exp.run(num_runs=1, num_steps=1000)
 
-    Attributes
+    Attributes:
     ----------
     env : flow.envs.Env
-        the environment object the simulator will run
+        the environment object the simulator will run.
     """
 
     def __init__(self,
                 env,
-                exp_path,
-                train=True,
-                log_info=False,
-                log_info_interval=20,
-                save_agent=False,
-                save_agent_interval=100):
+                exp_path : str,
+                train : bool = True,
+                save_agent : bool = False,
+                save_agent_interval : int = 100):
         """
 
-        Parameters
+        Parameters:
         ----------
         env : flow.envs.Env
-            the environment object the simulator will run
+            the environment object the simulator will run.
         exp_path : str
-            path to dump experiment results
+            path to dump experiment-related objects.
         train : bool
-            whether to train agent
-        log_info : bool
-            whether to log experiment info into json file throughout training
-        log_info_interval : int
-            json file log interval (in number of agent-update steps)
+            Whether to train RL agents.
         save_agent : bool
-            whether to save RL agent parameters throughout training
+            Whether to save RL agents parameters throughout training.
         save_agent_interval : int
-            save RL agent interval (in number of agent-update steps)
+            RL agent save interval (in number of agent-update steps).
 
         """
         # Guarantees that the enviroment has stopped.
@@ -102,12 +93,7 @@ class Experiment:
         self.env = env
         self.train = train
         self.exp_path = Path(exp_path) if exp_path is not None else None
-        # fails gracefully if an environment with no cycle time
-        # is provided
         self.cycle = getattr(env, 'cycle_time', None)
-        self.save_step = getattr(env, 'cycle_time', 1)
-        self.log_info = log_info
-        self.log_info_interval = log_info_interval
         self.save_agent = save_agent
         self.save_agent_interval = save_agent_interval
 
@@ -116,43 +102,41 @@ class Experiment:
 
         logging.info("Initializing environment.")
 
-
     def run(
             self,
-            num_steps,
-            rl_actions=None,
-            stop_on_teleports=False
+            num_steps : int,
+            rl_actions = None,
+            stop_on_teleports : bool = False
     ):
         """
-        Run the given scenario for a set number of runs and steps per run.
+        Run the given scenario (env) for a given number of steps.
 
-        Parameters
+        Parameters:
         ----------
         num_steps : int
-            number of steps to be performs in each run of the experiment
+            number of steps to run.
         rl_actions : method, optional
             maps states to actions to be performed by the RL agents (if
-            there are any)
+            there are any).
         stop_on_teleport : boolean
             if true will break execution on teleport which occur on:
-            * OSM scenarios with faulty connections
-            * collisions
+            * OSM scenarios with faulty connections.
+            * collisions.
             * timeouts a vehicle is unable to move for 
             -time-to-teleport seconds (default 300) which is caused by
-            wrong lane, yield or jam
+            wrong lane, yield or jam.
 
-        Returns
+        Returns:
         -------
         info_dict : dict
-            contains returns, average speed per step (last run)
+            contains experiment-related data.
 
-        References
+        References:
         ---------
-
-
         https://sourceforge.net/p/sumo/mailman/message/33244698/
         http://sumo.sourceforge.net/userdoc/Simulation/Output.html
         http://sumo.sourceforge.net/userdoc/Simulation/Why_Vehicles_are_teleporting.html
+
         """
         if rl_actions is None:
 
@@ -161,10 +145,10 @@ class Experiment:
 
         info_dict = {}
 
-        vels = []
-        vehs = []
         observation_spaces = []
         rewards = []
+        vels = []
+        vehs = []
 
         veh_i = []
         vel_i = []
@@ -205,21 +189,6 @@ class Experiment:
                 vel_i = []
 
                 agent_updates_counter += 1
-
-                # Save train log (data is aggregated per traffic signal).
-                if self.log_info and \
-                    (agent_updates_counter % self.log_info_interval == 0):
-
-                    info_dict["rewards"] = rewards
-                    info_dict["velocities"] = vels
-                    info_dict["vehicles"] = vehs
-                    info_dict["observation_spaces"] = observation_spaces
-                    info_dict["actions"] = [a for a in self.env.actions_log.values()]
-                    info_dict["states"] = [s for s in self.env.states_log.values()]
-
-                    with train_log_path.open('w') as f:
-                        t = Thread(target=json.dump(info_dict, f))
-                        t.start()
 
             if done and stop_on_teleports:
                 break

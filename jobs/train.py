@@ -5,24 +5,22 @@ from pathlib import Path
 from datetime import datetime
 import sys
 import os
+import time
 import json
 import tempfile
 import configparser
 import multiprocessing
 import multiprocessing.pool
-import time
 
 from models.train import main as train
 from ilurl.utils.decorators import processable, benchmarked
 
 ILURL_HOME = os.environ['ILURL_HOME']
-
 CONFIG_PATH = \
     f'{ILURL_HOME}/config/'
 
 mp = multiprocessing.get_context('spawn')
 
-#LOCK = mp.Lock()
 
 class NoDaemonProcess(mp.Process):
     @property
@@ -33,10 +31,8 @@ class NoDaemonProcess(mp.Process):
     def daemon(self, val):
         pass
 
-
 class NoDaemonContext(type(multiprocessing.get_context('spawn'))):
     Process = NoDaemonProcess
-
 
 class NonDaemonicPool(multiprocessing.pool.Pool):
     def __init__(self, *args, **kwargs):
@@ -165,4 +161,3 @@ def train_job():
 if __name__ == '__main__':
     train_batch() # Use this line for textual output.
     # train_job()
-

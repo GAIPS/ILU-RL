@@ -474,8 +474,6 @@ class TrainParams(Printable):
             self,
             network='intersection',
             experiment_time=900000,
-            experiment_log=False,
-            experiment_log_interval=1000,
             experiment_save_agent=False,
             experiment_save_agent_interval=2500,
             experiment_seed=None,
@@ -493,15 +491,6 @@ class TrainParams(Printable):
 
         * experiment_time: int
             Simulation's real world time in seconds.
-
-        * experiment_log: bool
-            Whether to save experiment-related data in a JSON file
-            thoughout training (allowing to live track training).
-            If True tensorboard logs will also be created.
-
-        * experiment_log_interval: int
-            [Only applies if experiment_log is True]
-            Log into JSON file interval (in agent update steps).
 
         * experiment_save_agent: bool
             Whether to save RL-agent parameters (checkpoints)
@@ -537,10 +526,6 @@ class TrainParams(Printable):
         if experiment_time <= 0:
             raise ValueError('''The ineq 0 < experiment_time must hold.
                     Got experiment_time = {}.'''.format(experiment_time))
-
-        if experiment_log_interval <= 0:
-            raise ValueError('''The ineq 0 < experiment_log_interval must hold.
-                    Got experiment_log_interval = {}.'''.format(experiment_log_interval))
 
         if experiment_save_agent_interval <= 0:
             raise ValueError('''The ineq 0 < experiment_save_agent_interval < 1 must hold.

@@ -164,7 +164,7 @@ def main(config_file_path=None):
 
     # Setup checkpoints.
     checkpoints_dir_path = Path(args.run_path) / 'checkpoints'
-    env.agents.load_checkpoint(checkpoints_dir_path, args.chkpt_number)
+    env.mas.load_checkpoint(checkpoints_dir_path, args.chkpt_number)
 
     # Stop training.
     env.stop = True
@@ -173,7 +173,6 @@ def main(config_file_path=None):
             env=env,
             exp_path=experiment_path.as_posix(),
             train=False, # Stop training.
-            log_info=False,
             save_agent=False
     )
 

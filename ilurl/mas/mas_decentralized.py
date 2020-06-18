@@ -116,5 +116,6 @@ class DecentralizedMAS(MASInterface):
 
     def terminate(self):
         # Send terminate request for each agent.
+        # (also waits for termination)
         for (tid, agent) in self.agents.items():
             agent.terminate()
