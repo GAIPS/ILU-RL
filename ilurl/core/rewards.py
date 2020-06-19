@@ -107,16 +107,7 @@ def reward_max_speed_count(target_velocity, state, *args):
 
     Reference:
     ----------
-    * El-Tantawy, et al. 2014
-        "Design for Reinforcement Learning Parameters for Seamless"
-
-    * Lu, Liu, & Dai. 2008
-
-    * Shoufeng et al., 2008
-
-    * Abdullhai et al. 2003
-
-    * Wiering, 2000
+    
 
     """
     speeds_counts = state.split()

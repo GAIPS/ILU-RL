@@ -187,50 +187,11 @@ class TrafficLightEnv(AccelEnv, Serializer):
 
             """
 
-        def observe(node_id, components):
-            veh_ids = []
-            for component in components:
-                edge_id, lanes = component
-                veh_ids += \
-                    [veh_id
-                     for veh_id in self.k.vehicle.get_ids_by_edge(edge_id) 
-                     if self.k.vehicle.get_lane(veh_id) in lanes]
-
-            speeds = [
-               self.k.vehicle.get_speed(veh_id)
-               for veh_id in veh_ids]
-
-            lanes = [
-                self.k.vehicle.get_lane(veh_id)
-                for veh_id in veh_ids]
-
-            veh_speeds = [veh[1] for veh in sorted(zip(veh_ids, speeds),
-                                                        key=itemgetter(0))]
-
-            veh_lanes = [veh[1] for veh in sorted(zip(veh_ids, lanes),
-                                                        key=itemgetter(0))]
-
-            veh_ids = sorted(veh_ids)
-            return veh_ids, veh_speeds, veh_lanes
-
         for node_id in self.tls_ids:
             for phase, data in self.tls_phases[node_id].items():
-                true_approach = observe(node_id, data['components'])
                 vehs = build_vehicles(node_id, data['components'],
                                       self.k.vehicle)
-
-                veh_ids = [veh.id for veh in vehs]
-                veh_speeds = [veh.speed for veh in vehs]
-                veh_lanes = [veh.lane for veh in vehs]
-                approach_data = veh_ids, veh_speeds, veh_lanes
-
-                try:
-                    assert approach_data == true_approach
-                except AssertionError:
-                    import pdb
-                    pdb.set_trace()
-                else:
-                    self.incoming[node_id][phase][self.duration] = true_approach
+                self.incoming[node_id][phase][self.duration] = vehs
 
     def get_observation_space(self):
         """
@@ -268,32 +229,11 @@ class TrafficLightEnv(AccelEnv, Serializer):
                 if self.step_counter > 1 else 0.0, 2)
         prev = delay(self.duration)
 
-        veh_ids = {}
-        veh_speeds = {}
-        veh_lanes = {}
-        for nid in self.tls_ids:
+        vehs = {nid: {p: snapshots.get(prev, [])
+                      for p, snapshots in data.items()}
+                for nid, data in self.incoming.items()}
 
-            tls_veh_ids = {}
-            tls_veh_speeds = {}
-            tls_veh_lanes = {}
-            for phase, values in self.incoming[nid].items():
-
-                if prev in values and any(values[prev]):
-                    tls_veh_ids[phase], tls_veh_speeds[phase], tls_veh_lanes[phase] = \
-                        values[prev]
-
-                else:
-                    tls_veh_ids[phase] = []
-                    tls_veh_speeds[phase] = []
-                    tls_veh_lanes[phase] = []
-
-            veh_ids[nid] = tls_veh_ids
-            veh_speeds[nid] = tls_veh_speeds
-            veh_lanes[nid] = tls_veh_lanes
-
-        self.observation_space.update(
-            prev, veh_ids, veh_speeds, veh_lanes, None
-        )
+        self.observation_space.update(prev, vehs)
 
         return self.observation_space
 

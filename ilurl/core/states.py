@@ -167,17 +167,13 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def tls_phases(self, tls_phases):
         self._tls_phases = tls_phases
 
-    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+    def update(self, time, vehs, tls=None):
 
         for tls_id in self.tls_ids:
-            if tls_id in veh_ids and tls_id in veh_speeds:
+            if tls_id in vehs:
                 for state in self._states:
                     if tls_id in state.tls_ids:
-                        state.update(time,
-                                     veh_ids,
-                                     veh_speeds,
-                                     veh_lanes,
-                                     tls_states)
+                        state.update(time, vehs, tls)
 
     def reset(self):
         for state in self._states:
@@ -334,7 +330,7 @@ class QueueState(object, metaclass=MetaState):
     def tls_caps(self):
         return self._tls_caps
 
-    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+    def update(self, time, vehs, tls=None):
         """Q^k_l the set of all veh_ids on lane l decision step k.
 
             * Computes V^k_l the set of all veh_ids on lane l at time k.
@@ -363,18 +359,20 @@ class QueueState(object, metaclass=MetaState):
                 self.reset(tls_id)
 
             mem = self._memory[tls_id]
-            for phase, _veh_ids in veh_ids[tls_id].items():
+
+            for phase, _vehs in vehs[tls_id].items():
                 cap = self.tls_caps[tls_id][phase] if norm else 1
 
-                _veh_lanes = veh_lanes[tls_id][phase]
-                _veh_speeds = veh_speeds[tls_id][phase]
-                uniq_veh_lanes = sorted(set(_veh_lanes))
+                _vehs_lanes = [_veh.lane for _veh in _vehs]
+                _vehs_speeds = [_veh.speed for _veh in _vehs]
+                _vehs_ids = [_veh.id for _veh in _vehs]
 
+                uniq_veh_lanes = sorted(set(_vehs_lanes))
                 if time not in mem:
                     mem[time] = {}
 
-                if any(_veh_ids):
-                    _triplet = zip(_veh_lanes, _veh_speeds, _veh_ids)
+                if any(_vehs_ids):
+                    _triplet = zip(_vehs_lanes, _vehs_speeds, _vehs_ids)
 
                     queues = {
                         lane: [vh for ln, vl, vh in _triplet
@@ -465,15 +463,15 @@ class CountState(object, metaclass=MetaState):
     def tls_caps(self):
         return self._tls_caps
 
-    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+    def update(self, time, vehs, tls=None):
 
         # TODO: context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            for phase, phase_veh_ids in veh_ids[tls_id].items():
+            for phase, _veh_ids in vehs[tls_id].items():
                 if time not in mem:
                     mem[time] = {}
-                mem[time][phase] = len(phase_veh_ids)
+                mem[time][phase] = len(_veh_ids)
             self._memory[tls_id] = mem
 
     def reset(self):
@@ -541,18 +539,20 @@ class SpeedState(object, metaclass=MetaState):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
 
-    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+    def update(self, time, vehs, tls=None):
         # TODO: Add mem context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+            # for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+            for phase, _vehs in vehs[tls_id].items():
                 if time not in mem:
                     mem[time] = {}
 
+                _veh_speeds = [_veh.speed for _veh in _vehs]
                 # TODO: Empty matrix case nanmean vs 0
-                if any(phase_veh_speeds):
+                if any(_veh_speeds):
                     mem[time][phase] = \
-                        round(np.nanmean([pvs for pvs in phase_veh_speeds]), 2)
+                        round(np.nanmean([pvs for pvs in _veh_speeds]), 2)
                 else:
                     mem[time][phase] = 0.0
             self._memory[tls_id] = mem
@@ -585,6 +585,28 @@ class SpeedState(object, metaclass=MetaState):
 
 
 class DelayState(object, metaclass=MetaState):
+    """Computes the total delay observed per phase
+
+    References:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    See also:
+    --------
+   
+    * Lu, Liu, & Dai. 2008
+        "Incremental multistep Q-learning for adaptive traffic signal control"
+
+    * Shoufeng et al., 2008
+        "Q-Learning for adaptive traffic signal control based on delay"
+
+    * Abdullhai et al. 2003
+        "Reinforcement learning for true adaptive traffic signal control."
+
+    * Wiering, 2000
+        "Multi-agent reinforcement learning for traffic light control."
+    """
 
     def __init__(self, tls_ids, tls_phases, tls_max_caps,
                  normalize, categorizer=None,
@@ -626,7 +648,7 @@ class DelayState(object, metaclass=MetaState):
     def reset(self):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
-    def update(self, time, veh_ids, veh_speeds, veh_lanes, tls_states):
+    def update(self, time, vehs, tls=None):
         # 1) New decision point: reset memory
         if time == 0.0:
             self.reset()
@@ -635,16 +657,18 @@ class DelayState(object, metaclass=MetaState):
         norm = self._normalize
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+            for phase, _vehs in vehs[tls_id].items():
                 cap = self.tls_caps[tls_id][phase] if norm else 1
 
                 if time not in mem:
                     mem[time] = {}
 
                 # TODO: Empty matrix case nanmean vs 0
-                if any(phase_veh_speeds):
-                    phase_veh_ids = veh_ids[tls_id][phase]
-                    veh_ids_vels = zip(phase_veh_ids, phase_veh_speeds)
+                if any(_vehs):
+                    _veh_ids = [_veh.id for _veh in _vehs]
+                    _veh_speeds = [_veh.speed for _veh in _vehs]
+
+                    veh_ids_vels = zip(_veh_ids, _veh_speeds)
                     set_veh_ids = {vid for vid, spd in veh_ids_vels
                                    if (spd / cap) <= self.velocity_threshold}
                     mem[time][phase] = set_veh_ids

@@ -14,8 +14,10 @@ def build_vehicles(node_id, components, veh_kernel):
         * Definition of vehicle is everything the state
           classes need to know -- for computing the state.
 
-        * Extend collection instead of extending input
+        * Extend namedtuple instead of extending input
           values from state's update method.
+
+        * Thin wrapper around vehicles kernel.
 
         Params:
         ------
