@@ -9,24 +9,17 @@ import json
 import numpy as np
 
 from flow.core import rewards
-from flow.envs.ring.accel import AccelEnv
+from flow.envs.base import Env
 
 from ilurl.core.states import build_states
 from ilurl.core.rewards import build_rewards
 
-from ilurl.utils.serialize import Serializer
-from ilurl.utils.properties import delegate_property, lazy_property
+from ilurl.utils.properties import lazy_property
 
 from ilurl.mas.mas_decentralized import DecentralizedMAS # TODO: make this a factory
 
-ILURL_HOME = os.environ['ILURL_HOME']
 
-NETWORKS_PATH = \
-    f'{ILURL_HOME}/data/networks/'
-
-NEW_STATES = None
-
-class TrafficLightEnv(AccelEnv, Serializer):
+class TrafficLightEnv(Env):
     """
         Environment used to train traffic light systems.
     """
