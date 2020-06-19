@@ -3,7 +3,11 @@ from time import time
 import json
 import sys
 import multiprocessing as mp
+import functools
+
+
 from ilurl.utils.context_managers import PipeGuard
+
 
 
 def benchmarked(fnc):
@@ -102,3 +106,16 @@ def delayable(lock):
         return fnc
     return delay
 
+def safe_run(func, error_message=None):
+
+    def func_wrapper(*args, **kwargs):
+
+        try:
+           return func(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            if error_message:
+                print(error_message)
+            return None
+
+    return func_wrapper

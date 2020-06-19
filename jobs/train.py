@@ -132,7 +132,7 @@ def train_batch():
         else:
             rvs = []
             for cfg in train_configs:
-                rvs.append(delay_train(cfg))
+                rvs.append(delay_train((0.0, cfg)))
 
         # Create a directory and move newly created files.
         paths = [Path(f) for f in rvs]

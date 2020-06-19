@@ -1,4 +1,3 @@
-import multiprocessing
 from copy import deepcopy
 
 from ilurl.core.params import Bounds
@@ -48,8 +47,7 @@ class DecentralizedMAS(MASInterface):
             # Seed.
             agent_params_.seed = seed
 
-            print(AgentFactory.get(agent_type))
-
+            # Create agent client.
             agents[tid] = AgentClient(AgentFactory.get(agent_type),
                                      params=agent_params_)
 

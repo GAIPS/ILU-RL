@@ -25,24 +25,16 @@ warnings.filterwarnings('ignore')
 
 class Experiment:
     """
-    Class for systematically running simulations in any supported simulator.
+    Class to run an experiment in any supported simulator.
 
-    This class acts as a runner for a scenario and environment. In order to use
-    it to run an scenario and environment in the absence of a method specifying
-    the actions of RL agents in the network, type the following:
+    This class acts as a runner for a scenario and environment:
 
         >>> from flow.envs import Env
         >>> env = Env(...)
-        >>> exp = Experiment(env)  # for some env and scenario
-        >>> exp.run(num_runs=1, num_steps=1000)
+        >>> exp = Experiment(env, ...)  # for some env and scenario
+        >>> exp.run(num_steps=1000)
 
-    If you wish to specify the actions of RL agents in the network, this may be
-    done as follows:
-
-        >>> rl_actions = lambda state: 0  # replace with something appropriate
-        >>> exp.run(num_runs=1, num_steps=1000, rl_actions=rl_actions)
-
-    Finally, if you would like to like to plot and visualize your results, this
+    If you would like to like to plot and visualize your results, this
     class can generate csv files from emission files produced by sumo. These
     files will contain the speeds, positions, edges, etc... of every vehicle
     in the network at every time step.
@@ -53,17 +45,9 @@ class Experiment:
         >>> from flow.core.params import SimParams
         >>> sim_params = SimParams(emission_path="./data")
 
-    Once you have included this in your environment, run your Experiment object
-    as follows:
+    Once you have included this in your environment, run your Experiment object.
 
-        >>> exp.run(num_runs=1, num_steps=1000)
-
-    Attributes:
-    ----------
-    env : flow.envs.Env
-        the environment object the simulator will run.
     """
-
     def __init__(self,
                 env,
                 exp_path : str,
@@ -163,7 +147,7 @@ class Experiment:
 
         for step in tqdm(range(num_steps)):
 
-            # WARNING: This is not synchronized with agents' cycle time.
+            # WARNING: Env reset is not synchronized with agents' cycle time.
             # if step % 86400 == 0 and agent_updates_counter != 0: # 24 hours
             #     self.env.reset()
 
@@ -216,5 +200,5 @@ class Experiment:
 
     def _is_save_agent_step(self, counter):
         if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
-            return self.train and hasattr(self.env, 'dump') and self.exp_path
+            return self.train and self.exp_path
         return False

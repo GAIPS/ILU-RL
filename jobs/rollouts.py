@@ -278,7 +278,7 @@ def rollout_batch(test=False, experiment_dir=None):
         else:
             rvs = []
             for cfg in rollouts_cfg_paths:
-                rvs.append(delay_roll([cfg]))
+                rvs.append(delay_roll((0.0, [cfg])))
 
     res = concat(rvs)
     filepart = 'test' if test else 'eval'
