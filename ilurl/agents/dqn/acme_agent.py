@@ -33,6 +33,7 @@ import tensorflow as tf
 import trfl
 
 from ilurl.utils import tf2_savers
+from ilurl.agents.acme_datasets_reverb import make_reverb_dataset
 
 
 class DQN(agent.Agent):
@@ -108,7 +109,7 @@ class DQN(agent.Agent):
 
         # The dataset provides an interface to sample from replay.
         replay_client = reverb.TFClient(address)
-        dataset = datasets.make_reverb_dataset(
+        dataset = make_reverb_dataset(
             client=replay_client,
             environment_spec=environment_spec,
             batch_size=batch_size,
