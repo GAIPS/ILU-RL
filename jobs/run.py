@@ -33,9 +33,11 @@ from analysis.test_plots import main as test_plots
 
 from ilurl.loaders.xml2csv import main as xml2csv
 
-_ERROR_MESSAGE_1 = '''ERROR: Caught an exception while
+_ERROR_MESSAGE_TRAIN = '''ERROR: Caught an exception while
+                    executing analysis/train_plots.py script.'''
+_ERROR_MESSAGE_ROLLOUTS = '''ERROR: Caught an exception while
                     executing analysis/rollouts_plots.py script.'''
-_ERROR_MESSAGE_2 = '''ERROR: Caught an exception while 
+_ERROR_MESSAGE_TEST = '''ERROR: Caught an exception while 
                     executing analysis/test_plots.py script.'''
 
 if __name__ == '__main__':
@@ -44,17 +46,21 @@ if __name__ == '__main__':
     experiment_root_path = train()
 
     # 2) Create train plots.
-    train_plots(experiment_root_path)
+    try:
+        train_plots(experiment_root_path)
+    except Exception:
+        print(_ERROR_MESSAGE_TRAIN)
+        pass
 
     # 3) Execute rollouts.
-    # eval_path = rollouts(experiment_dir=experiment_root_path)
+    eval_path = rollouts(experiment_dir=experiment_root_path)
 
     # 4) Create rollouts plots.
-    # try:
-    #     rollouts_plots(eval_path)
-    # except Exception:
-    #     print(_ERROR_MESSAGE_1)
-    #     pass
+    try:
+        rollouts_plots(eval_path)
+    except Exception:
+        print(_ERROR_MESSAGE_ROLLOUTS)
+        pass
 
     # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, experiment_dir=experiment_root_path)
@@ -73,7 +79,7 @@ if __name__ == '__main__':
     try:
         test_plots(experiment_root_path)
     except Exception:
-        print(_ERROR_MESSAGE_2)
+        print(_ERROR_MESSAGE_TEST)
         pass
 
     print('Experiment folder: {0}'.format(experiment_root_path))

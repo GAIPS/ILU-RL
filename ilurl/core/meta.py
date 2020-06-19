@@ -58,23 +58,3 @@ class MetaStateCategorizer(type):
         return super().__new__(meta, name, base, body)
 
 
-class MetaReward(type):
-    """Common methods all reward-type objects must implement
-
-
-    References:
-    ----------
-
-    https://docs.python.org/3/reference/datamodel.html#metaclasses
-    https://realpython.com/python-metaclasses/
-    """
-
-    def __new__(meta, name, base, body):
-
-        reward_methods = ('calculate',)
-        for attr in reward_methods:
-            if attr not in body:
-                raise TypeError(f'Rewards must implement {attr}')
-
-        return super().__new__(meta, name, base, body)
-

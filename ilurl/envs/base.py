@@ -7,10 +7,13 @@ __date__ = "2019-12-10"
 import os
 import json
 import numpy as np
+# TODO: remove me
+from operator import itemgetter
 
 from flow.core import rewards
 from flow.envs.base import Env
 
+from ilurl.envs.elements import build_vehicles
 from ilurl.core.states import build_states
 from ilurl.core.rewards import build_rewards
 
@@ -98,10 +101,6 @@ class TrafficLightEnv(Env):
         return self.network.tls_ids
 
     @lazy_property
-    def tls_max_capacity(self):
-        return self.network.tls_ids
-
-    @lazy_property
     def tls_phases(self):
         return self.network.tls_phases
 
@@ -128,33 +127,24 @@ class TrafficLightEnv(Env):
         * incoming: nested dict
             1st order (outer) keys: int
                     traffic_light_id
+
             2nd order keys: int
                     TLS phase
+
             3rd order (inner) keys: float
                     frame_id of observations ranging from 0 to duration 
+
             values: list
                     vehicle ids and speeds for the given TLS, phase and edges
 
             """
-        def observe(components):
-            veh_ids = []
-            for component in components:
-                edge_id, lanes = component
-                veh_ids += \
-                    [veh_id
-                     for veh_id in self.k.vehicle.get_ids_by_edge(edge_id) 
-                     if self.k.vehicle.get_lane(veh_id) in lanes]
-
-            speeds = [
-               self.k.vehicle.get_speed(veh_id)
-                for veh_id in veh_ids
-            ]
-            return veh_ids, speeds
 
         for node_id in self.tls_ids:
             for phase, data in self.tls_phases[node_id].items():
-                self.incoming[node_id][phase][self.duration] = \
-                                    observe(data['components'])
+                vehs = build_vehicles(node_id, data['components'],
+                                      self.k.vehicle)
+                self.incoming[node_id][phase][self.duration] = vehs
+
     def get_observation_space(self):
         """
         Consolidates the observation space.
@@ -191,28 +181,11 @@ class TrafficLightEnv(Env):
                 if self.step_counter > 1 else 0.0, 2)
         prev = delay(self.duration)
 
-        veh_ids = {}
-        veh_speeds = {}
-        for nid in self.tls_ids:
+        vehs = {nid: {p: snapshots.get(prev, [])
+                      for p, snapshots in data.items()}
+                for nid, data in self.incoming.items()}
 
-            
-            tls_veh_ids = {}
-            tls_veh_speeds = {}
-            for phase, values in self.incoming[nid].items():
-
-                if prev in values and any(values[prev]):
-                    tls_veh_ids[phase], tls_veh_speeds[phase] = values[prev]
-                else:
-                    tls_veh_ids[phase] = []
-                    tls_veh_speeds[phase] = []
-
-            veh_ids[nid] = tls_veh_ids
-            veh_speeds[nid] = tls_veh_speeds
-
-           
-        self.observation_space.update(
-            prev, veh_ids, veh_speeds, None
-        )
+        self.observation_space.update(prev, vehs)
 
         return self.observation_space
 
@@ -387,7 +360,7 @@ class TrafficLightEnv(Env):
         -------
         reward : float or list of float
         """
-        return self.reward(self.get_observation_space())
+        return self.reward(self.get_observation_space(), self.duration)
 
     def reset(self):
         super(TrafficLightEnv, self).reset()

@@ -21,6 +21,7 @@ data/experiments
 data/experiments/0x??/**
 !data/experiments/0x??/README.*
 !data/experiments/0x??/*.png
+data/experiments.zip
 
 # Flow's emission files
 *emission.xml

@@ -1,7 +1,8 @@
 """Implementation of states as perceived by agent"""
-
+import pdb
 import inspect
 from sys import modules
+from heapq import nlargest
 
 from operator import itemgetter
 from collections import defaultdict
@@ -107,12 +108,15 @@ def build_states(network, mdp_params):
                     categorizer = StateCategorizer(mdp_params.category_counts)
                 elif state_cls == DelayState:
                     categorizer = StateCategorizer(mdp_params.category_delays)
+                elif state_cls == QueueState:
+                    categorizer = StateCategorizer(mdp_params.category_queues)
                 else:
                     raise ValueError(f'No discretization bins for {state_cls}')
 
             # 5) Function specific parameters
             velocity_threshold = None
-            if mdp_params.reward == 'reward_min_delay':
+            if mdp_params.reward in ('reward_min_delay',
+                                     'reward_min_queue_squared'):
                 velocity_threshold = mdp_params.velocity_threshold
 
             state = state_cls(tls_ids, tls_phases,
@@ -163,16 +167,13 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def tls_phases(self, tls_phases):
         self._tls_phases = tls_phases
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
+    def update(self, time, vehs, tls=None):
 
         for tls_id in self.tls_ids:
-            if tls_id in veh_ids and tls_id in veh_speeds:
+            if tls_id in vehs:
                 for state in self._states:
                     if tls_id in state.tls_ids:
-                        state.update(time,
-                                     veh_ids,
-                                     veh_speeds,
-                                     tls_states)
+                        state.update(time, vehs, tls)
 
     def reset(self):
         for state in self._states:
@@ -242,6 +243,194 @@ class StateCollection(object, metaclass=MetaStateCollection):
         return ret
 
 
+class QueueState(object, metaclass=MetaState):
+    """Measures the max queue wrt to each lane on a phase,
+        over a cycle.
+
+    Let k be decision step and d elapsed time, after
+       decision k was made (duration), t is the time and
+       duration is t - tk.
+
+    The maximum queue is taken over all lanes that belong
+    to the lane group corresponding phase i, Li. Averaged
+    over duration (t-tk).
+
+    s^k_i = mean{max{q^d_l, l in Li}, d in [0:cycle_time - 1]}
+
+    where:
+       * i phase
+       * l in Li for all i = {1, 2, 3, ...N}
+       * k is the decision step.
+       * q^d_l is the number of queued vehicles
+               in lane l at duration t.
+
+       q^d_l = len([veh for veh in V^t_l if vel < thresh])
+
+    where:
+       * V^t_l the set of all veh_ids on lane l
+               at time t.
+
+    * Equivalent to state definition 1: Queue Length
+
+     Reference:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    See also:
+    --------
+    * Balaji et al., 2010
+        "Urban traffic signal control using reinforcement learning agent"
+
+    * Richter, S., Aberdeen, D., & Yu, J., 2007
+        "Natural actor-critic for road traffic optimisation."
+
+    * Abdulhai et al., 2003
+        "Reinforcement learning for true adaptive traffic signal
+        control."
+    """
+
+
+
+    def __init__(self, tls_ids, tls_phases, tls_max_caps,
+                 normalize, categorizer=None, velocity_threshold=None,
+                 **kwargs):
+
+        self._tls_ids = tls_ids
+        self._tls_phases = tls_phases
+        self._tls_caps = {tid: {p: c[1] for p, c in phase_caps.items()}
+                          for tid, phase_caps in tls_max_caps.items()
+                          if tid in tls_ids}
+
+        self._normalize = normalize
+        if velocity_threshold is None:
+            raise ValueError(
+                f'QueueState: velocity_threshold must be provided')
+        else:
+            self.velocity_threshold = velocity_threshold
+
+        if categorizer is not None:
+            self.categorizer = categorizer
+
+        self.reset()
+
+    @property
+    def label(self):
+        return 'queue'
+
+    @property
+    def tls_ids(self):
+        return self._tls_ids
+
+    @property
+    def tls_phases(self):
+        return self._tls_phases
+
+    @property
+    def tls_caps(self):
+        return self._tls_caps
+
+    def update(self, time, vehs, tls=None):
+        """Q^k_l the set of all veh_ids on lane l decision step k.
+
+            * Computes V^k_l the set of all veh_ids on lane l at time k.
+            * Every car moving below velocity_threshold is
+                considered to be enqueued.
+
+            * Stores for each time, the ids for the enqueued
+                vehicles.
+
+
+            * Computes V^k_l the set of all veh_ids on lane l at time k.
+
+                q^k_l = len([veh for veh in V^k_l if ind(veh)])
+
+        """
+        # TODO: Add edges
+
+        # 2) Update memory with current state.
+        # TODO include veh_edges
+        norm = self._normalize
+        thresh = self.velocity_threshold
+        for tls_id in self.tls_ids:
+
+            # 1) New decision point: reset
+            if time == 0.0:
+                self.reset(tls_id)
+
+            mem = self._memory[tls_id]
+
+            for phase, _vehs in vehs[tls_id].items():
+                cap = self.tls_caps[tls_id][phase] if norm else 1
+
+                _vehs_lanes = [_veh.lane for _veh in _vehs]
+                _vehs_speeds = [_veh.speed for _veh in _vehs]
+                _vehs_ids = [_veh.id for _veh in _vehs]
+
+                uniq_veh_lanes = sorted(set(_vehs_lanes))
+                if time not in mem:
+                    mem[time] = {}
+
+                if any(_vehs_ids):
+                    _triplet = zip(_vehs_lanes, _vehs_speeds, _vehs_ids)
+
+                    queues = {
+                        lane: [vh for ln, vl, vh in _triplet
+                               if ln == lane and (vl / cap) <= thresh]
+                        for lane in uniq_veh_lanes
+                    }
+
+                else:
+                    queues = {lane: [] for lane in uniq_veh_lanes}
+
+                mem[time][phase] = queues
+
+            self._memory[tls_id] = mem
+
+    def reset(self, tls_id=None):
+        """Memory reset
+
+        Params:
+        ------
+        * tls_id .: str
+            traffic light signal id if None reset all
+
+        """
+        def fn(x):
+            return tls_id is None or tls_id == x
+
+        mem = {tid: {} for tid in self.tls_ids if fn(tid)}
+        self._memory = mem
+
+    @property
+    def state(self):
+        ret = []
+        # 1) Decision points data should be independent.
+        for tls_id, nph in self.tls_phases.items():
+            mem = self._memory[tls_id]
+            tls_ret = []
+            # 2) Gets the recent observations
+            for duration, data in mem.items():
+                tls_obs = []
+
+                for phase in range(nph):
+                    delta = 0
+                    phase_data = data[phase]
+
+                    for veh_ids in phase_data.values():
+                        set_veh_ids = set(veh_ids)
+                        delta = max(len(set_veh_ids), delta)
+                    tls_obs.append(delta)
+                tls_ret.append(tls_obs)
+            ret.append(np.mean(np.array(tls_ret), axis=0).tolist())
+        return ret
+
+    def categorize(self):
+        state = self.state
+        if hasattr(self, 'categorizer'):
+            return self.categorizer.categorize(self.state)
+
+
 class CountState(object, metaclass=MetaState):
 
     def __init__(self, tls_ids, tls_phases, tls_max_caps,
@@ -274,16 +463,15 @@ class CountState(object, metaclass=MetaState):
     def tls_caps(self):
         return self._tls_caps
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
-
+    def update(self, time, vehs, tls=None):
 
         # TODO: context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            for phase, phase_veh_ids in veh_ids[tls_id].items():
+            for phase, _veh_ids in vehs[tls_id].items():
                 if time not in mem:
                     mem[time] = {}
-                mem[time][phase] = len(phase_veh_ids)
+                mem[time][phase] = len(_veh_ids)
             self._memory[tls_id] = mem
 
     def reset(self):
@@ -351,18 +539,20 @@ class SpeedState(object, metaclass=MetaState):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
+    def update(self, time, vehs, tls=None):
         # TODO: Add mem context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+            # for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+            for phase, _vehs in vehs[tls_id].items():
                 if time not in mem:
                     mem[time] = {}
 
+                _veh_speeds = [_veh.speed for _veh in _vehs]
                 # TODO: Empty matrix case nanmean vs 0
-                if any(phase_veh_speeds):
+                if any(_veh_speeds):
                     mem[time][phase] = \
-                        round(np.nanmean([pvs for pvs in phase_veh_speeds]), 2)
+                        round(np.nanmean([pvs for pvs in _veh_speeds]), 2)
                 else:
                     mem[time][phase] = 0.0
             self._memory[tls_id] = mem
@@ -395,6 +585,28 @@ class SpeedState(object, metaclass=MetaState):
 
 
 class DelayState(object, metaclass=MetaState):
+    """Computes the total delay observed per phase
+
+    References:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    See also:
+    --------
+   
+    * Lu, Liu, & Dai. 2008
+        "Incremental multistep Q-learning for adaptive traffic signal control"
+
+    * Shoufeng et al., 2008
+        "Q-Learning for adaptive traffic signal control based on delay"
+
+    * Abdullhai et al. 2003
+        "Reinforcement learning for true adaptive traffic signal control."
+
+    * Wiering, 2000
+        "Multi-agent reinforcement learning for traffic light control."
+    """
 
     def __init__(self, tls_ids, tls_phases, tls_max_caps,
                  normalize, categorizer=None,
@@ -436,7 +648,7 @@ class DelayState(object, metaclass=MetaState):
     def reset(self):
         self._memory = {tls_id: {} for tls_id in self.tls_ids}
 
-    def update(self, time, veh_ids, veh_speeds, tls_states):
+    def update(self, time, vehs, tls=None):
         # 1) New decision point: reset memory
         if time == 0.0:
             self.reset()
@@ -445,16 +657,18 @@ class DelayState(object, metaclass=MetaState):
         norm = self._normalize
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            for phase, phase_veh_speeds in veh_speeds[tls_id].items():
+            for phase, _vehs in vehs[tls_id].items():
                 cap = self.tls_caps[tls_id][phase] if norm else 1
 
                 if time not in mem:
                     mem[time] = {}
 
                 # TODO: Empty matrix case nanmean vs 0
-                if any(phase_veh_speeds):
-                    phase_veh_ids = veh_ids[tls_id][phase]
-                    veh_ids_vels = zip(phase_veh_ids, phase_veh_speeds)
+                if any(_vehs):
+                    _veh_ids = [_veh.id for _veh in _vehs]
+                    _veh_speeds = [_veh.speed for _veh in _vehs]
+
+                    veh_ids_vels = zip(_veh_ids, _veh_speeds)
                     set_veh_ids = {vid for vid, spd in veh_ids_vels
                                    if (spd / cap) <= self.velocity_threshold}
                     mem[time][phase] = set_veh_ids

@@ -3,11 +3,13 @@
     TODO: Move from strategy pattern to pure-functional
         implementation
 """
+import pdb
 import inspect
 from sys import modules
 
 import numpy as np
-# from ilurl.core.meta import MetaReward
+
+QUEUE = {}
 
 
 def get_rewards():
@@ -70,23 +72,48 @@ def build_rewards(mdp_params):
         # instantiate every scope variable
         target_velocity = mdp_params.target_velocity
 
-        def r(x):
-            return reward_max_speed_count(target_velocity, x)
+        def r(x, *args):
+            return reward_max_speed_count(target_velocity, x, *args)
+
+    elif target == 'reward_min_queue_squared':
+
+        def r(x, *args):
+            return reward_min_queue_squared(x, *args)
+
     else:
         idx = names.index(target)
         fn = funcs[idx]
 
-        def r(x):
-            return fn(x)
+        def r(x, *args):
+            return fn(x, *args)
 
     # Rescale rewards.
-    def ret(x):
-        return rescale_rewards(r(x), scale_factor=mdp_params.reward_rescale)
+    def ret(x, *args):
+        return rescale_rewards(r(x, *args), scale_factor=mdp_params.reward_rescale)
 
     return ret
 
 
-def reward_max_speed_count(target_velocity, state):
+def reward_max_speed_count(target_velocity, state, *args):
+    """Max. Speed and Count
+
+    Params:
+    ------
+    * state: ilurl.core.StateCollection
+        StateCollection containing --
+            ilurl.core.SpeedState and
+            ilurl.core.CountState
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    Reference:
+    ----------
+    
+
+    """
     speeds_counts = state.split()
 
     ret = {}
@@ -106,10 +133,84 @@ def reward_max_speed_count(target_velocity, state):
     return ret
 
 
-def reward_min_delay(states):
+def reward_min_delay(states, *args):
+    """Minimizing the delta of queue length squared 
+
+    Reward definition 1: Minimizing the delay
+
+    Params:
+    ------
+    * state: ilurl.core.DelayState
+        captures the delay experiened by phases.
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    Reference:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    * Lu, Liu, & Dai. 2008
+        "Incremental multistep Q-learning for adaptive traffic signal control"
+
+    * Shoufeng et al., 2008
+        "Q-Learning for adaptive traffic signal control based on delay"
+
+    * Abdullhai et al. 2003
+        "Reinforcement learning for true adaptive traffic signal control."
+
+    * Wiering, 2000
+        "Multi-agent reinforcement learning for traffic light control."
+
+    """
     ret = {}
     for tls_id, phase_obs in states.state.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    return ret
+
+
+def reward_min_queue_squared(state, duration):
+    """Minimizing the delta of queue length squared 
+
+    Reward definition 3: Minimizing and Balancing Queue Length
+
+    Params:
+    ------
+    * state: ilurl.core.QueueState
+        queue state has the maximum length lane.
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    Reference:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    * Balaji, et al. 2010
+        "Urban traffic signal control using reinforcement learning agent"
+
+    * De Oliveira et al. 2006
+        "Reinforcement learning-based control of traffic lights"
+
+    * Camponogara and Kraus, 2003
+        "Distributed learning agents in urban traffic control."
+    """
+    global QUEUE
+    ret = {}
+    for tls_id, _max_q in state.state.items():
+        _max_q = np.concatenate(_max_q, axis=0)
+        _prev_q = QUEUE.get(tls_id, np.zeros(_max_q.shape))
+
+        ret[tls_id] = _max_q.dot(_max_q) - _prev_q.dot(_prev_q)
+        # 2) Store: if this is a decision point.
+        if duration == 0.0:
+            QUEUE[tls_id] = _max_q
     return ret
 
 
