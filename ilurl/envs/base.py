@@ -14,7 +14,7 @@ from ilurl.core.rewards import build_rewards
 from ilurl.utils.properties import lazy_property
 
 # TODO: make this a factory in the future.
-from ilurl.mas.mas_decentralized import DecentralizedMAS
+from ilurl.mas.decentralized import DecentralizedMAS
 
 
 class TrafficLightEnv(Env):
