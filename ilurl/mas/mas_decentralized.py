@@ -2,8 +2,8 @@ from copy import deepcopy
 
 from ilurl.core.params import Bounds
 from ilurl.loaders.parser import config_parser
-from ilurl.agents.agent_client import AgentClient
-from ilurl.agents.agent_factory import AgentFactory
+from ilurl.agents.client import AgentClient
+from ilurl.agents.factory import AgentFactory
 from ilurl.mas.mas_interface import MASInterface
 
 
