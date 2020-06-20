@@ -1,4 +1,6 @@
-"""Contains an experiment class for running simulations.
+"""
+    Experiment class to run simulations.
+
    2019-06-2019
    ------------
    This file was copied from flow.core.experiment in order to
@@ -9,7 +11,8 @@
 
    * extend outputs to costumized reward functions
    * fix bug of averaging speeds when no cars are on the simulation
-   """
+
+"""
 import os
 from pathlib import Path
 import warnings

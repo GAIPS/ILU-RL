@@ -1,14 +1,8 @@
 '''
-            Traffic Light Environments
-
-    Extends the flow's green wave environment
+    Traffic Light Environment.
 '''
 __date__ = "2019-12-10"
-import os
-import json
 import numpy as np
-# TODO: remove me
-from operator import itemgetter
 
 from flow.core import rewards
 from flow.envs.base import Env
@@ -19,7 +13,8 @@ from ilurl.core.rewards import build_rewards
 
 from ilurl.utils.properties import lazy_property
 
-from ilurl.mas.mas_decentralized import DecentralizedMAS # TODO: make this a factory
+# TODO: make this a factory in the future.
+from ilurl.mas.mas_decentralized import DecentralizedMAS
 
 
 class TrafficLightEnv(Env):
@@ -219,7 +214,7 @@ class TrafficLightEnv(Env):
             information on the state of the vehicles, which is provided to the
             agent
         
-        Returns
+        Returns:
         -------
             action : array_like
                 information on the state of the vehicles, which is
@@ -270,7 +265,7 @@ class TrafficLightEnv(Env):
         """
         Specify the actions to be performed by the RL agent(s).
 
-        Parameters
+        Parameters:
         ----------
         rl_actions: list of actions or None
         """

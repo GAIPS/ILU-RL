@@ -1,9 +1,8 @@
 """
     models/rollout.py
 
-    This script evaluates a given RL policy.
-    It performs a rollout given a static policy
-    loaded from a given model checkpoint.
+    This script evaluates a given multi-gent system policy. It performs
+    a rollout given a static policy loaded from a given checkpoint.
 
 """
 import os
@@ -37,9 +36,8 @@ def get_arguments(config_file_path):
     parser = configargparse.ArgumentParser(
         default_config_files=config_file_path,
         description="""
-            This script evaluates a given RL policy.
-            It performs a rollout given a static policy
-            loaded from a given model checkpoint.
+            This script evaluates a given multi-gent system policy. It performs
+            a rollout given a static policy loaded from a given checkpoint.
         """
     )
 

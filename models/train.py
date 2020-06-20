@@ -1,6 +1,10 @@
 """
     models/train.py
 
+    This script trains a multi-agent system under a given network and demand type.
+    It is responsible to setup all the experiment's components and run it for
+    a given number of steps, as well as storing experiment-related info.
+
     References:
     ==========
 
@@ -9,8 +13,6 @@
     http://sumo.sourceforge.net/userdoc/Simulation/Randomness.html
 
 """
-__author__ = 'Guilherme Varela'
-__date__ = '2020-01-08'
 import os
 import json
 import random
