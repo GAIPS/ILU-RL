@@ -81,6 +81,7 @@ def main(experiment_root_folder=None):
     print('\nOutput folder:\n{0}\n'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
+    actions = []
     rewards = []
     vehicles = []
     velocities = []
@@ -102,6 +103,9 @@ def main(experiment_root_folder=None):
 
         # Vehicles' velocity per time-step.
         velocities.append(json_data['velocities'])
+
+        # Agent's actions.
+        actions.append(json_data['actions'])
 
     """
         Rewards per cycle.
@@ -203,6 +207,38 @@ def main(experiment_root_folder=None):
     file_name = '{0}/train_velocities.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     
+    plt.close()
+
+    """ 
+        Actions per intersection.
+    """
+    dfs_a = [pd.DataFrame(a) for a in actions]
+
+    df_concat = pd.concat(dfs_a)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_actions = by_row_index.mean()
+
+    print(df_actions)
+
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    window_size = min(len(df_actions)-1, 40)
+
+    print(window_size)
+
+    for col in df_actions.columns:
+        plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
+
+    plt.xlabel('Cycle')
+    plt.ylabel('Action')
+    plt.title('Actions per intersection')
+    plt.legend()
+
+    plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
     plt.close()
 
 if __name__ == '__main__':
