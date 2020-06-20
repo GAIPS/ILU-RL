@@ -2,7 +2,6 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-10'
 
-import os
 import operator as op
 from itertools import groupby
 from copy import deepcopy
@@ -24,87 +23,7 @@ from ilurl.loaders.nets import (get_routes, get_edges, get_path,
 
 
 class Network(flownet.Network):
-    """This class leverages on specs created by SUMO"""
-
-    @classmethod
-    def make(cls, network_id, horizon, demand_type, num_reps,
-             label=None, initial_config=None):
-        """Builds a new network from rou.xml file -- the resulting
-        vehicle trips will be almost-deterministic use it for validation
-        
-        Params:
-        ------
-        *   network_id: string
-            identification of net.xml file, ex: `intersection`
-        *   horizon: integer
-            maximum emission time in seconds
-        *   demand_type: string
-            a demand distribution e.g `lane`
-        *   num: integer
-
-        Returns:
-        -------
-        *   network(s): ilurl.network.Network or list
-            n = 0  attempts to load one network,
-            n > 0  attempts to load n+1 networks returning a list
-        """
-
-        networks = []
-
-        for nr in range(num_reps):
-            label1 = f'{nr}.{label}' if label and num_reps > 1 else nr
-            net_params = NetParams.from_template(
-                network_id, horizon, demand_type, label=label1,
-                initial_config=initial_config
-            )
-
-            networks.append(
-                Network(
-                    network_id,
-                    horizon,
-                    net_params,
-                    initial_config=initial_config,
-                    vehicles=VehicleParams()
-                )
-            )
-
-        ret = networks[0] if num_reps == 1 else networks
-        return ret
-
-    @classmethod
-    def load(cls, network_id, route_path):
-        """Attempts to load a new network from rou.xml and 
-        vtypes.add.xml -- if it fails will call `make`
-        the resulting vehicle trips will be stochastic use
-        it for training
-
-        Params:
-        ------
-        *   network_id: string
-            identification of net.xml file, ex: `intersection`
-        *   horizon: integer
-            latest depart time
-        *   demand_type: string
-            string
-        *   label: string
-            e.g `eval, `train` or `test`
-        Returns:
-        -------
-        *   network(s): ilurl.network.Network or list
-            n = 0  attempts to load one network,
-            n > 0  attempts to load n+1 networks returning a list
-        """
-        net_params = NetParams.load(network_id, route_path)
-
-        horizon = int(route_path.split('.')[-4])
-
-        network = Network(
-            network_id,
-            horizon,
-            net_params,
-            vehicles=VehicleParams()
-        )
-        return network
+    """This class leverages on specs created by SUMO."""
 
     def __init__(self,
                  network_id,

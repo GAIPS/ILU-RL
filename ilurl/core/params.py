@@ -10,7 +10,6 @@ from collections import namedtuple
 from ilurl.core.rewards import get_rewards 
 from ilurl.agents.ql.choice import CHOICE_TYPES
 
-from ilurl.dumpers.inflows import inflows_dump
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
 from ilurl.loaders.demands import get_demand
@@ -546,22 +545,9 @@ class TrainParams(Printable):
 
 
 class InFlows(flow_params.InFlows,Printable):
-    """InFlow: plus load & dump functionality"""
-
-    @classmethod
-    def make(cls, network_id, horizon,
-            demand_type, label, initial_config=None):
-
-        inflows = cls(network_id, horizon, demand_type,
-                      initial_config=initial_config)
-        # checks if route exists -- returning the path
-        path = inflows_dump(
-            network_id,
-            inflows,
-            distribution=demand_type,
-            label=label
-        )
-        return path
+    """
+        InFlows.
+    """
 
     def __init__(self,
                  network_id,
@@ -681,48 +667,12 @@ class InFlows(flow_params.InFlows,Printable):
 
 
 class NetParams(flow_params.NetParams,Printable):
-    """Extends NetParams to work with saved templates"""
-
-    @classmethod
-    def from_template(cls, network_id, horizon, demand_type,
-                      label=None, initial_config=None):
-        """Factory method based on {network_id} layout + configs
-
-        Params:
-        -------
-        *   network_id: string
-            standard {network_id}.net.xml file, ex: `intersection`
-            see data/networks for a list
-        *   horizon: integer
-            latest depart time
-        *   demand_type: string
-            string
-        *   label: string
-            e.g `eval, `train` or `test`
-
-        Returns:
-        -------
-        *   ilurl.core.params.NetParams
-            network parameters SEE parent
-        """
-        net_path = get_path(network_id, 'net')
-        # TODO: test if exists first!
-        rou_path = InFlows.make(network_id, horizon,
-                                demand_type, label=label,
-                                initial_config=initial_config)
-        vtype_path = get_vehicle_types()
-        return cls(
-            template={
-                'net': net_path,
-                'vtype': vtype_path,
-                'rou': rou_path
-            }
-        )
+    """Extends NetParams to work with saved templates."""
 
     @classmethod
     def load(cls, network_id, route_path):
-        """Loads paremeters from net {network_id} and
-            routes from {route_path}
+        """Loads parameters from net {network_id} and
+            routes from {route_path}.
 
         Params:
         -------
