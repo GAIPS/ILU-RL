@@ -83,6 +83,7 @@ def main(experiment_root_folder=None):
 
     actions = []
     rewards = []
+    rewards_2 = []
     vehicles = []
     velocities = []
 
@@ -98,6 +99,8 @@ def main(experiment_root_folder=None):
         r = pd.DataFrame(r)
         rewards.append(np.sum(r.values, axis=1))
 
+        rewards_2.append(json_data['rewards'])
+
         # Number of vehicles per time-step.
         vehicles.append(json_data['vehicles'])
 
@@ -112,6 +115,7 @@ def main(experiment_root_folder=None):
         (GLOBAL: sum of the reward for all intersections).
     """
     rewards = np.array(rewards)
+
 
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
@@ -139,6 +143,32 @@ def main(experiment_root_folder=None):
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     
     plt.close()
+
+    """
+        Rewards per intersection.
+    """
+    dfs_rewards = [pd.DataFrame(r) for r in rewards_2]
+
+    df_concat = pd.concat(dfs_rewards)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_rewards = by_row_index.mean()
+
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    window_size = min(len(df_rewards)-1, 20)
+
+    for col in df_rewards.columns:
+        plt.plot(df_rewards[col].rolling(window=window_size).mean(), label=col)
+
+    plt.xlabel('Cycle')
+    plt.ylabel('Reward')
+    plt.title('Rewards per intersection')
+    plt.legend()
+
+    plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/rewards_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
     """ 
         Number of vehicles per cycle.
@@ -219,14 +249,10 @@ def main(experiment_root_folder=None):
     by_row_index = df_concat.groupby(df_concat.index)
     df_actions = by_row_index.mean()
 
-    print(df_actions)
-
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
     window_size = min(len(df_actions)-1, 40)
-
-    print(window_size)
 
     for col in df_actions.columns:
         plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
