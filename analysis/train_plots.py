@@ -182,7 +182,10 @@ def main(experiment_root_folder=None):
     Y_std = np.std(velocities, axis=0)
     X = np.linspace(1, velocities.shape[1], velocities.shape[1])
 
-    lowess = sm.nonparametric.lowess(Y, X, frac=0.10)
+    # Replace NaNs.
+    Y_lowess = np.where(np.isnan(Y), 0, Y)
+
+    lowess = sm.nonparametric.lowess(Y_lowess, X, frac=0.10)
 
     plt.plot(X,Y, label='Mean', c=MEAN_CURVE_COLOR)
     plt.plot(X,lowess[:,1], c=SMOOTHING_CURVE_COLOR, label='Smoothing')

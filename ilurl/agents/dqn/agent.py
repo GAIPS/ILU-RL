@@ -7,6 +7,8 @@ import acme
 from acme import specs
 from acme.tf import networks
 
+import random
+import numpy as np
 import tensorflow as tf
 
 from ilurl.utils.default_logger import make_default_logger
@@ -34,7 +36,8 @@ class DQN(AgentWorker,AgentInterface):
         tf.config.threading.set_intra_op_parallelism_threads(_TF_NUM_THREADS)
 
         if params.seed:
-            print(f'SETTED SEED: {params.seed}')
+            random.seed(params.seed)
+            np.random.seed(params.seed)
             tf.random.set_seed(params.seed)
 
         self._name = params.name

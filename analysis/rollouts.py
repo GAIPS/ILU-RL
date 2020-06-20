@@ -42,8 +42,6 @@ GRAY_COLOR = (0.37,0.37,0.37)
 GRAY_COLOR_2 = (0.43,0.43,0.43)
 
 
-ROLLOUT_WARM_UP_PERIOD = 20
-
 def get_arguments():
     parser = argparse.ArgumentParser(
         description="""
