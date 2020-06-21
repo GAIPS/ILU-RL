@@ -1,5 +1,8 @@
 import os
+import random
 import numpy as np
+
+import tensorflow as tf
 
 import dm_env
 
@@ -7,15 +10,10 @@ import acme
 from acme import specs
 from acme.tf import networks
 
-import random
-import numpy as np
-import tensorflow as tf
-
-from ilurl.utils.default_logger import make_default_logger
-
 from ilurl.agents.dqn import acme_agent
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
+from ilurl.utils.default_logger import make_default_logger
 
 _TF_USE_GPU = False
 _TF_NUM_THREADS = 32
