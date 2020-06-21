@@ -16,7 +16,7 @@ from ilurl.controllers.routing_controllers import GreedyRouter
 import flow.networks.base as flownet
 
 from ilurl.utils.properties import lazy_property
-from ilurl.core.params import InFlows, NetParams
+from ilurl.params import InFlows, NetParams
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
                                 get_types, get_tls_custom)

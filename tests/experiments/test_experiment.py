@@ -4,7 +4,7 @@ from flow.core.params import SumoParams, EnvParams, InitialConfig
 
 from ilurl.envs.base import (TrafficLightQLEnv, ADDITIONAL_TLS_PARAMS,
                              ADDITIONAL_ENV_PARAMS, QL_PARAMS)
-from ilurl.core.params import QLParams
+from ilurl.params import QLParams
 from ilurl.networks.base import Network
 from ilurl.core.experiment import Experiment
 

@@ -24,7 +24,7 @@ import numpy as np
 from flow.core.params import EnvParams, SumoParams
 from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
-from ilurl.core.experiment import Experiment
+from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
 from ilurl.networks.base import Network
 

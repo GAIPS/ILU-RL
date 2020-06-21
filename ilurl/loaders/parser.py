@@ -7,7 +7,7 @@ from shutil import copyfile
 
 import configparser
 
-from ilurl.core.params import (QLParams,
+from ilurl.params import (QLParams,
                                DQNParams,
                                MDPParams,
                                TrainParams)

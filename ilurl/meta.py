@@ -1,4 +1,9 @@
-"""Metaclass module to help enforce constraints on derived classes"""
+"""
+    Metaclass module to help enforce constraints on derived classes.
+
+    TODO: Move stuff here into the interfaces folder and delete this file.
+
+"""
 __author__ = 'Guilherme Varela'
 __date__ = '2020-03-25'
 

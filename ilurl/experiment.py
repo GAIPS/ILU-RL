@@ -1,17 +1,6 @@
 """
     Experiment class to run simulations.
-
-   2019-06-2019
-   ------------
-   This file was copied from flow.core.experiment in order to
-   add the following features:
-   * periodically save the running data: server seems to
-   be restarting every 400 steps, the rewards are being changed
-   radically after each restart
-
-   * extend outputs to costumized reward functions
-   * fix bug of averaging speeds when no cars are on the simulation
-
+    (See flow.core.experiment)
 """
 import os
 from pathlib import Path

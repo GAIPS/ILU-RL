@@ -7,7 +7,7 @@ import numpy as np
 import flow.core.params as flow_params
 
 from collections import namedtuple
-from ilurl.core.rewards import get_rewards 
+from ilurl.rewards import get_rewards 
 from ilurl.agents.ql.choice import CHOICE_TYPES
 
 from ilurl.loaders.nets import get_edges, get_routes, get_path

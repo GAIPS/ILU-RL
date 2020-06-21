@@ -1,7 +1,7 @@
 import unittest
 
 from flow.core.params import EnvParams
-from ilurl.core.params import QLParams
+from ilurl.params import QLParams
 from ilurl.core.ql.reward import RewardCalculator, REWARD_TYPES
 
 

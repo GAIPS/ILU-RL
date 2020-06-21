@@ -8,8 +8,8 @@ from flow.core import rewards
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
-from ilurl.core.states import build_states
-from ilurl.core.rewards import build_rewards
+from ilurl.states import build_states
+from ilurl.rewards import build_rewards
 
 from ilurl.utils.properties import lazy_property
 

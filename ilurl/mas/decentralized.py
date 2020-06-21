@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from ilurl.core.params import Bounds
+from ilurl.params import Bounds
 from ilurl.loaders.parser import config_parser
 from ilurl.agents.client import AgentClient
 from ilurl.agents.factory import AgentFactory

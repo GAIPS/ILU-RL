@@ -3,7 +3,7 @@ import pickle
 import unittest
 
 import numpy as np
-from ilurl.core.params import QLParams, Bounds
+from ilurl.params import QLParams, Bounds
 from ilurl.core.ql.dpq import DPQ
 
 

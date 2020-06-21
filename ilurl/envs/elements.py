@@ -1,6 +1,5 @@
 '''
-    Elements or parts of simulated environments
-
+    Elements or parts of simulated environments.
 '''
 from collections import namedtuple
 

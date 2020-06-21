@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 from flow.core.params import EnvParams
  
 # ilurl dependencies
-from ilurl.core.params import QLParams
+from ilurl.params import QLParams
 from ilurl.utils import TIMESTAMP_PROG
 
 

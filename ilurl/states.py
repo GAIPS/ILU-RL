@@ -10,7 +10,7 @@ from collections import defaultdict
 import numpy as np
 
 from ilurl.loaders.parser import config_parser
-from ilurl.core.meta import (MetaState, MetaStateCollection,
+from ilurl.meta import (MetaState, MetaStateCollection,
                              MetaStateCategorizer)
 from ilurl.utils.aux import camelize
 
