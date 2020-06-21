@@ -1,3 +1,6 @@
+"""
+    Defines ilurl.mas package interfaces.
+"""
 import abc
 
 class MASInterface(abc.ABC):

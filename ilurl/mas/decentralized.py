@@ -4,7 +4,7 @@ from ilurl.params import Bounds
 from ilurl.loaders.parser import config_parser
 from ilurl.agents.client import AgentClient
 from ilurl.agents.factory import AgentFactory
-from ilurl.mas.mas_interface import MASInterface
+from ilurl.interfaces.mas import MASInterface
 
 
 class DecentralizedMAS(MASInterface):

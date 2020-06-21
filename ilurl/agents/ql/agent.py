@@ -7,7 +7,7 @@ from threading import Thread
 from ilurl.utils.default_logger import make_default_logger
 
 from ilurl.agents.worker import AgentWorker
-from ilurl.agents.agent_interface import AgentInterface
+from ilurl.interfaces.agents import AgentInterface
 
 from ilurl.agents.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.agents.ql.define import dpq_tls

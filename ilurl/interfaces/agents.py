@@ -1,3 +1,6 @@
+"""
+    Defines ilurl.agents package interfaces.
+"""
 import abc
 
 class AgentInterface(abc.ABC):
