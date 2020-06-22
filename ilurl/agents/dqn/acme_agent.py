@@ -156,8 +156,6 @@ class DQN(agent.Agent):
         ])
         self._deterministic_actor = actors_tf2.FeedForwardActor(max_Q_network)
 
-        #print(float(batch_size) / samples_per_insert)
-
         super().__init__(
             actor=actor,
             learner=learner,

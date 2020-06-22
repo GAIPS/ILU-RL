@@ -4,11 +4,11 @@ import pickle
 import numpy as np
 from threading import Thread
 
-from ilurl.utils.default_logger import make_default_logger
+import tensorflow as tf
 
+from ilurl.utils.default_logger import make_default_logger
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
-
 from ilurl.agents.ql.choice import choice_eps_greedy, choice_ucb
 from ilurl.agents.ql.define import dpq_tls
 from ilurl.agents.ql.update import dpq_update
@@ -38,6 +38,8 @@ class QL(AgentWorker,AgentInterface):
         [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
             
         """
+        tf.config.set_visible_devices([], 'GPU')
+
         self._name = ql_params.name
 
         # Whether learning stopped.

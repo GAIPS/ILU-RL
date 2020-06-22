@@ -70,10 +70,12 @@ class DQN(AgentWorker,AgentInterface):
         # Logger.
         dir_path = f'{params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
-
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
+        
+        # TODO: Allow for dynamic network creation via user parameters.
         network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
-                                                hidden_sizes=[8]) # TODO: FIX NETWORK PARAMS
+                                                hidden_sizes=[8])
+
         self.agent = acme_agent.DQN(environment_spec=env_spec,
                                     network=network,
                                     batch_size=params.batch_size,
