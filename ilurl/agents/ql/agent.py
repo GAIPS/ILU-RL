@@ -1,6 +1,7 @@
 import os
 import dill
 import pickle
+import random
 import numpy as np
 from threading import Thread
 
@@ -39,6 +40,11 @@ class QL(AgentWorker,AgentInterface):
             
         """
         tf.config.set_visible_devices([], 'GPU')
+
+        if ql_params.seed:
+            random.seed(ql_params.seed)
+            np.random.seed(ql_params.seed)
+            tf.random.set_seed(ql_params.seed)
 
         self._name = ql_params.name
 
