@@ -34,6 +34,7 @@ import tensorflow as tf
 import trfl
 
 from ilurl.utils import tf2_savers
+from ilurl.agents.acme_datasets_reverb import make_reverb_dataset
 
 
 class R2D2(agent.Agent):
