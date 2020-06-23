@@ -17,7 +17,7 @@ from ilurl.utils.default_logger import make_default_logger
 from ilurl.utils.precision import double_to_single_precision
 
 _TF_USE_GPU = False
-_TF_NUM_THREADS = 32
+_TF_NUM_THREADS = 16
 
 
 # TODO: Allow for dynamic network creation via user parameters.

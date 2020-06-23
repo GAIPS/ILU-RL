@@ -106,7 +106,7 @@ def make_reverb_dataset(
     dataset = client.dataset(
         table=table,
         dtypes=dtypes,
-        num_workers_per_iterator=4,
+        num_workers_per_iterator=2,
         shapes=shapes,
         capacity=2 * batch_size if batch_size else 100,
         sequence_length=sequence_length,
@@ -118,14 +118,14 @@ def make_reverb_dataset(
   dataset = tf.data.Dataset.range(1).repeat()
   dataset = dataset.interleave(
       map_func=_make_dataset,
-      cycle_length=4, # batch_size or tf.data.experimental.AUTOTUNE,
-      num_parallel_calls=4)
+      cycle_length=2, # batch_size or tf.data.experimental.AUTOTUNE,
+      num_parallel_calls=2)
 
   # Optimization options.
   options = tf.data.Options()
   options.experimental_deterministic = False
   options.experimental_optimization.parallel_batch = parallel_batch_optimization
-  options.experimental_threading.private_threadpool_size = 4
+  options.experimental_threading.private_threadpool_size = 2
   dataset = dataset.with_options(options)
 
   # Finish the pipeline: batch and prefetch.
