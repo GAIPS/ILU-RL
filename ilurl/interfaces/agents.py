@@ -47,6 +47,12 @@ class AgentInterface(abc.ABC):
         """
 
     @abc.abstractmethod
+    def terminate(self):
+        """
+            Cleans up the agent before process termination.
+        """
+
+    @abc.abstractmethod
     def save_checkpoint(self, path):
         """ Save models' weights.
 

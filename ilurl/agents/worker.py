@@ -31,6 +31,7 @@ class AgentWorker(mp.Process):
 
             if call is None:
                 # Terminate.
+                self.terminate()
                 break
 
             # Call method.

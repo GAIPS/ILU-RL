@@ -1,18 +1,17 @@
 import json
+import configparser
 from os import environ
 from pathlib import Path
 from ast import literal_eval
 
 from shutil import copyfile
 
-import configparser
-
+from ilurl.agents.factory import AgentFactory
 from ilurl.params import (QLParams,
-                               DQNParams,
-                               MDPParams,
-                               TrainParams)
-
-AGENT_TYPES = ('QL', 'DQN')
+                          DQNParams,
+                          R2D2Params,
+                          MDPParams,
+                          TrainParams)
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
@@ -137,15 +136,15 @@ class Parser(object):
         # Read agent type: 'QL' or 'DQN'.
         agent_type = train_config['agent_type']['agent_type']
 
-        if agent_type not in AGENT_TYPES:
-                raise ValueError(f'''
-                    Agent type must be in {AGENT_TYPES}.
-                    Got {agent_type} type instead.''')
+        # Check if agent exists:
+        AgentFactory.get(agent_type)
 
         if agent_type == 'QL':
             agent_params = self._parse_ql_params(train_config)
         elif agent_type == 'DQN':
             agent_params = self._parse_dqn_params(train_config)
+        elif agent_type == 'R2D2':
+            agent_params = self._parse_r2d2_params(train_config)
         else:
             raise ValueError('Unkown agent type.')
 
@@ -171,6 +170,8 @@ class Parser(object):
                         replay_buffer_warm_up=int(ql_args['replay_buffer_warm_up']),
         )
 
+        # print(ql_params)
+
         return ql_params
 
     def _parse_dqn_params(self, train_config):
@@ -183,7 +184,7 @@ class Parser(object):
         dqn_args = train_config['dqn_args']
 
         dqn_params = DQNParams(
-                        learning_rate= float(dqn_args['learning_rate']),
+                        learning_rate=float(dqn_args['learning_rate']),
                         gamma=float(dqn_args['discount']),
                         batch_size=int(dqn_args['batch_size']),
                         prefetch_size=int(dqn_args['prefetch_size']),
@@ -197,7 +198,40 @@ class Parser(object):
                         epsilon=float(dqn_args['epsilon']),
         )
 
+        # print(dqn_params)
+
         return dqn_params
 
+    def _parse_r2d2_params(self, train_config):
+        """
+            Parses R2D2 parameters (r2d2_args) from config file located
+            at self.config_path and returns a ilurl.core.params.R2D2Params
+            object with the parsed parameters.
+        """
+
+        r2d2_args = train_config['r2d2_args']
+
+        r2d2_params = R2D2Params(
+                        burn_in_length=int(r2d2_args['burn_in_length']),
+                        trace_length=int(r2d2_args['trace_length']),
+                        replay_period=int(r2d2_args['replay_period']),  
+                        discount=float(r2d2_args['discount']),
+                        batch_size=int(r2d2_args['batch_size']), 
+                        prefetch_size=int(r2d2_args['prefetch_size']),     
+                        target_update_period=int(r2d2_args['target_update_period']),
+                        importance_sampling_exponent=float(r2d2_args['importance_sampling_exponent']),
+                        priority_exponent=float(r2d2_args['priority_exponent']),
+                        epsilon=float(r2d2_args['epsilon']),
+                        learning_rate= float(r2d2_args['learning_rate']),
+                        min_replay_size=int(r2d2_args['min_replay_size']),
+                        max_replay_size=int(r2d2_args['max_replay_size']),
+                        samples_per_insert=float(r2d2_args['samples_per_insert']),
+                        store_lstm_state=str2bool(r2d2_args['store_lstm_state']),
+                        max_priority_weight=float(r2d2_args['max_priority_weight']),
+        )
+
+        # print(r2d2_params)
+
+        return r2d2_params
 
 config_parser = Parser()

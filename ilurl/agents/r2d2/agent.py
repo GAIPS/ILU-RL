@@ -3,14 +3,14 @@ import random
 import numpy as np
 
 import tensorflow as tf
+import sonnet as snt
 
 import dm_env
-
 import acme
 from acme import specs
 from acme.tf import networks
 
-from ilurl.agents.dqn import acme_agent
+from ilurl.agents.r2d2 import acme_agent
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
 from ilurl.utils.default_logger import make_default_logger
@@ -20,12 +20,33 @@ _TF_USE_GPU = False
 _TF_NUM_THREADS = 32
 
 
-class DQN(AgentWorker,AgentInterface):
+# TODO: Allow for dynamic network creation via user parameters.
+class SimpleNetwork(networks.RNNCore):
+
+  def __init__(self, action_spec: specs.DiscreteArray):
+    super().__init__(name='r2d2_network')
+    self._net = snt.DeepRNN([
+        snt.Flatten(),
+        snt.LSTM(10),
+        snt.nets.MLP([5, action_spec.num_values])
+    ])
+
+  def __call__(self, inputs, state):
+    return self._net(inputs, state)
+
+  def initial_state(self, batch_size: int, **kwargs):
+    return self._net.initial_state(batch_size)
+
+  def unroll(self, inputs, state, sequence_length):
+    return snt.static_unroll(self._net, inputs, state, sequence_length)
+
+
+class R2D2(AgentWorker,AgentInterface):
     """
-        DQN agent.
+        R2D2 agent.
     """
     def __init__(self, *args, **kwargs):
-        super(DQN, self).__init__(*args, **kwargs)
+        super(R2D2, self).__init__(*args, **kwargs)
 
     def init(self, params):
 
@@ -66,7 +87,7 @@ class DQN(AgentWorker,AgentInterface):
                                            maximum=1.,
                                            name='discount'
         )
- 
+
         env_spec = specs.EnvironmentSpec(observations=observation_spec,
                                           actions=action_spec,
                                           rewards=reward_spec,
@@ -76,26 +97,28 @@ class DQN(AgentWorker,AgentInterface):
         dir_path = f'{params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
-        
-        # TODO: Allow for dynamic network creation via user parameters.
-        network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
-                                                hidden_sizes=[8])
 
-        self.agent = acme_agent.DQN(environment_spec=env_spec,
-                                    network=network,
-                                    batch_size=params.batch_size,
-                                    prefetch_size=params.prefetch_size,
-                                    target_update_period=params.target_update_period,
-                                    samples_per_insert=params.samples_per_insert,
-                                    min_replay_size=params.min_replay_size,
-                                    max_replay_size=params.max_replay_size,
-                                    importance_sampling_exponent=params.importance_sampling_exponent,
-                                    priority_exponent=params.priority_exponent,
-                                    n_step=params.n_step,
-                                    epsilon=params.epsilon,
-                                    learning_rate=params.learning_rate,
-                                    discount=params.gamma,
-                                    logger=agent_logger)
+        self.agent = acme_agent.R2D2(environment_spec=env_spec,
+                                     network=SimpleNetwork(env_spec.actions), # TODO.
+                                     batch_size=params.batch_size,
+                                     samples_per_insert=params.samples_per_insert,
+                                     burn_in_length=params.burn_in_length,
+                                     trace_length=params.trace_length,
+                                     replay_period=params.replay_period,
+                                     min_replay_size=params.min_replay_size,
+                                     max_replay_size=params.max_replay_size,
+                                     discount=params.discount,
+                                     prefetch_size=params.prefetch_size,
+                                     target_update_period=params.target_update_period,
+                                     importance_sampling_exponent=params.importance_sampling_exponent,
+                                     priority_exponent=params.priority_exponent,
+                                     epsilon=params.epsilon,
+                                     learning_rate=params.learning_rate,
+                                     store_lstm_state=params.store_lstm_state,
+                                     max_priority_weight=params.max_priority_weight,
+                                     logger=agent_logger,
+                                     checkpoint=False,
+        )
 
         # Observations counter.
         self._obs_counter = 0

@@ -465,6 +465,46 @@ class DQNParams(Printable):
                 setattr(self, attr, value)
 
 
+class R2D2Params(Printable):
+    """
+        Base R2D2 parameters.
+    """
+
+    def __init__(
+            self,
+            burn_in_length,
+            trace_length,
+            replay_period,  
+            discount,
+            batch_size,      
+            prefetch_size,
+            target_update_period,
+            importance_sampling_exponent,
+            priority_exponent,
+            epsilon,
+            learning_rate,
+            min_replay_size,
+            max_replay_size,
+            samples_per_insert,
+            store_lstm_state,
+            max_priority_weight,
+        ):
+        """Instantiate R2D2 parameters.
+
+        Parameters:
+        ----------
+        * TODO ...
+
+        """
+        kwargs = locals()
+
+        # TODO: Add arguments restrictions.
+
+        for attr, value in kwargs.items():
+            if attr not in ('self'):
+                setattr(self, attr, value)
+
+
 class TrainParams(Printable):
     """
         Base train.py parameters.

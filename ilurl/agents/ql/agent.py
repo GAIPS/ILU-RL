@@ -175,6 +175,10 @@ class QL(AgentWorker,AgentInterface):
             }
             self._logger.write(values)
 
+    def terminate(self):
+        # Nothing to do here.
+        pass
+
     def save_checkpoint(self, path):
         os.makedirs(f"{path}/checkpoints/{self._obs_counter}", exist_ok=True)
 
