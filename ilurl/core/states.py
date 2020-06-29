@@ -543,7 +543,6 @@ class SpeedState(object, metaclass=MetaState):
         # TODO: Add mem context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            # for phase, phase_veh_speeds in veh_speeds[tls_id].items():
             for phase, _vehs in vehs[tls_id].items():
                 if time not in mem:
                     mem[time] = {}
@@ -583,6 +582,71 @@ class SpeedState(object, metaclass=MetaState):
             return self.categorizer.categorize(self.state)
         return self.state
 
+
+
+class LaggedState(object, metaclass=MetaState):
+    """Retains the previous cycle state's value
+
+    This is a special kind of state which is derived from
+    some other state -- it just keeps tabs on which was
+    the last cycle's value.
+
+    Uses delegation to register a common interface with
+    the other state instances.
+
+    """
+
+    def __init__(self, state, lag=1):
+        self._state = state
+        self._num_cycles = -1
+        self._lag = lag
+        self.reset()
+
+    @property
+    def label(self):
+        return f'lag[{state.label}]'
+
+    @property
+    def tls_ids(self):
+        return self._state.tls_ids
+
+    @property
+    def tls_phases(self):
+        return self._state.tls_phases
+
+    @property
+    def tls_caps(self):
+        return self._state.tls_caps
+
+    def reset(self):
+        self._memory = {}
+
+    def update(self, time, vehs, tls=None):
+        # 1) New decision point: keeps a rolling state
+        if time == 0.0:
+            self._num_cycles += 1
+            keys = [k for k in self._memory if k >= 0 and
+                    self._num_cycles - k > self._lag]
+            for k in keys:
+                del self._memory[k]
+
+        # 2) Update memory with derived state
+        # TODO: How to know the state is updated?
+        # Option 1: `violate' constraint and check previous time
+        # Option 2: `dumb' redo work
+        self._memory[self._num_cycles] = \
+            self._state.update(time, vehs, tls=tls).state
+
+    # TODO: create a generator on parent class
+    @property
+    def state(self):
+        return self._memory[self._num_cycles - self._lag]
+
+    def categorize(self):
+        state = self._state
+        if hasattr(self, 'categorizer'):
+            return state.categorizer.categorize(state)
+        return state
 
 class DelayState(object, metaclass=MetaState):
     """Computes the total delay observed per phase
