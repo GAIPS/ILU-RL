@@ -247,7 +247,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        obs = self.get_observation_space().state
+        obs = self.get_observation_space().state()
 
         # Categorize.
         if self.mdp_params.discretize_state_space:

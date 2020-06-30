@@ -1,9 +1,7 @@
 """Implementation of states as perceived by agent"""
-import pdb
 import inspect
 from sys import modules
-from heapq import nlargest
-
+import ipdb
 from operator import itemgetter
 from collections import defaultdict
 
@@ -115,9 +113,9 @@ def build_states(network, mdp_params):
 
             # 5) Function specific parameters
             velocity_threshold = None
-            if mdp_params.reward in ('reward_min_delay',
-                                     'reward_min_queue_squared'):
-                velocity_threshold = mdp_params.velocity_threshold
+            # if mdp_params.reward in ('reward_min_delay',
+            #                          'reward_min_queue_squared'):
+            velocity_threshold = mdp_params.velocity_threshold
 
             state = state_cls(tls_ids, tls_phases,
                               max_capacities, normalize_state_space,
@@ -179,12 +177,13 @@ class StateCollection(object, metaclass=MetaStateCollection):
         for state in self._states:
             state.reset()
 
-    @property
-    def state(self):
+    def state(self, filter_by=None):
         # TODO: provide format options: flatten, split,   
         ret = {}
         for tls_id in self.tls_ids:
             states = [s for s in self._states if tls_id in s.tls_ids]
+            if filter_by is not None:
+                states = [s for s in states if s.label in filter_by]
             num_phases = self.tls_phases[tls_id]
             state_tls = []
             for nph in range(num_phases):
@@ -227,17 +226,21 @@ class StateCollection(object, metaclass=MetaStateCollection):
             ret[tls_id] = tuple(flattened)
         return ret
         
-    def split(self):
+    def split(self, filter_by=None):
         """Splits per state label"""
         labels = self.label.split('|')
         ret = {} # defaultdict(list)
+        state = self.state(filter_by=filter_by)
+        if filter_by:
+            labels = filter_by
+
         for tls_id in self.tls_ids:
             ret[tls_id] = defaultdict(list)
-            state = self.state[tls_id]
+            _state = state[tls_id]
             for nph in range(self.tls_phases[tls_id]):
                 for idx, label in enumerate(labels):
-                    ret[tls_id][label].append(state[nph][idx])
-
+                    ret[tls_id][label].append(_state[nph][idx])
+                    
         ret = {tls_id: tuple([v for v in data.values()])
                for tls_id, data in ret.items()}
         return ret

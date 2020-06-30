@@ -90,7 +90,7 @@ def build_rewards(mdp_params):
     return ret
 
 
-def reward_max_speed_count(target_velocity, state, *args):
+def reward_max_speed_count(target_velocity, states, *args):
     """Max. Speed and Count
 
     Params:
@@ -110,7 +110,13 @@ def reward_max_speed_count(target_velocity, state, *args):
     
 
     """
-    speeds_counts = state.split()
+
+    if not ('speed' in states.label and 'count' in states.label):
+        raise ValueError(
+            'Speed and Count not present in StateCollection')
+    else:
+        speeds_counts = states.split(('speed', 'count'))
+     
 
     ret = {}
     for k, v in speeds_counts.items():
@@ -162,8 +168,13 @@ def reward_min_delay(states, *args):
         "Multi-agent reinforcement learning for traffic light control."
 
     """
+    if 'delay' not in states.label:
+        raise ValueError('DelayState not present in StateCollection')
+    else:
+        state = states.state(('delay',))
+
     ret = {}
-    for tls_id, phase_obs in states.state.items():
+    for tls_id, phase_obs in state.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
     return ret
 
@@ -197,6 +208,11 @@ def reward_min_queue_squared(state, duration):
     * Camponogara and Kraus, 2003
         "Distributed learning agents in urban traffic control."
     """
+    if 'queue' not in states.label:
+        raise ValueError('QueueState not present in StateCollection')
+    else:
+        state = states.state(('queue',))
+
     global QUEUE
     ret = {}
     for tls_id, _max_q in state.state.items():
