@@ -1,9 +1,12 @@
 """Implementation of states as perceived by agent"""
+import re
 import inspect
 from sys import modules
 import ipdb
 from operator import itemgetter
 from collections import defaultdict
+from copy import deepcopy
+
 
 import numpy as np
 
@@ -11,6 +14,7 @@ from ilurl.loaders.parser import config_parser
 from ilurl.core.meta import (MetaState, MetaStateCollection,
                              MetaStateCategorizer)
 from ilurl.utils.aux import camelize
+
 
 
 def get_states():
@@ -40,11 +44,12 @@ def get_states():
     """
     this = modules[__name__]
     names, objects = [], []
+    non_states = ('StateCategorizer', 'StateCollection', 'LagState')
     for name, obj in inspect.getmembers(this):
 
         # Is a definition a class?
         if inspect.isclass(obj):
-            if 'StateCollection' != name and 'StateCategorizer' != name:
+            if  name not in non_states:
                 # Is defined in this module
                 if inspect.getmodule(obj) == this:
                     name = camelize(name.replace('State', ''))
@@ -67,7 +72,7 @@ def build_states(network, mdp_params):
         network to be described by states
 
     * mdp_params: ilurl.core.params.MDPParams
-        mdp specify: agent, states, rewards, gamma and learning params
+        mdp specification: agent, states, rewards, gamma and learning params
 
     Returns:
     --------
@@ -77,7 +82,8 @@ def build_states(network, mdp_params):
     """
     # 1) Handle state, reward and agent parameters.
     states_names, states_classes = get_states()
-    no_state_set = set(mdp_params.states) - set(states_names)
+    req_states_names = {s for s in mdp_params.states if 'lag' not in s}
+    no_state_set = req_states_names - set(states_names)
     if len(no_state_set) > 0:
         raise ValueError(f'{no_state_set} is not implemented')
 
@@ -86,41 +92,55 @@ def build_states(network, mdp_params):
     normalize_state_space = mdp_params.normalize_state_space
     tls_max_capacity = network.tls_max_capacity
     phases_per_tls = network.phases_per_tls
+
+    matcher = re.compile('\[(.*?)\]')
+
     for tid, np in phases_per_tls.items():
 
         for state_name in mdp_params.states:
-            state_cls = states_classes[states_names.index(state_name)]
+            # TODO: Necessary to create base state first
+            if 'lag' in state_name:
+                # derived state must have been already created.
+                derived_state_tuple = matcher.search(state_name).groups(0)
+                derived_state = \
+                    [s for s in states if s.label in derived_state_tuple and tid in s.tls_ids][0]
 
-            # 3) Define input parameters.
-            tls_ids = [tid]
-            tls_phases = {tid: np}
-            max_capacities = {tid: tls_max_capacity[tid]}
+                state = LagState(derived_state)
+                
+            else:
 
-            # 4) Q-Learning agent requires function approximation
-            # Some objects require discretization
-            categorizer = None
-            if mdp_params.discretize_state_space:
-                if state_cls == SpeedState:
-                    categorizer = StateCategorizer(mdp_params.category_speeds)
-                elif state_cls == CountState:
-                    categorizer = StateCategorizer(mdp_params.category_counts)
-                elif state_cls == DelayState:
-                    categorizer = StateCategorizer(mdp_params.category_delays)
-                elif state_cls == QueueState:
-                    categorizer = StateCategorizer(mdp_params.category_queues)
-                else:
-                    raise ValueError(f'No discretization bins for {state_cls}')
+                state_cls = states_classes[states_names.index(state_name)]
 
-            # 5) Function specific parameters
-            velocity_threshold = None
-            # if mdp_params.reward in ('reward_min_delay',
-            #                          'reward_min_queue_squared'):
-            velocity_threshold = mdp_params.velocity_threshold
+                # 3) Define input parameters.
+                tls_ids = [tid]
+                tls_phases = {tid: np}
+                max_capacities = {tid: tls_max_capacity[tid]}
 
-            state = state_cls(tls_ids, tls_phases,
-                              max_capacities, normalize_state_space,
-                              categorizer=categorizer,
-                              velocity_threshold=velocity_threshold)
+                # 4) Q-Learning agent requires function approximation
+                # Some objects require discretization
+                categorizer = None
+                if mdp_params.discretize_state_space:
+                    if state_cls == SpeedState:
+                        categorizer = StateCategorizer(mdp_params.category_speeds)
+                    elif state_cls == CountState:
+                        categorizer = StateCategorizer(mdp_params.category_counts)
+                    elif state_cls == DelayState:
+                        categorizer = StateCategorizer(mdp_params.category_delays)
+                    elif state_cls == QueueState:
+                        categorizer = StateCategorizer(mdp_params.category_queues)
+                    else:
+                        raise ValueError(f'No discretization bins for {state_cls}')
+
+                # 5) Function specific parameters
+                velocity_threshold = None
+                # if mdp_params.reward in ('reward_min_delay',
+                #                          'reward_min_queue_squared'):
+                velocity_threshold = mdp_params.velocity_threshold
+
+                state = state_cls(tls_ids, tls_phases,
+                                  max_capacities, normalize_state_space,
+                                  categorizer=categorizer,
+                                  velocity_threshold=velocity_threshold)
 
             states.append(state)
     return StateCollection(states)
@@ -587,7 +607,7 @@ class SpeedState(object, metaclass=MetaState):
 
 
 
-class LaggedState(object, metaclass=MetaState):
+class LagState(object, metaclass=MetaState):
     """Retains the previous cycle state's value
 
     This is a special kind of state which is derived from
@@ -607,7 +627,7 @@ class LaggedState(object, metaclass=MetaState):
 
     @property
     def label(self):
-        return f'lag[{state.label}]'
+        return f'lag[{self._state.label}]'
 
     @property
     def tls_ids(self):
@@ -637,19 +657,26 @@ class LaggedState(object, metaclass=MetaState):
         # TODO: How to know the state is updated?
         # Option 1: `violate' constraint and check previous time
         # Option 2: `dumb' redo work
-        self._memory[self._num_cycles] = \
-            self._state.update(time, vehs, tls=tls).state
+        _state = deepcopy(self._state)
+        _state.update(time, vehs, tls=tls)
+        self._memory[self._num_cycles] = _state
 
     # TODO: create a generator on parent class
     @property
     def state(self):
-        return self._memory[self._num_cycles - self._lag]
+        k = self._num_cycles - self._lag
+
+        if k in self._memory:
+            return self._memory[k].state
+        return self._state.state
 
     def categorize(self):
-        state = self._state
-        if hasattr(self, 'categorizer'):
-            return state.categorizer.categorize(state)
+        k = self._num_cycles - self._lag
+        state = self._memory.get(k, self._memory[self._num_cycles])
+        if hasattr(state, 'categorizer'):
+            return state.categorize()
         return state
+
 
 class DelayState(object, metaclass=MetaState):
     """Computes the total delay observed per phase

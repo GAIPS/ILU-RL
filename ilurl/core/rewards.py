@@ -3,13 +3,12 @@
     TODO: Move from strategy pattern to pure-functional
         implementation
 """
-import pdb
+import ipdb
 import inspect
 from sys import modules
 
 import numpy as np
 
-QUEUE = {}
 
 
 def get_rewards():
@@ -75,11 +74,6 @@ def build_rewards(mdp_params):
         def ret(x, *args):
             return reward_max_speed_count(target_velocity, x, *args)
 
-    elif target == 'reward_min_queue_squared':
-
-        def ret(x, *args):
-            return reward_min_queue_squared(x, *args)
-
     else:
         idx = names.index(target)
         fn = funcs[idx]
@@ -107,17 +101,14 @@ def reward_max_speed_count(target_velocity, states, *args):
 
     Reference:
     ----------
-    
 
     """
-
     if not ('speed' in states.label and 'count' in states.label):
         raise ValueError(
             'Speed and Count not present in StateCollection')
     else:
         speeds_counts = states.split(('speed', 'count'))
      
-
     ret = {}
     for k, v in speeds_counts.items():
         speeds, counts = v
@@ -179,7 +170,7 @@ def reward_min_delay(states, *args):
     return ret
 
 
-def reward_min_queue_squared(state, duration):
+def reward_min_queue_squared(states):
     """Minimizing the delta of queue length squared 
 
     Reward definition 3: Minimizing and Balancing Queue Length
@@ -208,19 +199,15 @@ def reward_min_queue_squared(state, duration):
     * Camponogara and Kraus, 2003
         "Distributed learning agents in urban traffic control."
     """
-    if 'queue' not in states.label:
+
+    if not ('queue' in states.label or 'lag[queue]' in states.label):
         raise ValueError('QueueState not present in StateCollection')
     else:
-        state = states.state(('queue',))
+        queue_lagqueue = states.split(('queue', 'lag[queue]'))
 
-    global QUEUE
     ret = {}
-    for tls_id, _max_q in state.state.items():
-        _max_q = np.concatenate(_max_q, axis=0)
-        _prev_q = QUEUE.get(tls_id, np.zeros(_max_q.shape))
+    for tls_id, q_lq in queue_lagqueue.items():
+        queue, lagqueue = q_lq
 
-        ret[tls_id] = _max_q.dot(_max_q) - _prev_q.dot(_prev_q)
-        # 2) Store: if this is a decision point.
-        if duration == 0.0:
-            QUEUE[tls_id] = _max_q
+        ret[tls_id] = -(np.dot(queue, queue) - np.dot(lagqueue, lagqueue))
     return ret

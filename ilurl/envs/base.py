@@ -9,6 +9,7 @@ import json
 import numpy as np
 # TODO: remove me
 from operator import itemgetter
+import ipdb
 
 from flow.core import rewards
 from flow.envs.ring.accel import AccelEnv
@@ -247,11 +248,12 @@ class TrafficLightEnv(AccelEnv, Serializer):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        obs = self.get_observation_space().state()
-
         # Categorize.
         if self.mdp_params.discretize_state_space:
             obs = self.get_observation_space().categorize()
+        else:
+            obs = self.get_observation_space().state()
+
 
         obs = self.get_observation_space().flatten(obs)
 
@@ -408,7 +410,7 @@ class TrafficLightEnv(AccelEnv, Serializer):
         -------
         reward : float or list of float
         """
-        return self.reward(self.get_observation_space(), self.duration)
+        return self.reward(self.get_observation_space())
 
     def reset(self):
         super(TrafficLightEnv, self).reset()

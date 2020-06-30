@@ -44,29 +44,29 @@ if __name__ == '__main__':
     except Exception:
         print('SKIP train_plots...')
 
-    # # 3) Execute rollouts.
-    # eval_path = rollouts(experiment_dir=experiment_root_path)
+    # 3) Execute rollouts.
+    eval_path = rollouts(experiment_dir=experiment_root_path)
 
-    # # 4) Create rollouts plots.
-    # try:
-    #     rollouts_plots(eval_path)
-    # except Exception:
-    #     print('SKIP rollouts_plots')
+    # 4) Create rollouts plots.
+    try:
+        rollouts_plots(eval_path)
+    except Exception:
+        print('SKIP rollouts_plots')
 
-    # # 5) Execute rollouts with last saved checkpoints (test).
-    # rollouts(test=True, experiment_dir=experiment_root_path)
+    # 5) Execute rollouts with last saved checkpoints (test).
+    rollouts(test=True, experiment_dir=experiment_root_path)
 
-    # # 7) Convert .xml files to .csv files.
-    # for xml_path in Path(experiment_root_path).rglob('*.xml'):
-    #     csv_path = str(xml_path).replace('xml', 'csv')
-    #     args = [str(xml_path), '-o', csv_path]
-    #     try:
-    #         xml2csv(args)
-    #         Path(xml_path).unlink()
-    #     except Exception:
-    #         raise
+    # 7) Convert .xml files to .csv files.
+    for xml_path in Path(experiment_root_path).rglob('*.xml'):
+        csv_path = str(xml_path).replace('xml', 'csv')
+        args = [str(xml_path), '-o', csv_path]
+        try:
+            xml2csv(args)
+            Path(xml_path).unlink()
+        except Exception:
+            raise
 
-    # # 8) Create plots with metrics plots for final agent.
-    # test_plots(experiment_root_path)
+    # 8) Create plots with metrics plots for final agent.
+    test_plots(experiment_root_path)
 
     print('Experiment folder: {0}'.format(experiment_root_path))
