@@ -621,6 +621,7 @@ class LagState(object, metaclass=MetaState):
 
     def __init__(self, state, lag=1):
         self._state = state
+        self._state_0 = [[0] * self.tls_phases[tid] for tid in self.tls_ids]
         self._num_cycles = -1
         self._lag = lag
         self.reset()
@@ -665,14 +666,13 @@ class LagState(object, metaclass=MetaState):
     @property
     def state(self):
         k = self._num_cycles - self._lag
-
         if k in self._memory:
             return self._memory[k].state
         return self._state.state
 
     def categorize(self):
         k = self._num_cycles - self._lag
-        state = self._memory.get(k, self._memory[self._num_cycles])
+        state = self._memory.get(k, self._state_0)
         if hasattr(state, 'categorizer'):
             return state.categorize()
         return state
