@@ -1,11 +1,11 @@
 """Implementation of states as perceived by agent"""
-import pdb
+import re
 import inspect
 from sys import modules
-from heapq import nlargest
-
 from operator import itemgetter
 from collections import defaultdict
+from copy import deepcopy
+
 
 import numpy as np
 
@@ -13,6 +13,7 @@ from ilurl.loaders.parser import config_parser
 from ilurl.meta import (MetaState, MetaStateCollection,
                              MetaStateCategorizer)
 from ilurl.utils.aux import camelize
+
 
 
 def get_states():
@@ -42,11 +43,12 @@ def get_states():
     """
     this = modules[__name__]
     names, objects = [], []
+    non_states = ('StateCategorizer', 'StateCollection', 'LagState')
     for name, obj in inspect.getmembers(this):
 
         # Is a definition a class?
         if inspect.isclass(obj):
-            if 'StateCollection' != name and 'StateCategorizer' != name:
+            if  name not in non_states:
                 # Is defined in this module
                 if inspect.getmodule(obj) == this:
                     name = camelize(name.replace('State', ''))
@@ -69,7 +71,7 @@ def build_states(network, mdp_params):
         network to be described by states
 
     * mdp_params: ilurl.core.params.MDPParams
-        mdp specify: agent, states, rewards, gamma and learning params
+        mdp specification: agent, states, rewards, gamma and learning params
 
     Returns:
     --------
@@ -79,7 +81,8 @@ def build_states(network, mdp_params):
     """
     # 1) Handle state, reward and agent parameters.
     states_names, states_classes = get_states()
-    no_state_set = set(mdp_params.states) - set(states_names)
+    req_states_names = {s for s in mdp_params.states if 'lag' not in s}
+    no_state_set = req_states_names - set(states_names)
     if len(no_state_set) > 0:
         raise ValueError(f'{no_state_set} is not implemented')
 
@@ -88,41 +91,55 @@ def build_states(network, mdp_params):
     normalize_state_space = mdp_params.normalize_state_space
     tls_max_capacity = network.tls_max_capacity
     phases_per_tls = network.phases_per_tls
+
+    matcher = re.compile('\[(.*?)\]')
+
     for tid, np in phases_per_tls.items():
 
         for state_name in mdp_params.states:
-            state_cls = states_classes[states_names.index(state_name)]
+            # TODO: Necessary to create base state first
+            if 'lag' in state_name:
+                # derived state must have been already created.
+                derived_state_tuple = matcher.search(state_name).groups(0)
+                derived_state = \
+                    [s for s in states if s.label in derived_state_tuple and tid in s.tls_ids][0]
 
-            # 3) Define input parameters.
-            tls_ids = [tid]
-            tls_phases = {tid: np}
-            max_capacities = {tid: tls_max_capacity[tid]}
+                state = LagState(derived_state)
+                
+            else:
 
-            # 4) Q-Learning agent requires function approximation
-            # Some objects require discretization
-            categorizer = None
-            if mdp_params.discretize_state_space:
-                if state_cls == SpeedState:
-                    categorizer = StateCategorizer(mdp_params.category_speeds)
-                elif state_cls == CountState:
-                    categorizer = StateCategorizer(mdp_params.category_counts)
-                elif state_cls == DelayState:
-                    categorizer = StateCategorizer(mdp_params.category_delays)
-                elif state_cls == QueueState:
-                    categorizer = StateCategorizer(mdp_params.category_queues)
-                else:
-                    raise ValueError(f'No discretization bins for {state_cls}')
+                state_cls = states_classes[states_names.index(state_name)]
 
-            # 5) Function specific parameters
-            velocity_threshold = None
-            if mdp_params.reward in ('reward_min_delay',
-                                     'reward_min_queue_squared'):
+                # 3) Define input parameters.
+                tls_ids = [tid]
+                tls_phases = {tid: np}
+                max_capacities = {tid: tls_max_capacity[tid]}
+
+                # 4) Q-Learning agent requires function approximation
+                # Some objects require discretization
+                categorizer = None
+                if mdp_params.discretize_state_space:
+                    if state_cls == SpeedState:
+                        categorizer = StateCategorizer(mdp_params.category_speeds)
+                    elif state_cls == CountState:
+                        categorizer = StateCategorizer(mdp_params.category_counts)
+                    elif state_cls == DelayState:
+                        categorizer = StateCategorizer(mdp_params.category_delays)
+                    elif state_cls == QueueState:
+                        categorizer = StateCategorizer(mdp_params.category_queues)
+                    else:
+                        raise ValueError(f'No discretization bins for {state_cls}')
+
+                # 5) Function specific parameters
+                velocity_threshold = None
+                # if mdp_params.reward in ('reward_min_delay',
+                #                          'reward_min_queue_squared'):
                 velocity_threshold = mdp_params.velocity_threshold
 
-            state = state_cls(tls_ids, tls_phases,
-                              max_capacities, normalize_state_space,
-                              categorizer=categorizer,
-                              velocity_threshold=velocity_threshold)
+                state = state_cls(tls_ids, tls_phases,
+                                  max_capacities, normalize_state_space,
+                                  categorizer=categorizer,
+                                  velocity_threshold=velocity_threshold)
 
             states.append(state)
     return StateCollection(states)
@@ -179,12 +196,13 @@ class StateCollection(object, metaclass=MetaStateCollection):
         for state in self._states:
             state.reset()
 
-    @property
-    def state(self):
+    def state(self, filter_by=None):
         # TODO: provide format options: flatten, split,   
         ret = {}
         for tls_id in self.tls_ids:
             states = [s for s in self._states if tls_id in s.tls_ids]
+            if filter_by is not None:
+                states = [s for s in states if s.label in filter_by]
             num_phases = self.tls_phases[tls_id]
             state_tls = []
             for nph in range(num_phases):
@@ -227,17 +245,21 @@ class StateCollection(object, metaclass=MetaStateCollection):
             ret[tls_id] = tuple(flattened)
         return ret
         
-    def split(self):
+    def split(self, filter_by=None):
         """Splits per state label"""
         labels = self.label.split('|')
         ret = {} # defaultdict(list)
+        state = self.state(filter_by=filter_by)
+        if filter_by:
+            labels = filter_by
+
         for tls_id in self.tls_ids:
             ret[tls_id] = defaultdict(list)
-            state = self.state[tls_id]
+            _state = state[tls_id]
             for nph in range(self.tls_phases[tls_id]):
                 for idx, label in enumerate(labels):
-                    ret[tls_id][label].append(state[nph][idx])
-
+                    ret[tls_id][label].append(_state[nph][idx])
+                    
         ret = {tls_id: tuple([v for v in data.values()])
                for tls_id, data in ret.items()}
         return ret
@@ -543,7 +565,6 @@ class SpeedState(object, metaclass=MetaState):
         # TODO: Add mem context manager
         for tls_id in self.tls_ids:
             mem = self._memory[tls_id]
-            # for phase, phase_veh_speeds in veh_speeds[tls_id].items():
             for phase, _vehs in vehs[tls_id].items():
                 if time not in mem:
                     mem[time] = {}
@@ -582,6 +603,78 @@ class SpeedState(object, metaclass=MetaState):
         if hasattr(self, 'categorizer'):
             return self.categorizer.categorize(self.state)
         return self.state
+
+
+
+class LagState(object, metaclass=MetaState):
+    """Retains the previous cycle state's value
+
+    This is a special kind of state which is derived from
+    some other state -- it just keeps tabs on which was
+    the last cycle's value.
+
+    Uses delegation to register a common interface with
+    the other state instances.
+
+    """
+
+    def __init__(self, state, lag=1):
+        self._state = state
+        self._state_0 = [[0] * self.tls_phases[tid] for tid in self.tls_ids]
+        self._num_cycles = -1
+        self._lag = lag
+        self.reset()
+
+    @property
+    def label(self):
+        return f'lag[{self._state.label}]'
+
+    @property
+    def tls_ids(self):
+        return self._state.tls_ids
+
+    @property
+    def tls_phases(self):
+        return self._state.tls_phases
+
+    @property
+    def tls_caps(self):
+        return self._state.tls_caps
+
+    def reset(self):
+        self._memory = {}
+
+    def update(self, time, vehs, tls=None):
+        # 1) New decision point: keeps a rolling state
+        if time == 0.0:
+            self._num_cycles += 1
+            keys = [k for k in self._memory if k >= 0 and
+                    self._num_cycles - k > self._lag]
+            for k in keys:
+                del self._memory[k]
+
+        # 2) Update memory with derived state
+        # TODO: How to know the state is updated?
+        # Option 1: `violate' constraint and check previous time
+        # Option 2: `dumb' redo work
+        _state = deepcopy(self._state)
+        _state.update(time, vehs, tls=tls)
+        self._memory[self._num_cycles] = _state
+
+    # TODO: create a generator on parent class
+    @property
+    def state(self):
+        k = self._num_cycles - self._lag
+        if k in self._memory:
+            return self._memory[k].state
+        return self._state.state
+
+    def categorize(self):
+        k = self._num_cycles - self._lag
+        state = self._memory.get(k, self._state_0)
+        if hasattr(state, 'categorizer'):
+            return state.categorize()
+        return state
 
 
 class DelayState(object, metaclass=MetaState):
