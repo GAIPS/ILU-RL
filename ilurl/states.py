@@ -12,7 +12,7 @@ import numpy as np
 from ilurl.loaders.parser import config_parser
 from ilurl.meta import (MetaState, MetaStateCollection,
                              MetaStateCategorizer)
-from ilurl.utils.aux import camelize
+from ilurl.utils.aux import camelize, flatten
 
 
 
@@ -22,7 +22,7 @@ def get_states():
     * Uses module introspection to get the handle for classes
     * Ignores StateCollection, StateCategorizer
 
-    
+
     Returns:
     -------
     * names: tuple(<str>)
@@ -94,6 +94,9 @@ def build_states(network, mdp_params):
 
     matcher = re.compile('\[(.*?)\]')
 
+    # Global states.
+    time_period = mdp_params.time_period
+
     for tid, np in phases_per_tls.items():
 
         for state_name in mdp_params.states:
@@ -102,10 +105,11 @@ def build_states(network, mdp_params):
                 # derived state must have been already created.
                 derived_state_tuple = matcher.search(state_name).groups(0)
                 derived_state = \
-                    [s for s in states if s.label in derived_state_tuple and tid in s.tls_ids][0]
+                    [s for s in states
+                     if s.label in derived_state_tuple and
+                     tid in s.tls_ids][0]
 
                 state = LagState(derived_state)
-                
             else:
 
                 state_cls = states_classes[states_names.index(state_name)]
@@ -132,8 +136,6 @@ def build_states(network, mdp_params):
 
                 # 5) Function specific parameters
                 velocity_threshold = None
-                # if mdp_params.reward in ('reward_min_delay',
-                #                          'reward_min_queue_squared'):
                 velocity_threshold = mdp_params.velocity_threshold
 
                 state = state_cls(tls_ids, tls_phases,
@@ -142,12 +144,15 @@ def build_states(network, mdp_params):
                                   velocity_threshold=velocity_threshold)
 
             states.append(state)
-    return StateCollection(states)
+    return StateCollection(states, time_period)
 
 
 class StateCollection(object, metaclass=MetaStateCollection):
 
-    def __init__(self, states):
+    def __init__(self, states, time_period=None):
+        # Time is a GlobalState
+        self._time_state = TimeState(time_period) if time_period else None
+
         self.tls_ids = \
             sorted({tid for s in states for tid in s.tls_ids})
 
@@ -158,9 +163,14 @@ class StateCollection(object, metaclass=MetaStateCollection):
 
         self._states = states
 
+
     @property
     def label(self):
         labels = []
+
+        if self._time_state:
+            labels.append(self._time_state.label)
+
         for tls_id in self.tls_ids:
             states = [s for s in self._states if tls_id in s.tls_ids]
             for state in states:
@@ -186,6 +196,9 @@ class StateCollection(object, metaclass=MetaStateCollection):
 
     def update(self, time, vehs, tls=None):
 
+        if self._time_state:
+            self._time_state.update(time)
+
         for tls_id in self.tls_ids:
             if tls_id in vehs:
                 for state in self._states:
@@ -193,6 +206,9 @@ class StateCollection(object, metaclass=MetaStateCollection):
                         state.update(time, vehs, tls)
 
     def reset(self):
+        if self._time_state:
+            self._time_state.reset()
+
         for state in self._states:
             state.reset()
 
@@ -203,8 +219,10 @@ class StateCollection(object, metaclass=MetaStateCollection):
             states = [s for s in self._states if tls_id in s.tls_ids]
             if filter_by is not None:
                 states = [s for s in states if s.label in filter_by]
+
+            has_time = (filter_by and 'time' in filter_by) or None
             num_phases = self.tls_phases[tls_id]
-            state_tls = []
+            state_tls = [self._time_state.state] if has_time else []
             for nph in range(num_phases):
                 state_phases = []
                 for state in states:
@@ -218,10 +236,12 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def categorize(self):
         # TODO: provide format options: flatten, split 
         ret = {}
+
+        has_time = self._time_state is not None
         for tls_id in self.tls_ids:
             states = [s for s in self._states if tls_id in s.tls_ids]
             num_phases = self.tls_phases[tls_id]
-            state_tls = []
+            state_tls = [self._time_state.state] if has_time else []
             for nph in range(num_phases):
                 state_phases = []
                 for state in states:
@@ -237,18 +257,13 @@ class StateCollection(object, metaclass=MetaStateCollection):
     def flatten(self, values):
         ret = {}
         for tls_id in self.tls_ids:
-            tls_obs = values[tls_id]
-
-            flattened = \
-                [obs_value for phases in tls_obs for obs_value in phases]
-
-            ret[tls_id] = tuple(flattened)
+            ret[tls_id] = tuple(flatten(values[tls_id]))
         return ret
-        
+
     def split(self, filter_by=None):
         """Splits per state label"""
         labels = self.label.split('|')
-        ret = {} # defaultdict(list)
+        ret = {}
         state = self.state(filter_by=filter_by)
         if filter_by:
             labels = filter_by
@@ -259,8 +274,9 @@ class StateCollection(object, metaclass=MetaStateCollection):
             for nph in range(self.tls_phases[tls_id]):
                 for idx, label in enumerate(labels):
                     ret[tls_id][label].append(_state[nph][idx])
-                    
-        ret = {tls_id: tuple([v for v in data.values()])
+
+        time_list = [self._time_state.state] if self._time_state else []
+        ret = {tls_id: tuple(time_list + [v for v in data.values()])
                for tls_id, data in ret.items()}
         return ret
 
@@ -452,6 +468,31 @@ class QueueState(object, metaclass=MetaState):
         if hasattr(self, 'categorizer'):
             return self.categorizer.categorize(self.state)
 
+class TimeState(object):
+    """Keeps track of time"""
+
+    def __init__(self, period, **kwargs):
+        self._period = period
+        self.reset()
+
+    @property
+    def label(self):
+        return 'time'
+
+    def update(self, time, vehs=None, tls=None):
+        # prevents update from being called multiple times
+        if time != self._last:
+            self._last = time
+            self._memory += 1
+
+
+    def reset(self):
+        self._last = -1
+        self._memory = -1
+
+    @property
+    def state(self):
+        return int(self._memory / period)
 
 class CountState(object, metaclass=MetaState):
 

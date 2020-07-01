@@ -17,7 +17,7 @@ from ilurl.agents.ql.replay_buffer import ReplayBuffer
 from ilurl.agents.ql.schedules import PowerSchedule
 
 
-class QL(AgentWorker,AgentInterface):
+class QL(AgentWorker, AgentInterface):
     """
         Q-learning agent.
     """
@@ -37,7 +37,6 @@ class QL(AgentWorker,AgentInterface):
         ----------
 
         [1] Sutton et Barto, Reinforcement Learning 2nd Ed 2018
-            
         """
         tf.config.set_visible_devices([], 'GPU')
 

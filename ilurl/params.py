@@ -71,7 +71,8 @@ class MDPParams(Printable):
                 reward = 'MaxSpeedCountReward',
                 reward_rescale=1.0,
                 target_velocity=1.0,
-                velocity_threshold=None, 
+                velocity_threshold=None,
+                time_period=None
             ):
         """Instantiate MDP params.
 

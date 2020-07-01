@@ -110,6 +110,7 @@ class Parser(object):
             reward_rescale=float(mdp_args['reward_rescale']),
             target_velocity=literal_eval(mdp_args['target_velocity']),
             velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
+            time_period=literal_eval(mdp_args['time_period']),
         )
 
         return mdp_params
