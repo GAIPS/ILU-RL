@@ -70,6 +70,9 @@ class TrafficLightEnv(Env):
         # overrides GYM's observation space
         self.observation_space = build_states(network, mdp_params)
 
+        # Continuous action space signal plans.
+        self.signal_plans_continous = {}
+
         self._reset()
 
     # overrides GYM's observation space
@@ -249,40 +252,54 @@ class TrafficLightEnv(Env):
         dur = int(self.duration)
 
         def fn(tid):
+
+            if dur == 0 and self.tls_type == 'controlled' and \
+                self.mdp_params.action_space == 'continuous':
+                # Calculate cycle length allocations for the
+                # new cycle (continuous action space).
+
+                # Get current action and respective number of phases.
+                current_action = np.array(self._current_rl_action()[tid])
+                num_phases = len(current_action)
+
+                # Remove yellow time from cycle length (yellow time = 6 seconds).
+                available_time = self.cycle_time - (6.0 * num_phases)
+
+                # Allocate time for each of the phases.
+                # By default 20% of the cycle length will be equally distributed for 
+                # all the phases in order to ensure a minium green time for all phases.
+                # The remainder 80% are allocated by the agent.
+                phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
+                                    current_action * 0.8 * available_time, decimals=0)
+
+                # Convert phases allocations into a signal plan.
+                counter = 0
+                timings = []
+                for p in range(num_phases):
+                    timings.append(counter + phases_durations[p])
+                    timings.append(counter + phases_durations[p] + 6.0)
+                    counter += phases_durations[p] + 6.0
+
+                timings[-1] = self.cycle_time
+                timings[-2] = self.cycle_time - 6.0
+
+                # Store the signal plan. This variable stores the signal
+                # plan to be executed throughout the current cycle.
+                self.signal_plans_continous[tid] = timings
+
             if (dur == 0 and self.step_counter > 1):
-                print('NEW CYCLEEEEEE')
                 return True
 
             if static:
                 return dur in self.tls_durations[tid]
             else:
-
                 if self.mdp_params.action_space == 'discrete':
                     # Discrete action space: TLS programs.
                     progid = self._current_rl_action()[tid]
                     return dur in self.programs[tid][progid]
-
                 else:
                     # Continuous action space: phases durations.
-                    current_action = np.array(self._current_rl_action()[tid])
-                    num_phases = len(current_action)
-
-                    available_time = self.cycle_time - (6.0 * num_phases)
-
-                    phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
-                                        current_action * 0.8 * available_time, decimals=0)
-
-                    counter = 0
-                    switch_times = []
-                    for p in range(num_phases):
-                        switch_times.append(counter + phases_durations[p])
-                        switch_times.append(counter + phases_durations[p] + 6.0)
-                        counter += phases_durations[p] + 6.0
-
-                    switch_times[-1] = self.cycle_time
-                    switch_times[-2] = self.cycle_time - 6.0
-
-                    return dur in switch_times
+                    return dur in self.signal_plans_continous[tid]
 
         ret = [fn(tid) for tid in self.tls_ids]
 

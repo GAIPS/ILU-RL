@@ -260,7 +260,7 @@ class Parser(object):
                         clipping=str2bool(ddpg_args['clipping']),
         )
 
-        print(ddpg_params)
+        # print(ddpg_params)
 
         return ddpg_params
 
