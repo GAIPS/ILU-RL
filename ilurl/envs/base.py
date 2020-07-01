@@ -1,10 +1,9 @@
 '''
-    Traffic Light Environment.
+    Traffic Lights Environment.
 '''
 __date__ = "2019-12-10"
 import numpy as np
 
-from flow.core import rewards
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
@@ -46,11 +45,13 @@ class TrafficLightEnv(Env):
         # Cycle time.
         self.cycle_time = network.cycle_time
 
-        # TLS programs.
-        self.programs = network.programs
+        # TLS programs (discrete action space).
+        if mdp_params.action_space == 'discrete':
+            self.programs = network.programs
 
         # Keeps the internal value of sim step.
         self.sim_step = sim_params.sim_step
+        assert self.sim_step == 1 # step size must equal 1.
 
         # Problem formulation params.
         self.mdp_params = mdp_params
@@ -188,7 +189,7 @@ class TrafficLightEnv(Env):
         """
         Return the state of the simulation as perceived by the RL agent.
         
-        Returns
+        Returns:
         -------
         state : array_like
             information on the state of the vehicles, which is provided to the
@@ -199,7 +200,6 @@ class TrafficLightEnv(Env):
             obs = self.get_observation_space().categorize()
         else:
             obs = self.get_observation_space().state()
-
 
         obs = self.get_observation_space().flatten(obs)
 
@@ -250,13 +250,39 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
             if (dur == 0 and self.step_counter > 1):
+                print('NEW CYCLEEEEEE')
                 return True
 
             if static:
                 return dur in self.tls_durations[tid]
             else:
-                progid = self._current_rl_action()[tid]
-                return dur in self.programs[tid][progid]
+
+                if self.mdp_params.action_space == 'discrete':
+                    # Discrete action space: TLS programs.
+                    progid = self._current_rl_action()[tid]
+                    return dur in self.programs[tid][progid]
+
+                else:
+                    # Continuous action space: phases durations.
+                    current_action = np.array(self._current_rl_action()[tid])
+                    num_phases = len(current_action)
+
+                    available_time = self.cycle_time - (6.0 * num_phases)
+
+                    phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
+                                        current_action * 0.8 * available_time, decimals=0)
+
+                    counter = 0
+                    switch_times = []
+                    for p in range(num_phases):
+                        switch_times.append(counter + phases_durations[p])
+                        switch_times.append(counter + phases_durations[p] + 6.0)
+                        counter += phases_durations[p] + 6.0
+
+                    switch_times[-1] = self.cycle_time
+                    switch_times[-2] = self.cycle_time - 6.0
+
+                    return dur in switch_times
 
         ret = [fn(tid) for tid in self.tls_ids]
 
@@ -306,7 +332,6 @@ class TrafficLightEnv(Env):
         else:
             if self.duration == 0:
                 self.observation_space.reset()
-                
 
         # Update timer.
         self.duration = \
@@ -364,8 +389,9 @@ class TrafficLightEnv(Env):
 
     def _reset(self):
 
-        # duration measures the amount of time the current
-        # configuration has been going on
+        # The 'duration' variable measures the elapsed time since
+        # the beggining of the cycle, i.e. it measures (in seconds)
+        # for how long the current configuration has been going on.
         self.duration = 0.0
 
         self.incoming = {}

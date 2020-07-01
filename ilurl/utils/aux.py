@@ -5,7 +5,7 @@ PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
 
 
 def camelize(snake_case_name):
-    """Converts from SnakeCase to camel_case
+    """Converts from SnakeCase to camel_case.
 
     Params:
     -------

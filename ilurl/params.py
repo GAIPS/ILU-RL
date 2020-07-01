@@ -14,35 +14,27 @@ from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
 from ilurl.loaders.demands import get_demand
 
-STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
 ''' Bounds : namedtuple
-        provide the settings to describe discrete variables ( e.g actions ). Or
-        create discrete categorizations from continous variables ( e.g states)
+        Provide the settings to describe discrete variables ( e.g actions ). Or
+        create discrete categorizations from continous variables ( e.g states).
 
     * rank: int
-        Number of variable dimensions
+        Number of variable dimensions.
 
     * depth: int
-        Number of categories
+        Number of categories.
 
 '''
 Bounds = namedtuple('Bounds', 'rank depth')
 
-''' Reward : namedtuple
-        Settings needed to perform reward computation
+# State space features.
+STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
-    * type: string
-        A reward computation type in REWARD_TYPES
-
-    * additional parameters: dict or None
-        A dict containing additional parameters.
-
-'''
-Reward = namedtuple('Reward', 'type additional_params')
-
+# Traffic light system types ('controlled' = RL control).
 TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 
+# Traffic demand types (flows).
 DEMAND_TYPES = ('constant', 'variable') # TODO: Add switch demand type.
 
 
@@ -57,10 +49,11 @@ class Printable(object):
 
 class MDPParams(Printable):
     """
-        Holds general problem formulation params (MDP).
+        Holds general problem formulation parameters (MDP).
     """
 
     def __init__(self,
+                action_space='discrete',
                 states=('speed', 'count'),
                 discretize_state_space=True,    # TODO
                 normalize_state_space=True,     # TODO
@@ -68,7 +61,7 @@ class MDPParams(Printable):
                 category_delays=[5, 30],
                 category_speeds=[2.28, 5.50],
                 category_queues=[1, 10],
-                reward = 'MaxSpeedCountReward',
+                reward = 'reward_max_speed_count',
                 reward_rescale=1.0,
                 target_velocity=1.0,
                 velocity_threshold=None, 
@@ -104,7 +97,7 @@ class MDPParams(Printable):
             if attr not in ('self'):
                 setattr(self, attr, value)
 
-        # State space:
+        # State space.
         if 'states' in kwargs:
             self.states_labels = kwargs['states']
 
@@ -112,6 +105,9 @@ class MDPParams(Printable):
             if max(self.category_speeds) > 1:
                 raise ValueError('If `normalize` flag is set categories'
                                     'must be between 0 and 1')
+
+        if self.action_space not in ('discrete', 'continuous'):
+            raise ValueError('Action space must be either \'discrete\' or \'continuous\'')
 
 
 class QLParams(Printable):
@@ -366,6 +362,40 @@ class R2D2Params(Printable):
         * TODO ...
 
         """
+        kwargs = locals()
+
+        # TODO: Add arguments restrictions.
+
+        for attr, value in kwargs.items():
+            if attr not in ('self'):
+                setattr(self, attr, value)
+
+
+class DDPGParams(Printable):
+    """
+        Base DDPG parameters.
+    """
+
+    def __init__(
+            self,
+            discount: float = 0.9,
+            batch_size: int = 100,
+            prefetch_size: int = 1,
+            target_update_period: int = 100,
+            min_replay_size: int = 1000,
+            max_replay_size: int = 30000,
+            samples_per_insert: float = 50.0,
+            n_step: int = 5,
+            sigma: float = 0.3,
+            clipping: bool = True,
+        ):
+        """Instantiate DDPG parameters.
+
+        Parameters:
+        ----------
+        * TODO ...
+
+         """
         kwargs = locals()
 
         # TODO: Add arguments restrictions.

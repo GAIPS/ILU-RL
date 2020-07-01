@@ -10,6 +10,7 @@ from ilurl.agents.factory import AgentFactory
 from ilurl.params import (QLParams,
                           DQNParams,
                           R2D2Params,
+                          DDPGParams,
                           MDPParams,
                           TrainParams)
 
@@ -57,7 +58,7 @@ class Parser(object):
     def parse_train_params(self, print_params=False):
         """
             Parses train.py parameters (train_args) from config file located at
-            self.config_path and returns a ilurl.core.params.TrainParams object
+            self.config_path and returns a ilurl.params.TrainParams object
             with the parsed parameters.
         """
         # Load config file with parameters.
@@ -90,7 +91,7 @@ class Parser(object):
     def parse_mdp_params(self):
         """
             Parses MDP parameters (mdp_args) from config file located
-            at self.config_path and returns a ilurl.core.params.MDPParams
+            at self.config_path and returns a ilurl.params.MDPParams
             object with the parsed parameters.
         """
         # Load config file with parameters.
@@ -99,6 +100,7 @@ class Parser(object):
 
         mdp_args = train_config['mdp_args']
         mdp_params = MDPParams(
+            action_space=literal_eval(mdp_args['action_space']),
             states=literal_eval(mdp_args['states']),
             category_counts=json.loads(mdp_args['category_counts']),
             category_delays=json.loads(mdp_args['category_delays']),
@@ -145,6 +147,8 @@ class Parser(object):
             agent_params = self._parse_dqn_params(train_config)
         elif agent_type == 'R2D2':
             agent_params = self._parse_r2d2_params(train_config)
+        elif agent_type == 'DDPG':
+            agent_params = self._parse_ddpg_params(train_config)
         else:
             raise ValueError('Unkown agent type.')
 
@@ -153,7 +157,7 @@ class Parser(object):
     def _parse_ql_params(self, train_config):
         """
             Parses Q-learning parameters (ql_args) from config file located
-            at self.config_path and returns a ilurl.core.params.QLParams
+            at self.config_path and returns a ilurl.params.QLParams
             object with the parsed parameters.
         """
 
@@ -177,7 +181,7 @@ class Parser(object):
     def _parse_dqn_params(self, train_config):
         """
             Parses Deep Q-Network parameters (dqn_args) from config file located
-            at self.config_path and returns a ilurl.core.params.DQNParams
+            at self.config_path and returns a ilurl.params.DQNParams
             object with the parsed parameters.
         """
 
@@ -205,7 +209,7 @@ class Parser(object):
     def _parse_r2d2_params(self, train_config):
         """
             Parses R2D2 parameters (r2d2_args) from config file located
-            at self.config_path and returns a ilurl.core.params.R2D2Params
+            at self.config_path and returns a ilurl.params.R2D2Params
             object with the parsed parameters.
         """
 
@@ -233,5 +237,32 @@ class Parser(object):
         # print(r2d2_params)
 
         return r2d2_params
+
+    def _parse_ddpg_params(self, train_config):
+        """
+            Parses DDPG parameters (ddpg_args) from config file located
+            at self.config_path and returns a ilurl.params.DDPGParams
+            object with the parsed parameters.
+        """
+
+        ddpg_args = train_config['ddpg_args']
+
+        ddpg_params = DDPGParams(
+                        discount=float(ddpg_args['discount']),
+                        batch_size=int(ddpg_args['batch_size']),
+                        prefetch_size=int(ddpg_args['prefetch_size']),
+                        target_update_period=int(ddpg_args['target_update_period']),
+                        min_replay_size=int(ddpg_args['min_replay_size']),
+                        max_replay_size=int(ddpg_args['max_replay_size']),
+                        samples_per_insert=float(ddpg_args['samples_per_insert']),
+                        n_step=int(ddpg_args['n_step']),
+                        sigma=float(ddpg_args['sigma']),
+                        clipping=str2bool(ddpg_args['clipping']),
+        )
+
+        print(ddpg_params)
+
+        return ddpg_params
+
 
 config_parser = Parser()
