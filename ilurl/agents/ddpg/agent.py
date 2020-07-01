@@ -158,7 +158,7 @@ class DDPG(AgentWorker,AgentInterface):
 
         if not self.stop:
 
-            a = double_to_single_precision(a)
+            a = double_to_single_precision(np.array(a))
             r = double_to_single_precision(r)
             s1 = double_to_single_precision(np.array(s1))
             d = double_to_single_precision(1.0)

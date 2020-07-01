@@ -135,6 +135,9 @@ class DDPGLearner(acme.Learner):
             enable_checkpointing=checkpoint,
         )
 
+        # Internalise checkpoint variable.
+        self.checkpoint = checkpoint
+
         # Do not record timestamps until after the first learning step is done.
         # This is to avoid including the time it takes for actors to come online and
         # fill the replay buffer.
@@ -250,7 +253,7 @@ class DDPGLearner(acme.Learner):
         fetches.update(counts)
 
         # Checkpoint and attempt to write the logs.
-        if checkpoint:
+        if self.checkpoint:
             self._checkpointer.save()
         self._logger.write(fetches)
 
