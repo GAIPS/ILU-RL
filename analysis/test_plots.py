@@ -182,15 +182,11 @@ def main(experiment_root_folder=None):
     print('Output folder: {0}'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
-    # Get cycle length from parameters (*.params.json) file.
-    params = None
-    for params_path in Path(experiment_root_folder).rglob('*.params.json'):
-        with params_path.open('r') as f:
-            params = json.load(f)
-        break   # There should be only one match.
-    if params is None:
-        raise ValueError('params is None')
-    cycle_time = params['env_args']['additional_params']['cycle_time']
+    # Get cycle length from tls_config.json file.
+    config_files = list(Path(experiment_root_folder).rglob('tls_config.json'))
+    with config_files[0].open('r') as f:
+        json_file = json.load(f)
+    cycle_time = json_file['rl']['cycle_time']
 
     # Get all *.csv files from experiment root folder.
     csv_files = [str(p) for p in list(Path(experiment_root_folder).rglob('*-emission.csv'))]
@@ -343,46 +339,129 @@ def main(experiment_root_folder=None):
 
     plt.close()
 
-    """ # JSON file.
-    json_file = '{0}/{1}/{2}.eval.json'.format(EMISSION_PATH,
-                                               args.experiment,
-                                               args.experiment)
-    print('JSON file: {0}\n'.format(json_file)) """
+    # Get test eval json file from experiment root folder.
+    json_file = Path(experiment_root_folder) / 'rollouts_test.json'
+    print('JSON file path: {0}\n'.format(json_file))
 
-    """ # Load JSON data.
+    # Load JSON data.
     with open(json_file) as f:
-        json_data = json.load(f) """
+        json_data = json.load(f)
+
+    id = str(json_data['id'][0])
 
     """
-        Average number of vehicles.
+        Rewards per intersection.
     """
-    """ fig = plt.figure()
+    dfs_r = [pd.DataFrame(r) for r in json_data['rewards'][id]]
+
+    df_concat = pd.concat(dfs_r)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_rewards = by_row_index.mean()
+
+    fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    Y = json_data['vehicles']
-    X = np.linspace(1, len(Y), len(Y))
-
-    plt.plot(X,Y)
+    for col in df_rewards.columns:
+        plt.plot(df_rewards[col].rolling(window=40).mean(), label=col)
 
     plt.xlabel('Cycle')
-    plt.ylabel('Average # of vehicles')
+    plt.ylabel('Reward')
+    plt.title('Rewards per intersection')
+    plt.legend()
+
+    plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/rewards_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+    plt.close()
+
+    """
+        Total rewards.
+    """
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    plt.plot(df_rewards.sum(axis=1))
+
+    plt.xlabel('Cycle')
+    plt.ylabel('Reward')
+    plt.title('Cumulative reward')
+
+    plt.savefig('{0}/rewards_total.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/rewards_total.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    
+    plt.close()
+
+    total_reward = df_rewards.to_numpy().sum()
+
+    # Describe total system cumulative reward.
+    pd.DataFrame([total_reward]).to_csv('{0}/cumulative_reward.csv'.format(output_folder_path),
+                    float_format='%.3f')
+
+    """
+        Actions per intersection.
+    """
+    dfs_a = [pd.DataFrame(r) for r in json_data['actions'][id]]
+
+    df_concat = pd.concat(dfs_a)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_actions = by_row_index.mean()
+
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    for col in df_actions.columns:
+        plt.plot(df_actions[col].rolling(window=40).mean(), label=col)
+
+    plt.xlabel('Cycle')
+    plt.ylabel('Action')
+    plt.title('Actions per intersection')
+    plt.legend()
+
+    plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+    plt.close()
+
+    """
+        Number of vehicles.
+    """
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    dfs_veh = [pd.DataFrame(r) for r in json_data['vehicles'][id]]
+
+    df_concat = pd.concat(dfs_veh)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_vehicles = by_row_index.mean()
+
+    plt.plot(df_vehicles)
+
+    plt.xlabel('Cycle')
+    plt.ylabel('# Vehicles')
     plt.title('Number of vehicles')
 
-    plt.savefig('{0}/#vehicles.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/#vehicles.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/vehicles.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/vehicles.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     
-    plt.close() """
+    plt.close()
 
     """
         Average vehicles' velocity.
     """
-    """ fig = plt.figure()
+    fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    Y = json_data['velocities']
-    X = np.linspace(1, len(Y), len(Y))
+    dfs_vels = [pd.DataFrame(r) for r in json_data['velocities'][id]]
 
-    plt.plot(X,Y)
+    df_concat = pd.concat(dfs_vels)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_velocities = by_row_index.mean()
+
+    plt.plot(df_velocities)
 
     plt.xlabel('Cycle')
     plt.ylabel('Average velocities')
@@ -391,7 +470,7 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/velocities.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/velocities.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
-    plt.close() """
+    plt.close()
 
 if __name__ == "__main__":
     main()

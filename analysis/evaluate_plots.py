@@ -151,7 +151,7 @@ def get_throughput(df_emission):
     if 'edge_id' in df_emission.columns:
         col_edge = 'edge_id'
     else:
-        col_edge = 'lane'
+        col_edge = 'uniform'
 
     in_junction = df_emission[col_edge].str.startswith(':')
 

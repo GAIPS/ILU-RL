@@ -3,7 +3,6 @@
 
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-22'
-import pdb
 import os
 import json
 from glob import glob
@@ -17,7 +16,7 @@ EXPERIMENTS_PATH = f'{ROOT_PATH}/data/experiments/0x04/'
 # EXPERIMENTS_PATH = f'{ROOT_PATH}/data/emissions/'
 
 CONFIG_DIRS = ('4545', '5040', '5436', '6030')
-import pdb
+
 if __name__ == '__main__':
     for config_dir in CONFIG_DIRS:
         path = f'{EXPERIMENTS_PATH}{config_dir}/'
@@ -28,7 +27,6 @@ if __name__ == '__main__':
         for file_path in file_paths:
             with open(file_path, 'r') as f:
                 db = json.load(f)
-                pdb.set_trace()
 
                 reward = np.concatenate(db['rewards'], axis=0)
                 rewards.append(reward)

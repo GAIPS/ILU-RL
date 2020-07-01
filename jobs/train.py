@@ -1,48 +1,66 @@
+"""
+    jobs/train.py
+"""
 from pathlib import Path
 from datetime import datetime
 import sys
 import os
+import time
 import json
 import tempfile
 import configparser
-import multiprocessing as mp
-import time
+import multiprocessing
+import multiprocessing.pool
 
 from models.train import main as train
 from ilurl.utils.decorators import processable, benchmarked
 
 ILURL_HOME = os.environ['ILURL_HOME']
-
 CONFIG_PATH = \
     f'{ILURL_HOME}/config/'
 
-LOCK = mp.Lock()
+mp = multiprocessing.get_context('spawn')
+
+
+class NoDaemonProcess(mp.Process):
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, val):
+        pass
+
+class NoDaemonContext(type(multiprocessing.get_context('spawn'))):
+    Process = NoDaemonProcess
+
+class NonDaemonicPool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(NonDaemonicPool, self).__init__(*args, **kwargs)
+
 
 @benchmarked
 def benchmarked_train(*args, **kwargs):
     return train(*args, **kwargs)
 
 
-def delay_train(*args, **kwargs):
-    """delays execution by 1 sec.
+def delay_train(args):
+    """Delays execution.
 
         Parameters:
         -----------
-        * fnc: function
-            An anonymous function decorated by the user
+        * args: tuple
+            Position 0: execution delay of the process.
+            Position 1: store the train config file.
 
         Returns:
         -------
         * fnc : function
-            An anonymous function to be executed 1 sec. after
-            calling
+            An anonymous function to be executed with a given delay
     """
-    LOCK.acquire()
-    try:
-        time.sleep(1)
-    finally:
-        LOCK.release()
-    return benchmarked_train(*args, **kwargs)
+    time.sleep(args[0])
+    return benchmarked_train(args[1])
 
 
 def train_batch():
@@ -61,10 +79,11 @@ def train_batch():
         raise configparser.Error('Number of seeds in run.config `train_seeds`'
                         ' must match the number of runs (`num_runs`) argument.')
 
-    print('Arguments (run_train.py):')
-    print('\tNumber of runs: {0}'.format(num_runs))
-    print('\tNumber of processors: {0}'.format(num_processors))
-    print('\tTrain seeds: {0}\n'.format(train_seeds))
+    print('\nArguments (jobs/train.py):')
+    print('------------------------')
+    print('Number of runs: {0}'.format(num_runs))
+    print('Number of processors: {0}'.format(num_processors))
+    print('Train seeds: {0}\n'.format(train_seeds))
 
     # Assess total number of processors.
     processors_total = mp.cpu_count()
@@ -73,14 +92,14 @@ def train_batch():
     # Adjust number of processors.
     if num_processors > processors_total:
         num_processors = processors_total
-        print(f'Number of processors downgraded to {num_processors}\n')
+        print(f'WARNING: Number of processors downgraded to {num_processors}\n')
 
     # Read train.py arguments from train.config file.
     train_config = configparser.ConfigParser()
     train_config.read(os.path.join(CONFIG_PATH, 'train.config'))
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
-    print(f'Experiment timestamp: {timestamp}')
+    print(f'Experiment timestamp: {timestamp}\n')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
 
@@ -95,27 +114,27 @@ def train_batch():
             train_configs.append(tmp_train_cfg_path)
 
             # Setup train seed.
-            train_config.set("train_args", "experiment-seed", str(seed))
-            
+            train_config.set("train_args", "experiment_seed", str(seed))
+
             # Write temporary train config file.
             tmp_cfg_file = open(tmp_train_cfg_path, "w")
-
             train_config.write(tmp_cfg_file)
             tmp_cfg_file.close()
 
         # Run.
-        # TODO: option without pooling not working. why?
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = mp.Pool(num_processors)
-            rvs = pool.map(delay_train, [[cfg] for cfg in train_configs])
+            pool = NonDaemonicPool(num_processors)
+            rvs = pool.map(delay_train, [(delay, cfg)
+                            for (delay, cfg) in zip(range(len(train_configs)), train_configs)])
             pool.close()
+            pool.join()
         else:
             rvs = []
             for cfg in train_configs:
-                rvs.append(delay_train([cfg]))
+                rvs.append(delay_train((0.0, cfg)))
 
-        # Create a directory and move newly created files
+        # Create a directory and move newly created files.
         paths = [Path(f) for f in rvs]
         commons = [p.parent for p in paths]
         if len(set(commons)) > 1:
@@ -131,13 +150,14 @@ def train_batch():
             src.replace(dst)
 
     sys.stdout.write(str(batchpath))
+
     return str(batchpath)
 
 @processable
 def train_job():
+    # Suppress textual output.
     return train_batch()
 
 if __name__ == '__main__':
-    # train_batch() # enable this in order to have a nice textual ouput
-    train_job()
-
+    train_batch() # Use this line for textual output.
+    # train_job()

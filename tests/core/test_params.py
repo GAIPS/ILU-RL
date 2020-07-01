@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from ilurl.core.params import QLParams
+from ilurl.params import QLParams
 
 
 class TestQLParamsConstraints(unittest.TestCase):

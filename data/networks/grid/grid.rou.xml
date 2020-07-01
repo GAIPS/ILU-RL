@@ -5785,9 +5785,6 @@
     <vehicle id="3280" depart="3280.00">
         <route edges="383432312 238059324"/>
     </vehicle>
-    <vehicle id="3282" depart="3282.00">
-        <route edges="-309265401 -309265400 -309265402"/>
-    </vehicle>
     <vehicle id="3284" depart="3284.00">
         <route edges="383432312 238059328"/>
     </vehicle>

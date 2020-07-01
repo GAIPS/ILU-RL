@@ -1,22 +1,23 @@
 """
-    Python script to produce the following train plots:
+    Python script to produce the following (global metrics) train plots:
         - reward per cycle (with mean, std and smoothed curve)
         - number of vehicles per cycle (with mean, std and smoothed curve)
         - vehicles' velocity per cycle (with mean, std and smoothed curve)
 
     Given the path to the experiment root folder (-p flag), the script
-    searches for all *.train.json files and produces the previous plots
-    by averaging over all json files.
+    searches recursively for all train_log.json files and produces the
+    previous plots by averaging over all json files.
 
     The output plots will go into a folder named 'plots', created inside
     the given experiment root folder.
-
 """
 import os
 import json
 import argparse
 import numpy as np
 from pathlib import Path
+
+import pandas as pd
 
 import statsmodels.api as sm
 
@@ -39,14 +40,14 @@ def get_arguments():
 
     parser = argparse.ArgumentParser(
         description="""
-            Python script to produce the following train plots:
+            Python script to produce the following (global metrics) train plots:
                 - reward per cycle (with mean, std and smoothed curve)
                 - number of vehicles per cycle (with mean, std and smoothed curve)
                 - vehicles' velocity per cycle (with mean, std and smoothed curve)
 
-            Given the path to the experiment root folder, the script searches
-            for all *.train.json files and produces the previous plots by
-            averaging over all json files.
+            Given the path to the experiment root folder (-p flag), the script
+            searches recursively for all train_log.json files and produces the
+            previous plots by averaging over all json files.
 
             The output plots will go into a folder named 'plots', created inside
             the given experiment root folder.
@@ -68,19 +69,21 @@ def main(experiment_root_folder=None):
         args = get_arguments()
         experiment_root_folder = args.experiment_root_folder
 
-    print('\tInput files:')
-    # Get all *.train.json files from experiment root folder.
+    print('Input files:')
+    # Get all train_log.json files from experiment root folder.
     train_files = []
-    for path in Path(experiment_root_folder).rglob('*.train.json'):
+    for path in Path(experiment_root_folder).rglob('train_log.json'):
         train_files.append(str(path))
-        print('\t\t{0}'.format(str(path)))
+        print('{0}'.format(str(path)))
 
     # Prepare output folder.
     output_folder_path = os.path.join(experiment_root_folder, 'plots/train')
-    print('\tOutput folder: {0}'.format(output_folder_path))
+    print('\nOutput folder:\n{0}\n'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
+    actions = []
     rewards = []
+    rewards_2 = []
     vehicles = []
     velocities = []
 
@@ -93,8 +96,10 @@ def main(experiment_root_folder=None):
 
         # Rewards per time-step.
         r = json_data['rewards']
-        r = [sum(a) for a in r]
-        rewards.append(r)
+        r = pd.DataFrame(r)
+        rewards.append(np.sum(r.values, axis=1))
+
+        rewards_2.append(json_data['rewards'])
 
         # Number of vehicles per time-step.
         vehicles.append(json_data['vehicles'])
@@ -102,11 +107,15 @@ def main(experiment_root_folder=None):
         # Vehicles' velocity per time-step.
         velocities.append(json_data['velocities'])
 
+        # Agent's actions.
+        actions.append(json_data['actions'])
 
     """
-        Rewards per time-step.
+        Rewards per cycle.
+        (GLOBAL: sum of the reward for all intersections).
     """
     rewards = np.array(rewards)
+
 
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
@@ -135,8 +144,35 @@ def main(experiment_root_folder=None):
     
     plt.close()
 
+    """
+        Rewards per intersection.
+    """
+    dfs_rewards = [pd.DataFrame(r) for r in rewards_2]
+
+    df_concat = pd.concat(dfs_rewards)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_rewards = by_row_index.mean()
+
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    window_size = min(len(df_rewards)-1, 20)
+
+    for col in df_rewards.columns:
+        plt.plot(df_rewards[col].rolling(window=window_size).mean(), label=col)
+
+    plt.xlabel('Cycle')
+    plt.ylabel('Reward')
+    plt.title('Rewards per intersection')
+    plt.legend()
+
+    plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/rewards_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
     """ 
-        Number of vehicles per time-step.
+        Number of vehicles per cycle.
+        (GLOBAL: For all vehicles in simulation)
     """
     vehicles = np.array(vehicles)
 
@@ -168,7 +204,8 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """ 
-        Vehicles' velocity per time-step.
+        Vehicles' velocity per cycle.
+        (GLOBAL: For all vehicles in simulation)
     """
     velocities = np.array(velocities)
 
@@ -179,7 +216,10 @@ def main(experiment_root_folder=None):
     Y_std = np.std(velocities, axis=0)
     X = np.linspace(1, velocities.shape[1], velocities.shape[1])
 
-    lowess = sm.nonparametric.lowess(Y, X, frac=0.10)
+    # Replace NaNs.
+    Y_lowess = np.where(np.isnan(Y), 0, Y)
+
+    lowess = sm.nonparametric.lowess(Y_lowess, X, frac=0.10)
 
     plt.plot(X,Y, label='Mean', c=MEAN_CURVE_COLOR)
     plt.plot(X,lowess[:,1], c=SMOOTHING_CURVE_COLOR, label='Smoothing')
@@ -197,6 +237,34 @@ def main(experiment_root_folder=None):
     file_name = '{0}/train_velocities.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     
+    plt.close()
+
+    """ 
+        Actions per intersection.
+    """
+    dfs_a = [pd.DataFrame(a) for a in actions]
+
+    df_concat = pd.concat(dfs_a)
+
+    by_row_index = df_concat.groupby(df_concat.index)
+    df_actions = by_row_index.mean()
+
+    fig = plt.figure()
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+    window_size = min(len(df_actions)-1, 40)
+
+    for col in df_actions.columns:
+        plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
+
+    plt.xlabel('Cycle')
+    plt.ylabel('Action')
+    plt.title('Actions per intersection')
+    plt.legend()
+
+    plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
     plt.close()
 
 if __name__ == '__main__':

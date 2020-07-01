@@ -80,7 +80,8 @@ traitlets==4.3.3
 urllib3==1.25.6
 wcwidth==0.1.7
 zipp==0.6.0
-tqdm==4.43.0
+tqdm==4.46.1
 notebook==6.0.3
 ConfigArgParse==1.2
 statsmodels==0.11.1
+seaborn==0.10.0

@@ -2,122 +2,45 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-10'
 
-import os
 import operator as op
 from itertools import groupby
+from copy import deepcopy
+from collections import defaultdict
 
 # Network related parameters
 from flow.core.params import InitialConfig, TrafficLightParams
-from flow.core.params import VehicleParams, SumoCarFollowingParams
-from flow.controllers.routing_controllers import GridRouter
+from flow.core.params import (VehicleParams, SumoCarFollowingParams,
+                            SumoLaneChangeParams)
+from ilurl.controllers.routing_controllers import GreedyRouter
 
 import flow.networks.base as flownet
-# from flow.networks.base import Network as FlowNetwork
 
 from ilurl.utils.properties import lazy_property
-from ilurl.core.params import InFlows, NetParams
+from ilurl.params import InFlows, NetParams
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
-                                get_types)
+                                get_types, get_tls_custom)
 
 
 class Network(flownet.Network):
-    """This class leverages on specs created by SUMO"""
-
-    @classmethod
-    def make(cls, network_id, horizon, demand_type, num_reps,
-             label=None, initial_config=None):
-        """Builds a new network from rou.xml file -- the resulting
-        vehicle trips will be almost-deterministic use it for validation
-        
-        Params:
-        ------
-        *   network_id: string
-            identification of net.xml file, ex: `intersection`
-        *   horizon: integer
-            maximum emission time in seconds
-        *   demand_type: string
-            a demand distribution e.g `lane`
-        *   num: integer
-
-        Returns:
-        -------
-        *   network(s): ilurl.network.Network or list
-            n = 0  attempts to load one network,
-            n > 0  attempts to load n+1 networks returning a list
-        """
-
-        networks = []
-
-        for nr in range(num_reps):
-            label1 = f'{nr}.{label}' if label and num_reps > 1 else nr
-            net_params = NetParams.from_template(
-                network_id, horizon, demand_type, label=label1,
-                initial_config=initial_config
-            )
-
-            networks.append(
-                Network(
-                    network_id,
-                    horizon,
-                    net_params,
-                    initial_config=initial_config,
-                    vehicles=VehicleParams()
-                )
-            )
-
-        ret = networks[0] if num_reps == 1 else networks
-        return ret
-
-    @classmethod
-    def load(cls, network_id, route_path):
-        """Attempts to load a new network from rou.xml and 
-        vtypes.add.xml -- if it fails will call `make`
-        the resulting vehicle trips will be stochastic use
-        it for training
-
-        Params:
-        ------
-        *   network_id: string
-            identification of net.xml file, ex: `intersection`
-        *   horizon: integer
-            latest depart time
-        *   demand_type: string
-            string
-        *   label: string
-            e.g `eval, `train` or `test`
-        Returns:
-        -------
-        *   network(s): ilurl.network.Network or list
-            n = 0  attempts to load one network,
-            n > 0  attempts to load n+1 networks returning a list
-        """
-        net_params = NetParams.load(network_id, route_path)
-
-        horizon = int(route_path.split('.')[-4])
-
-        network = Network(
-            network_id,
-            horizon,
-            net_params,
-            vehicles=VehicleParams()
-        )
-        return network
+    """This class leverages on specs created by SUMO."""
 
     def __init__(self,
                  network_id,
                  horizon=360,
                  net_params=None,
                  vehicles=None,
-                 demand_type='lane',
-                 insertion_probability=0.1,
+                 demand_type='constant',
                  initial_config=None,
-                 tls=None):
-
+                 tls_type='controlled'):
 
         """Builds a new network from inflows -- the resulting
         vehicle trips will be stochastic use it for training"""
         self.network_id = network_id
+
+        baseline = (tls_type == 'actuated')
+        self.cycle_time, self.programs = get_tls_custom(
+                                network_id, baseline=baseline)
 
         if initial_config is None:
             initial_config = InitialConfig(
@@ -130,17 +53,19 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    routing_controller=(GridRouter, {}),
+                    routing_controller=(GreedyRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
                         decel=7.5,  # avoid collisions at emergency stops
                     ),
+                    lane_change_params=SumoLaneChangeParams(
+                        lane_change_mode='strategic' # TODO: Check whether this is really needed.
+                    )
                 )
 
             inflows = InFlows(network_id,
                               horizon,
                               demand_type,
-                              insertion_probability=insertion_probability,
                               initial_config=initial_config)
 
             net_params = NetParams(inflows,
@@ -148,7 +73,7 @@ class Network(flownet.Network):
 
         # static program (required for rl)
         tls_logic = TrafficLightParams(baseline=False)
-        if tls is None:
+        if tls_type not in ('actuated', ):
             programs = get_logic(network_id)
             if programs:
                 for prog in programs:
@@ -157,7 +82,7 @@ class Network(flownet.Network):
                     prog['programID'] = int(prog.pop('programID')) + 1
                     tls_logic.add(node_id, **prog)
         else:
-            for tls_id, tls_args in tls.items():
+            for tls_id, tls_args in self.programs.items():
                 tls_logic.add(tls_id, **tls_args)
 
         super(Network, self).__init__(
@@ -228,6 +153,67 @@ class Network(flownet.Network):
 
     def specify_types(self, net_params):
         return get_types(self.network_id)
+
+    def specify_edge_starts(self):
+        "see parent class"
+        return [(e['id'], e['length']) for e in get_edges(self.network_id)]
+
+    @lazy_property
+    def links(self):
+        """Dict version from connections"""
+        conns = deepcopy(self.connections)
+        return {conn.pop('via'): conn for conn in conns if 'via' in conn} 
+
+    @lazy_property
+    def edges2(self):
+        """Edges as dictionary instead of a list"""
+        return {data['id']: {k:v for k, v in data.items() if k != 'id'}
+                for data in self.edges}
+
+    @lazy_property
+    def routes2(self):
+        """Sinks to routes dictionary --  no prob. emissions
+
+          Returns:
+            routes: dict<<str>, list<str>>
+                key: str .: edge_id routes' sink
+                values: list .: edge_ids
+        """
+        routes2 = defaultdict(list)
+        for src, routes_weights in get_routes(self.network_id).items():
+            for route, weights in routes_weights:
+                routes2[route[-1]].append(route)
+        return routes2
+
+    @lazy_property
+    def neighbours_sinks(self):
+        """Sinks to routes dictionary --  no prob. emissions
+
+          Returns:
+            routes: dict<<str>, list<str>>
+                key: str .: edge_id routes' sink
+                values: list .: edge_ids
+        """
+        edges = self.edges2
+        nodes = self.nodes
+        sinks = self.routes2.keys()
+        neighbours = {}
+            
+        for sink in sinks:
+            sink_node = edges[sink]['from']
+
+            # those neightbours share the same junction
+            neighbours[sink] = [eid for eid, data in edges.items()
+                                 if data['from'] == sink_node and 
+                                    eid != sink and eid in sinks] 
+
+            # those neighbours are on adjacent junctions
+            adjacent_nodes = [node['id'] for node in nodes for data in edges.values()
+                              if data['from'] == node['id'] and data['to'] == sink_node] 
+    
+            neighbours[sink] += [eid for eid in sinks
+                                     if edges[eid]['from'] in adjacent_nodes] 
+        return neighbours
 
     @lazy_property
     def tls_approaches(self):
@@ -476,6 +462,31 @@ class Network(flownet.Network):
         """
         return [n['id'] for n in self.nodes if n['type'] == 'traffic_light']
 
+    @lazy_property
+    def phases_per_tls(self):
+        """Dict containing the number of phases per traffic light.
+
+        Returns
+        -------
+            * phases_per_tls: dict
+
+        """
+        return {tid: len(self.tls_phases[tid])
+                    for tid in self.tls_ids}
+
+    @lazy_property
+    def num_signal_plans_per_tls(self):
+        """Dict containing the number of signal plans available
+        at 'programs' per traffic light.
+
+        Returns
+        -------
+            * num_signal_plans_per_tls: dict
+
+        """
+        return {tid: len(self.programs[tid]) 
+                    for tid in self.tls_ids}
+
     def _add_edges_capacity(self, edges):
         """Updates edges by providing capacity as the max density number of cars
             per edge
@@ -483,7 +494,7 @@ class Network(flownet.Network):
         Limitations:
         -----------
         * It considers an average number vehicles over all vehicle_types
-        * If vehicle lenght is not provided converts it to lenght 5 default
+        * If vehicle length is not provided converts it to length 5 default
 
         Sumo:
         -----
@@ -493,7 +504,7 @@ class Network(flownet.Network):
 
         Use case:
         --------
-         Determine the theoritical flow:
+         Determine the theoretical flow:
          q (flow) [cars/h]  = D (density) [cars/km] x V (speed) [km/h]
 
         References:
@@ -504,7 +515,7 @@ class Network(flownet.Network):
         # Summarize over vehicle types
         xs, vs = 0, 0
         for i, veh_type in enumerate(self.vehicles.types):
-            # compute the average vehicle lenght
+            # compute the average vehicle length
             x = veh_type.get('minGap', 2.5) + veh_type.get('length', 5.0)
             v = veh_type.get('maxSpeed', 55.55)
             xs = (x + i * xs) / (i + 1)     # mean of lengths
@@ -512,7 +523,7 @@ class Network(flownet.Network):
 
         # Apply over edges
         for edge in edges:
-            edge['max_capacity'] = (edge['length'] / xs) * edge['numLanes']
+            edge['max_capacity'] = int(edge['length'] / xs) * edge['numLanes']
             # max of mean speeds (max_speed is too conservative)
             edge['max_speed'] = 0.5 * edge.get('speed', vs)
             

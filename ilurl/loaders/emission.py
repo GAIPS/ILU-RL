@@ -174,10 +174,11 @@ def get_throughput(df_emission):
         col_edge = 'lane'
 
     id_junction = df_emission[col_edge].str.startswith(':')
+    new_index = ['id', 'lane']
 
     df_junction = pd.pivot_table(
         df_emission[id_junction].reset_index(),
-        index=['id', 'lane'],
+        index=new_index,
         values='time',
         aggfunc=max
     ). \
@@ -192,7 +193,7 @@ def get_throughput(df_emission):
 
     df_lane = pd.pivot_table(
         df_emission[~id_junction].reset_index(),
-        index=['id', 'lane'],
+        index=new_index,
         values='time',
         aggfunc=min
     ). \
