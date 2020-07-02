@@ -94,7 +94,7 @@ class DQN(AgentWorker,AgentInterface):
                                     n_step=params.n_step,
                                     epsilon=params.epsilon,
                                     learning_rate=params.learning_rate,
-                                    discount=params.gamma,
+                                    discount=params.discount_factor,
                                     logger=agent_logger)
 
         # Observations counter.

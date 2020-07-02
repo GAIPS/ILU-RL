@@ -59,6 +59,9 @@ class DecentralizedMAS(MASInterface):
             # Seed.
             agent_params_.seed = seed
 
+            # Discount factor (gamma).
+            agent_params_.discount_factor = mdp_params.discount_factor
+
             # Create agent client.
             agents[tid] = AgentClient(AgentFactory.get(agent_type),
                                      params=agent_params_)

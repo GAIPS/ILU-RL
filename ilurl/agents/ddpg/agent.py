@@ -113,7 +113,7 @@ class DDPG(AgentWorker,AgentInterface):
         self.agent = acme_agent.DDPG(environment_spec=env_spec,
                                     policy_network=networks['policy'],
                                     critic_network=networks['critic'],
-                                    discount=params.discount,
+                                    discount=params.discount_factor,
                                     batch_size=params.batch_size,
                                     prefetch_size=params.prefetch_size,
                                     target_update_period=params.target_update_period,

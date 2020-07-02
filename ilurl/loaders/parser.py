@@ -100,6 +100,7 @@ class Parser(object):
 
         mdp_args = train_config['mdp_args']
         mdp_params = MDPParams(
+            discount_factor=float(mdp_args['discount_factor']),
             action_space=literal_eval(mdp_args['action_space']),
             states=literal_eval(mdp_args['states']),
             category_counts=json.loads(mdp_args['category_counts']),
@@ -138,7 +139,7 @@ class Parser(object):
         # Read agent type: 'QL' or 'DQN'.
         agent_type = train_config['agent_type']['agent_type']
 
-        # Check if agent exists:
+        # Check if agent exists.
         AgentFactory.get(agent_type)
 
         if agent_type == 'QL':
@@ -166,7 +167,6 @@ class Parser(object):
         ql_params = QLParams(
                         lr_decay_power_coef=float(ql_args['lr_decay_power_coef']),
                         eps_decay_power_coef=float(ql_args['eps_decay_power_coef']),
-                        gamma=float(ql_args['gamma']),
                         choice_type=ql_args['choice_type'],
                         replay_buffer=str2bool(ql_args['replay_buffer']),
                         replay_buffer_size=int(ql_args['replay_buffer_size']),
@@ -189,7 +189,6 @@ class Parser(object):
 
         dqn_params = DQNParams(
                         learning_rate=float(dqn_args['learning_rate']),
-                        gamma=float(dqn_args['discount']),
                         batch_size=int(dqn_args['batch_size']),
                         prefetch_size=int(dqn_args['prefetch_size']),
                         target_update_period=int(dqn_args['target_update_period']),
@@ -219,7 +218,6 @@ class Parser(object):
                         burn_in_length=int(r2d2_args['burn_in_length']),
                         trace_length=int(r2d2_args['trace_length']),
                         replay_period=int(r2d2_args['replay_period']),  
-                        discount=float(r2d2_args['discount']),
                         batch_size=int(r2d2_args['batch_size']), 
                         prefetch_size=int(r2d2_args['prefetch_size']),     
                         target_update_period=int(r2d2_args['target_update_period']),
@@ -248,7 +246,6 @@ class Parser(object):
         ddpg_args = train_config['ddpg_args']
 
         ddpg_params = DDPGParams(
-                        discount=float(ddpg_args['discount']),
                         batch_size=int(ddpg_args['batch_size']),
                         prefetch_size=int(ddpg_args['prefetch_size']),
                         target_update_period=int(ddpg_args['target_update_period']),
