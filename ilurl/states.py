@@ -275,7 +275,9 @@ class StateCollection(object, metaclass=MetaStateCollection):
                 for idx, label in enumerate(labels):
                     ret[tls_id][label].append(_state[nph][idx])
 
-        time_list = [self._time_state.state] if self._time_state else []
+
+        has_time = (filter_by and 'time' in filter_by) or None
+        time_list = [self._time_state.state] if has_time else [] 
         ret = {tls_id: tuple(time_list + [v for v in data.values()])
                for tls_id, data in ret.items()}
         return ret
@@ -492,7 +494,7 @@ class TimeState(object):
 
     @property
     def state(self):
-        return int(self._memory / period)
+        return int(self._memory / self._period)
 
 class CountState(object, metaclass=MetaState):
 

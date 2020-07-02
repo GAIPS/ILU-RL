@@ -65,6 +65,7 @@ class QL(AgentWorker, AgentInterface):
                          ql_params.actions.rank, ql_params.actions.depth,
                          ql_params.initial_value)
 
+
         # State-action counter (for learning rate decay).
         self.state_action_counter = dpq_tls(ql_params.states.rank,
                                             ql_params.states.depth,
@@ -108,7 +109,6 @@ class QL(AgentWorker, AgentInterface):
             actions, values = zip(*self.Q[s].items())
             choosen, _ = choice_eps_greedy(actions, values, 0)
         else:
-            
             if self.choice_type in ('eps-greedy',):
                 actions, values = zip(*self.Q[s].items())
 

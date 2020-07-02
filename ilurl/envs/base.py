@@ -306,7 +306,6 @@ class TrafficLightEnv(Env):
         else:
             if self.duration == 0:
                 self.observation_space.reset()
-                
 
         # Update timer.
         self.duration = \
