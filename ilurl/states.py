@@ -222,7 +222,7 @@ class StateCollection(object, metaclass=MetaStateCollection):
             if filter_by is not None:
                 states = [s for s in states if s.label in filter_by]
 
-            has_time = (filter_by and 'time' in filter_by) or None
+            has_time = (filter_by and 'time' in filter_by) or (filter_by is None)
             num_phases = self.tls_phases[tls_id]
             state_tls = [self._time_state.state] if has_time else []
             for nph in range(num_phases):
@@ -497,7 +497,7 @@ class TimeState(object):
 
     @property
     def state(self):
-        return int(self._memory / self._period)
+        return (self._memory // self._period) % int(24*3600/self._period)
 
     def categorize(self):
         state = self.state
