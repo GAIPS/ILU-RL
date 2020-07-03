@@ -107,7 +107,7 @@ class R2D2(AgentWorker,AgentInterface):
                                      replay_period=params.replay_period,
                                      min_replay_size=params.min_replay_size,
                                      max_replay_size=params.max_replay_size,
-                                     discount=params.discount,
+                                     discount=params.discount_factor,
                                      prefetch_size=params.prefetch_size,
                                      target_update_period=params.target_update_period,
                                      importance_sampling_exponent=params.importance_sampling_exponent,

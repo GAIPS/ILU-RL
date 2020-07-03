@@ -1,31 +1,60 @@
 import os
 import random
+from typing import Sequence
+
 import numpy as np
 
 import tensorflow as tf
+import sonnet as snt
 
 import dm_env
-
 import acme
 from acme import specs
+from acme import types
 from acme.tf import networks
 
-from ilurl.agents.dqn import acme_agent
+from ilurl.agents.ddpg import acme_agent
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
 from ilurl.utils.default_logger import make_default_logger
 from ilurl.utils.precision import double_to_single_precision
 
 _TF_USE_GPU = False
-_TF_NUM_THREADS = 32
+_TF_NUM_THREADS = 1
 
 
-class DQN(AgentWorker,AgentInterface):
+def make_networks(
+        actions_dim : int,
+        policy_layers : Sequence[int] = [5, 5],
+        critic_layers : Sequence[int] = [5, 5],
+    ):
+
+    # Create the policy network.
+    policy_network = snt.Sequential([
+        networks.LayerNormMLP(policy_layers, activate_final=True),
+        networks.NearZeroInitializedLinear(actions_dim),
+    ])
+
+    # Create the critic network.
+    critic_layers = list(critic_layers) + [1]
+    critic_network = snt.Sequential([
+        # The multiplexer concatenates the observations/actions.
+        networks.CriticMultiplexer(),
+        networks.LayerNormMLP(critic_layers, activate_final=False),
+    ])
+
+    return {
+        'policy': policy_network,
+        'critic': critic_network,
+    }
+
+
+class DDPG(AgentWorker,AgentInterface):
     """
-        DQN agent.
+        DDPG agent.
     """
     def __init__(self, *args, **kwargs):
-        super(DQN, self).__init__(*args, **kwargs)
+        super(DDPG, self).__init__(*args, **kwargs)
 
     def init(self, params):
 
@@ -52,9 +81,11 @@ class DQN(AgentWorker,AgentInterface):
                                   dtype=np.float32,
                                   name='obs'
         )
-        action_spec = specs.DiscreteArray(dtype=np.int32,
-                                          num_values=params.actions.depth,
-                                          name="action"
+        action_spec = specs.BoundedArray(shape=(params.num_phases,),
+                                        dtype=np.float32,
+                                        minimum=0.,
+                                        maximum=1.,
+                                        name='action'
         )
         reward_spec = specs.Array(shape=(),
                                   dtype=np.float32,
@@ -66,7 +97,7 @@ class DQN(AgentWorker,AgentInterface):
                                            maximum=1.,
                                            name='discount'
         )
- 
+
         env_spec = specs.EnvironmentSpec(observations=observation_spec,
                                           actions=action_spec,
                                           rewards=reward_spec,
@@ -76,26 +107,25 @@ class DQN(AgentWorker,AgentInterface):
         dir_path = f'{params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
-        
-        # TODO: Allow for dynamic network creation via user parameters.
-        network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
-                                                hidden_sizes=[8])
 
-        self.agent = acme_agent.DQN(environment_spec=env_spec,
-                                    network=network,
+        networks = make_networks(actions_dim=params.num_phases)
+
+        self.agent = acme_agent.DDPG(environment_spec=env_spec,
+                                    policy_network=networks['policy'],
+                                    critic_network=networks['critic'],
+                                    discount=params.discount_factor,
                                     batch_size=params.batch_size,
                                     prefetch_size=params.prefetch_size,
                                     target_update_period=params.target_update_period,
-                                    samples_per_insert=params.samples_per_insert,
                                     min_replay_size=params.min_replay_size,
                                     max_replay_size=params.max_replay_size,
-                                    importance_sampling_exponent=params.importance_sampling_exponent,
-                                    priority_exponent=params.priority_exponent,
+                                    samples_per_insert=params.samples_per_insert,
                                     n_step=params.n_step,
-                                    epsilon=params.epsilon,
-                                    learning_rate=params.learning_rate,
-                                    discount=params.discount_factor,
-                                    logger=agent_logger)
+                                    sigma=params.sigma,
+                                    clipping=params.clipping,
+                                    logger=agent_logger,
+                                    checkpoint=False,
+        )
 
         # Observations counter.
         self._obs_counter = 0
@@ -122,13 +152,13 @@ class DQN(AgentWorker,AgentInterface):
 
         self._obs_counter += 1
 
-        return int(action)
+        return tuple(action)
 
     def update(self, _, a, r, s1):
 
         if not self.stop:
 
-            a = double_to_single_precision(a)
+            a = double_to_single_precision(np.array(a))
             r = double_to_single_precision(r)
             s1 = double_to_single_precision(np.array(s1))
             d = double_to_single_precision(1.0)
@@ -143,9 +173,11 @@ class DQN(AgentWorker,AgentInterface):
             # Log values.
             values = {
                 'step': self._obs_counter,
-                'action': a,
                 'reward': r,
             }
+            for i in range(self._params.num_phases):
+                values[f"action_p{i}"] = a[i]
+
             self._logger.write(values)
 
     def terminate(self):

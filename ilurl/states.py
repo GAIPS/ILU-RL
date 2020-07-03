@@ -144,14 +144,16 @@ def build_states(network, mdp_params):
                                   velocity_threshold=velocity_threshold)
 
             states.append(state)
-    return StateCollection(states, time_period)
+    return StateCollection(mdp_params, states)
 
 
 class StateCollection(object, metaclass=MetaStateCollection):
 
-    def __init__(self, states, time_period=None):
-        # Time is a GlobalState
-        self._time_state = TimeState(time_period) if time_period else None
+    def __init__(self, mdp_params, states):
+        if mdp_params.time_period is not None:
+            self._time_state = TimeState(mdp_params)
+        else:
+            self._time_state = None
 
         self.tls_ids = \
             sorted({tid for s in states for tid in s.tls_ids})
@@ -241,7 +243,7 @@ class StateCollection(object, metaclass=MetaStateCollection):
         for tls_id in self.tls_ids:
             states = [s for s in self._states if tls_id in s.tls_ids]
             num_phases = self.tls_phases[tls_id]
-            state_tls = [self._time_state.state] if has_time else []
+            state_tls = [self._time_state.categorize()] if has_time else []
             for nph in range(num_phases):
                 state_phases = []
                 for state in states:
@@ -277,7 +279,7 @@ class StateCollection(object, metaclass=MetaStateCollection):
 
 
         has_time = (filter_by and 'time' in filter_by) or None
-        time_list = [self._time_state.state] if has_time else [] 
+        time_list = [self._time_state.state] if has_time else []
         ret = {tls_id: tuple(time_list + [v for v in data.values()])
                for tls_id, data in ret.items()}
         return ret
@@ -473,8 +475,9 @@ class QueueState(object, metaclass=MetaState):
 class TimeState(object):
     """Keeps track of time"""
 
-    def __init__(self, period, **kwargs):
-        self._period = period
+    def __init__(self, mdp_params, **kwargs):
+        self._period = mdp_params.time_period
+        self.categorizer = StateCategorizer(mdp_params.category_times)
         self.reset()
 
     @property
@@ -495,6 +498,11 @@ class TimeState(object):
     @property
     def state(self):
         return int(self._memory / self._period)
+
+    def categorize(self):
+        state = self.state
+        if hasattr(self, 'categorizer'):
+            return self.categorizer.categorize(self.state)
 
 class CountState(object, metaclass=MetaState):
 
