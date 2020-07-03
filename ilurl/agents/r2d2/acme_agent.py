@@ -17,7 +17,6 @@
 
 import copy
 
-from acme import datasets
 from acme import specs
 from acme import types
 from acme.adders import reverb as adders
@@ -95,7 +94,7 @@ class R2D2(agent.Agent):
         }
         # Remove batch dimensions.
         extra_spec = tf2_utils.squeeze_batch_dim(extra_spec)
-        dataset = datasets.make_reverb_dataset(
+        dataset = make_reverb_dataset(
             client=reverb_client,
             environment_spec=environment_spec,
             batch_size=batch_size,

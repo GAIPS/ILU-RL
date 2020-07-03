@@ -2,100 +2,100 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-30'
 import math
+from typing import List, Tuple
+from collections import namedtuple
+
 import numpy as np
 
 import flow.core.params as flow_params
 
-from collections import namedtuple
 from ilurl.rewards import get_rewards 
 from ilurl.agents.ql.choice import CHOICE_TYPES
-
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
 from ilurl.loaders.demands import get_demand
+from ilurl.utils.aux import Printable
 
-STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
 ''' Bounds : namedtuple
-        provide the settings to describe discrete variables ( e.g actions ). Or
-        create discrete categorizations from continous variables ( e.g states)
+        Provide the settings to describe discrete variables ( e.g actions ). Or
+        create discrete categorizations from continous variables ( e.g states).
 
     * rank: int
-        Number of variable dimensions
+        Number of variable dimensions.
 
     * depth: int
-        Number of categories
-
+        Number of categories.
 '''
 Bounds = namedtuple('Bounds', 'rank depth')
 
-''' Reward : namedtuple
-        Settings needed to perform reward computation
+# State space features.
+STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
-    * type: string
-        A reward computation type in REWARD_TYPES
-
-    * additional parameters: dict or None
-        A dict containing additional parameters.
-
-'''
-Reward = namedtuple('Reward', 'type additional_params')
-
+# Traffic light system types ('controlled' = RL control).
 TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
 
-DEMAND_TYPES = ('constant', 'variable') # TODO: Add switch demand type.
-
-
-class Printable(object):
-    def __repr__(self):
-        """Returns a string containing the attributes of the class."""
-        text_repr = f"\n{self.__class__.__name__}:\n"
-        for (attr, val) in self.__dict__.items():
-            text_repr += f"{attr}: {val}\n"
-        return text_repr
+# Traffic demand types (flows).
+DEMAND_TYPES = ('constant', 'variable') # TODO: Add 'switch' demand type.
 
 
 class MDPParams(Printable):
     """
-        Holds general problem formulation params (MDP).
+        Holds general problem formulation parameters (MDP).
     """
 
     def __init__(self,
-                states=('speed', 'count'),
-                discretize_state_space=True,    # TODO
-                normalize_state_space=True,     # TODO
-                category_counts=[8.56, 13.00],
-                category_delays=[5, 30],
-                category_speeds=[2.28, 5.50],
-                category_queues=[1, 10],
-                reward = 'MaxSpeedCountReward',
-                reward_rescale=1.0,
-                target_velocity=1.0,
-                velocity_threshold=None, 
+                discount_factor: float = 0.95,
+                action_space: str = 'discrete',
+                states: Tuple[str] = ('speed', 'count'),
+                normalize_state_space: bool = True,
+                discretize_state_space: bool = True,
+                category_counts: List[float] = [8.56, 13.00],
+                category_speeds: List[float] = [2.28, 5.50],
+                category_delays: List[float] = [5, 30],
+                category_queues: List[float] = [1, 10],
+                reward: str = 'reward_max_speed_count',
+                reward_rescale: float = 1.0,
+                target_velocity: float = 1.0,
+                velocity_threshold = None,
             ):
         """Instantiate MDP params.
 
         Parameters:
         ----------
-        * states: ('speed', 'count')
+
+        * discount_factor: float
+            MDP discount factor (gamma)
+
+        * action_space: ('discrete' or 'continuous')
+            Whether the action space is continuous (cycle length allocation)
+            or discrete (choose from a set of signal plans).
+
+        * states: ('speed', 'count', ...)
             the features to be used as state space representation.
 
-        * discretize_state_space: bool
-            if True the state space will be categorized. TODO
-
         * normalize_state_space: bool
-            if True the state space normalization will be applied. TODO
+            if True the state space normalization will be applied.
 
-        * category_counts: TODO
+        * discretize_state_space: bool
+            if True the state space will be categorized (categories below).
 
-        * category_speeds: TODO
+        * category_counts: List[float]
+        * category_speeds: List[float]
+        * category_delays: List[float]
+        * category_queues: List[float]
 
-        * category_delays: TODO
-
-        * reward: namedtuple (see Reward definition above)
+        * reward: str
+            The reward function to be applied.
 
         * reward_rescale: float
             Reward rescaling factor.
+
+        * target_velocity: float
+            Additional parameter used in the reward computation.
+
+        * velocity_threshold: float
+            Additional parameter used in the reward computation.
 
         """
         kwargs = locals()
@@ -104,14 +104,22 @@ class MDPParams(Printable):
             if attr not in ('self'):
                 setattr(self, attr, value)
 
-        # State space:
+        # State space.
         if 'states' in kwargs:
             self.states_labels = kwargs['states']
 
         if self.normalize_state_space:
             if max(self.category_speeds) > 1:
                 raise ValueError('If `normalize` flag is set categories'
-                                    'must be between 0 and 1')
+                                    'must be between 0 and 1.')
+
+        # Action space.
+        if self.action_space not in ('discrete', 'continuous'):
+            raise ValueError('Action space must be either \'discrete\' or \'continuous\'')
+
+        # Discount factor.
+        if not (0 < self.discount_factor < 1):
+            raise ValueError('Discount factor must be between 0 and 1.')
 
 
 class QLParams(Printable):
@@ -121,16 +129,15 @@ class QLParams(Printable):
 
     def __init__(
             self,
-            lr_decay_power_coef=0.66,
-            eps_decay_power_coef=1.0,
-            gamma=0.9,
-            c=2,
-            initial_value=0,
-            choice_type='eps-greedy',
-            replay_buffer=False,
-            replay_buffer_size=500,
-            replay_buffer_batch_size=64,
-            replay_buffer_warm_up=200,
+            lr_decay_power_coef: float = 0.66,
+            eps_decay_power_coef: float = 1.0,
+            c: int = 2,
+            initial_value: float = 0,
+            choice_type: str = 'eps-greedy',
+            replay_buffer: bool = False,
+            replay_buffer_size: int = 500,
+            replay_buffer_batch_size: int = 64,
+            replay_buffer_warm_up: int = 200,
         ):
         """Instantiate Q-learning parameters.
 
@@ -146,9 +153,6 @@ class QLParams(Printable):
             epsilon (chance do take a random action) is calculated
             using the following expression:
                 Power schedule (input x): 1 / ((1 + x)**eps_decay_power_coef)
-
-        * gamma: float
-            the discount rate [1].
 
         * c: int
             upper confidence bound (UCB) exploration constant.
@@ -189,10 +193,6 @@ class QLParams(Printable):
                     Got eps_decay_power_coef = {}.'''.format(
                         eps_decay_power_coef))
 
-        if gamma <= 0 or gamma > 1:
-            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
-                    Got gamma = {}.'''.format(gamma))
-
         if choice_type not in CHOICE_TYPES:
             raise ValueError(
                 f'''Choice type should be in {CHOICE_TYPES}
@@ -228,33 +228,32 @@ class DQNParams(Printable):
 
     def __init__(
             self,
-            learning_rate=1e-3,
-            gamma=0.9,
-            batch_size=256,
-            prefetch_size=4,
-            target_update_period=100,
-            samples_per_insert=32.0,
-            min_replay_size=1000,
-            max_replay_size=1000000,
-            importance_sampling_exponent=0.2,
-            priority_exponent=0.6,
-            n_step=5,
-            epsilon=0.05,
+            learning_rate: float = 1e-3,
+            batch_size: int = 256,
+            prefetch_size: int = 1,
+            target_update_period: int = 100,
+            samples_per_insert: float = 32.0,
+            min_replay_size: int = 1000,
+            max_replay_size: int = 1000000,
+            importance_sampling_exponent: float = 0.2,
+            priority_exponent: float = 0.6,
+            n_step: int = 5,
+            epsilon: float = 0.05,
         ):
         """Instantiate Deep Q-network parameters.
 
         Parameters:
         ----------
+        * (See acme.agents.tf.dqn.agent.py file for more info).
+
         * learning_rate: float
             learning rate.
-
-        * gamma: float
-            the discount factor.
 
         * batch_size: int
             the size of the batches sampled from the replay buffer.
 
         * prefetch_size: int
+            The number of batches to prefetch in the data tf pipeline.
 
         * target_update_period: int
             target network updates interval.
@@ -291,10 +290,6 @@ class DQNParams(Printable):
         if learning_rate <= 0 or learning_rate >= 1:
             raise ValueError('''The ineq 0 < lr < 1 must hold.
                     Got lr = {}.'''.format(learning_rate))
-
-        if gamma <= 0 or gamma > 1:
-            raise ValueError('''The ineq 0 < gamma <= 1 must hold.
-                    Got gamma = {}.'''.format(gamma))
 
         if epsilon <= 0 or epsilon > 1:
             raise ValueError('''The ineq 0 < epsilon <= 1 must hold.
@@ -342,30 +337,62 @@ class R2D2Params(Printable):
 
     def __init__(
             self,
-            burn_in_length,
-            trace_length,
-            replay_period,  
-            discount,
-            batch_size,      
-            prefetch_size,
-            target_update_period,
-            importance_sampling_exponent,
-            priority_exponent,
-            epsilon,
-            learning_rate,
-            min_replay_size,
-            max_replay_size,
-            samples_per_insert,
-            store_lstm_state,
-            max_priority_weight,
+            burn_in_length: int,
+            trace_length: int,
+            replay_period: int,  
+            batch_size: int,      
+            prefetch_size: int,
+            target_update_period: int,
+            importance_sampling_exponent: float,
+            priority_exponent: float,
+            epsilon: float,
+            learning_rate: float,
+            min_replay_size: int,
+            max_replay_size: int,
+            samples_per_insert: float,
+            store_lstm_state: bool,
+            max_priority_weight: float,
         ):
         """Instantiate R2D2 parameters.
 
         Parameters:
         ----------
-        * TODO ...
+        * (See acme.agents.tf.r2d2.agent.py file for more info).
 
         """
+        kwargs = locals()
+
+        # TODO: Add arguments restrictions.
+
+        for attr, value in kwargs.items():
+            if attr not in ('self'):
+                setattr(self, attr, value)
+
+
+class DDPGParams(Printable):
+    """
+        Base DDPG parameters.
+    """
+
+    def __init__(
+            self,
+            batch_size: int = 100,
+            prefetch_size: int = 1,
+            target_update_period: int = 100,
+            min_replay_size: int = 1000,
+            max_replay_size: int = 30000,
+            samples_per_insert: float = 50.0,
+            n_step: int = 5,
+            sigma: float = 0.3,
+            clipping: bool = True,
+        ):
+        """Instantiate DDPG parameters.
+
+        Parameters:
+        ----------
+        * (See acme.agents.tf.ddpg.agent.py file for more info).
+
+         """
         kwargs = locals()
 
         # TODO: Add arguments restrictions.
@@ -382,15 +409,15 @@ class TrainParams(Printable):
 
     def __init__(
             self,
-            network='intersection',
-            experiment_time=900000,
-            experiment_save_agent=False,
-            experiment_save_agent_interval=2500,
+            network: str = 'intersection',
+            experiment_time: int = 900000,
+            experiment_save_agent: bool = False,
+            experiment_save_agent_interval: int = 2500,
             experiment_seed=None,
-            sumo_render=False,
-            sumo_emission=False,
-            tls_type='controlled',
-            demand_type='constant',
+            sumo_render: bool = False,
+            sumo_emission: bool = False,
+            tls_type: str = 'controlled',
+            demand_type: str = 'constant',
         ):
         """Instantiate train parameters.
 

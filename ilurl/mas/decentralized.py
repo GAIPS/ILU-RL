@@ -29,8 +29,20 @@ class DecentralizedMAS(MASInterface):
             agent_params_ = deepcopy(agent_params)
 
             # Action space.
-            actions_depth = mdp_params.num_actions[tid]
-            agent_params_.actions = Bounds(1, actions_depth) # TODO
+            if mdp_params.action_space == 'discrete':
+                # Discrete action space.
+                # In the discrete action space each agent is allowed to pick
+                # the signal plan(s) from a set of candidate signal plans given
+                # a priori to the system by a user. The candidate signal plans
+                # are defined in data/networks/{NETWORK_NAME}/tls_config.json
+                actions_depth = mdp_params.num_actions[tid]
+                agent_params_.actions = Bounds(rank=1,
+                                               depth=actions_depth)
+            else:
+                # Continuous action space.
+                # In the continuous action space each agent is allowed to select
+                # the portion of the cycle length allocated for each of the phases.
+                agent_params_.num_phases = mdp_params.phases_per_traffic_light[tid]
 
             # State space.
             num_phases = mdp_params.phases_per_traffic_light[tid]
@@ -46,6 +58,9 @@ class DecentralizedMAS(MASInterface):
 
             # Seed.
             agent_params_.seed = seed
+
+            # Discount factor (gamma).
+            agent_params_.discount_factor = mdp_params.discount_factor
 
             # Create agent client.
             agents[tid] = AgentClient(AgentFactory.get(agent_type),

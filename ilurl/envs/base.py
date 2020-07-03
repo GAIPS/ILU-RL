@@ -1,10 +1,9 @@
 '''
-    Traffic Light Environment.
+    Traffic Lights Environment.
 '''
 __date__ = "2019-12-10"
 import numpy as np
 
-from flow.core import rewards
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
@@ -46,11 +45,13 @@ class TrafficLightEnv(Env):
         # Cycle time.
         self.cycle_time = network.cycle_time
 
-        # TLS programs.
-        self.programs = network.programs
+        # TLS programs (discrete action space).
+        if mdp_params.action_space == 'discrete':
+            self.programs = network.programs
 
         # Keeps the internal value of sim step.
         self.sim_step = sim_params.sim_step
+        assert self.sim_step == 1 # step size must equal 1.
 
         # Problem formulation params.
         self.mdp_params = mdp_params
@@ -68,6 +69,9 @@ class TrafficLightEnv(Env):
 
         # overrides GYM's observation space
         self.observation_space = build_states(network, mdp_params)
+
+        # Continuous action space signal plans.
+        self.signal_plans_continous = {}
 
         self._reset()
 
@@ -188,7 +192,7 @@ class TrafficLightEnv(Env):
         """
         Return the state of the simulation as perceived by the RL agent.
         
-        Returns
+        Returns:
         -------
         state : array_like
             information on the state of the vehicles, which is provided to the
@@ -199,7 +203,6 @@ class TrafficLightEnv(Env):
             obs = self.get_observation_space().categorize()
         else:
             obs = self.get_observation_space().state()
-
 
         obs = self.get_observation_space().flatten(obs)
 
@@ -249,14 +252,54 @@ class TrafficLightEnv(Env):
         dur = int(self.duration)
 
         def fn(tid):
+
+            if dur == 0 and self.tls_type == 'controlled' and \
+                self.mdp_params.action_space == 'continuous':
+                # Calculate cycle length allocations for the
+                # new cycle (continuous action space).
+
+                # Get current action and respective number of phases.
+                current_action = np.array(self._current_rl_action()[tid])
+                num_phases = len(current_action)
+
+                # Remove yellow time from cycle length (yellow time = 6 seconds).
+                available_time = self.cycle_time - (6.0 * num_phases)
+
+                # Allocate time for each of the phases.
+                # By default 20% of the cycle length will be equally distributed for 
+                # all the phases in order to ensure a minium green time for all phases.
+                # The remainder 80% are allocated by the agent.
+                phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
+                                    current_action * 0.8 * available_time, decimals=0)
+
+                # Convert phases allocations into a signal plan.
+                counter = 0
+                timings = []
+                for p in range(num_phases):
+                    timings.append(counter + phases_durations[p])
+                    timings.append(counter + phases_durations[p] + 6.0)
+                    counter += phases_durations[p] + 6.0
+
+                timings[-1] = self.cycle_time
+                timings[-2] = self.cycle_time - 6.0
+
+                # Store the signal plan. This variable stores the signal
+                # plan to be executed throughout the current cycle.
+                self.signal_plans_continous[tid] = timings
+
             if (dur == 0 and self.step_counter > 1):
                 return True
 
             if static:
                 return dur in self.tls_durations[tid]
             else:
-                progid = self._current_rl_action()[tid]
-                return dur in self.programs[tid][progid]
+                if self.mdp_params.action_space == 'discrete':
+                    # Discrete action space: TLS programs.
+                    progid = self._current_rl_action()[tid]
+                    return dur in self.programs[tid][progid]
+                else:
+                    # Continuous action space: phases durations.
+                    return dur in self.signal_plans_continous[tid]
 
         ret = [fn(tid) for tid in self.tls_ids]
 
@@ -306,7 +349,6 @@ class TrafficLightEnv(Env):
         else:
             if self.duration == 0:
                 self.observation_space.reset()
-                
 
         # Update timer.
         self.duration = \
@@ -364,8 +406,9 @@ class TrafficLightEnv(Env):
 
     def _reset(self):
 
-        # duration measures the amount of time the current
-        # configuration has been going on
+        # The 'duration' variable measures the elapsed time since
+        # the beggining of the cycle, i.e. it measures (in seconds)
+        # for how long the current configuration has been going on.
         self.duration = 0.0
 
         self.incoming = {}

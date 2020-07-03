@@ -5,7 +5,7 @@ PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
 
 
 def camelize(snake_case_name):
-    """Converts from SnakeCase to camel_case
+    """Converts from SnakeCase to camel_case.
 
     Params:
     -------
@@ -18,3 +18,12 @@ def camelize(snake_case_name):
         a name in `_' format
     """
     return PATTERN.sub('_', snake_case_name).lower()
+
+
+class Printable(object):
+    def __repr__(self):
+        """Returns a string containing the attributes of the class."""
+        text_repr = f"\n{self.__class__.__name__}:\n"
+        for (attr, val) in self.__dict__.items():
+            text_repr += f"{attr}: {val}\n"
+        return text_repr

@@ -59,7 +59,7 @@ class QL(AgentWorker,AgentInterface):
         self.choice_type = ql_params.choice_type
 
         # Discount factor.
-        self.gamma = ql_params.gamma
+        self.discount_factor = ql_params.discount_factor
 
         # Q-table.
         self.Q = dpq_tls(ql_params.states.rank, ql_params.states.depth,
@@ -144,7 +144,7 @@ class QL(AgentWorker,AgentInterface):
             Q_old = self.Q[s][a]
 
             # Q-learning update.
-            dpq_update(self.gamma, lr, self.Q, s, a, r, s1)
+            dpq_update(self.discount_factor, lr, self.Q, s, a, r, s1)
 
             # Calculate Q-table update distance.
             dist = np.abs(Q_old - self.Q[s][a])
@@ -161,7 +161,7 @@ class QL(AgentWorker,AgentInterface):
                     s1_ = tuple(s1_samples[sample])
 
                     # Q-learning update.
-                    dpq_update(self.gamma, lr, self.Q, s_, a_, r_, s1_)
+                    dpq_update(self.discount_factor, lr, self.Q, s_, a_, r_, s1_)
 
             # Log values.
             values = {

@@ -114,26 +114,21 @@ def main(batch_path=None):
     train_config = configparser.ConfigParser()
     train_config.read(train_config_path.as_posix())
 
-
     # train agent
     agent_type = train_config.get('agent_type', 'agent_type')
     agent_args = f'{agent_type.lower()}_args'
 
-    cycle = 90
-    gamma = float(train_config.get(agent_args, 'gamma'))
+    cycle = 90 # TODO: watch out...
+    # gamma = float(train_config.get(agent_args, 'gamma'))
     horizon = float(train_config.get('train_args', 'experiment_time'))
 
-
-
-
-     
     # cycle = db['cycle']
     # discount = [1, -db['discount']]
     # horizon = db['horizon']
 
     rollout_ids = db['id']
 
-    discount = [1, -gamma]
+    # discount = [1, -gamma]
     num_trials = len(rollout_ids)
     num_cycles = int(horizon) / cycle
     num_rollouts = len(db['rewards'][str(rollout_ids[0])])
