@@ -111,7 +111,7 @@ def reward_max_speed_count(target_velocity, states, *args):
             'Speed and Count not present in StateCollection')
     else:
         speeds_counts = states.split(('speed', 'count'))
-     
+
     ret = {}
     for k, v in speeds_counts.items():
         speeds, counts = v

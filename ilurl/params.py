@@ -9,7 +9,7 @@ import numpy as np
 
 import flow.core.params as flow_params
 
-from ilurl.rewards import get_rewards 
+from ilurl.rewards import get_rewards
 from ilurl.agents.ql.choice import CHOICE_TYPES
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
@@ -54,9 +54,11 @@ class MDPParams(Printable):
                 category_speeds: List[float] = [2.28, 5.50],
                 category_delays: List[float] = [5, 30],
                 category_queues: List[float] = [1, 10],
+                 category_times: List[int] = [1, 10],
                 reward: str = 'reward_max_speed_count',
                 reward_rescale: float = 1.0,
                 target_velocity: float = 1.0,
+                time_period: int = None,
                 velocity_threshold = None,
             ):
         """Instantiate MDP params.

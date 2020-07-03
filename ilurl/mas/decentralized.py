@@ -12,10 +12,7 @@ class DecentralizedMAS(MASInterface):
         Decentralized multi-agent system wrapper.
     """
 
-    def __init__(self, 
-                mdp_params,
-                exp_path,
-                seed):
+    def __init__(self, mdp_params, exp_path, seed):
 
         # Load agent parameters from config file (train.config).
         agent_type, agent_params = config_parser.parse_agent_params()
@@ -24,8 +21,7 @@ class DecentralizedMAS(MASInterface):
         agents = {}
 
         num_variables = len(mdp_params.states_labels)
-        for tid in mdp_params.phases_per_traffic_light.keys():
-
+        for tid in mdp_params.phases_per_traffic_light:
             agent_params_ = deepcopy(agent_params)
 
             # Action space.
@@ -45,8 +41,10 @@ class DecentralizedMAS(MASInterface):
                 agent_params_.num_phases = mdp_params.phases_per_traffic_light[tid]
 
             # State space.
+            # Period is a "Global" state space
+            has_period = mdp_params.time_period is not None
             num_phases = mdp_params.phases_per_traffic_light[tid]
-            states_rank = num_phases * num_variables
+            states_rank = num_phases * num_variables + int(has_period)
             states_depth = len(mdp_params.category_counts) + 1
             agent_params_.states = Bounds(states_rank, states_depth)
 

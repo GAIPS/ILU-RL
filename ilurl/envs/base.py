@@ -2,6 +2,8 @@
     Traffic Lights Environment.
 '''
 __date__ = "2019-12-10"
+
+import ipdb
 import numpy as np
 
 from flow.envs.base import Env
@@ -199,12 +201,20 @@ class TrafficLightEnv(Env):
             agent
         """
         # Categorize.
-        if self.mdp_params.discretize_state_space:
-            obs = self.get_observation_space().categorize()
-        else:
-            obs = self.get_observation_space().state()
 
-        obs = self.get_observation_space().flatten(obs)
+        try:
+            if self.mdp_params.discretize_state_space:
+                obs = self.get_observation_space().categorize()
+            else:
+                obs = self.get_observation_space().state()
+
+            obs = self.get_observation_space().flatten(obs)
+
+            if max([o for _obs in obs.values() for o in _obs]) > 6:
+                ipdb.set_trace()
+
+        except TypeError:
+                ipdb.set_trace()
 
         return obs
 
