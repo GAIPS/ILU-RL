@@ -88,12 +88,12 @@ class EpsilonGreedyExploration(snt.Module):
         super().__init__(name='epsilon_greedy_exploration')
 
         # Internalise parameters.
-        self.epsilon_init = epsilon_init
-        self.epsilon_final = epsilon_final
-        self.epsilon_schedule_timesteps = epsilon_schedule_timesteps
+        self._epsilon_init = epsilon_init
+        self._epsilon_final = epsilon_final
+        self._epsilon_schedule_timesteps = epsilon_schedule_timesteps
 
         # Internal counter.
-        self.counter = tf.Variable(0.0)
+        self._counter = tf.Variable(0.0)
 
     def __call__(self, inputs: tf.Tensor) -> tf.Tensor:
 
@@ -109,9 +109,9 @@ class EpsilonGreedyExploration(snt.Module):
         greedy_probs /= tf.reduce_sum(greedy_probs, axis=-1, keepdims=True)
 
         # Calculate new epsilon value.
-        self.counter.assign(self.counter + 1.0)
-        fraction = tf.math.minimum(self.counter / self.epsilon_schedule_timesteps, 1.0)
-        epsilon = self.epsilon_init + fraction * (self.epsilon_final - self.epsilon_init)
+        self._counter.assign(self._counter + 1.0)
+        fraction = tf.math.minimum(self._counter / self._epsilon_schedule_timesteps, 1.0)
+        epsilon = self._epsilon_init + fraction * (self._epsilon_final - self._epsilon_init)
 
         # Epsilon-greedy action distribution.
         probs = epsilon * dither_probs + (1 - epsilon) * greedy_probs
