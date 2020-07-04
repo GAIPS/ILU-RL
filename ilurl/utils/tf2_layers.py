@@ -6,12 +6,60 @@ import tensorflow_probability as tfp
 class GaussianNoise(snt.Module):
     """ Sonnet module for adding Gaussian noise to each output. """
 
-    def __init__(self, stddev: float, name: str = 'gaussian_noise'):
-        super().__init__(name=name)
+    def __init__(self, stddev: float):
+        super().__init__(name='gaussian_noise')
         self._noise = tfp.distributions.Normal(loc=0., scale=stddev)
 
     def __call__(self, inputs: tf.Tensor) -> tf.Tensor:
         output = inputs + self._noise.sample(inputs.shape)
+        return output
+
+
+class GaussianNoiseExploration(snt.Module):
+    """ Sonnet module for adding gaussian noise (exploration). """
+
+    def __init__(self,
+                 stddev_init: float,
+                 stddev_final: float,
+                 stddev_schedule_timesteps: int):
+        """ Initialise GaussianNoise class.
+
+            Parameters:
+            ----------
+            * stddev_init: int
+                Initial stddev value.
+
+            * stddev_final: int
+                Final stddev value.
+
+            * stddev_schedule_timesteps: int
+                Number of timesteps to decay stddev from 'stddev_init'
+                to 'stddev_final'
+
+        """
+        super().__init__(name='gaussian_noise_exploration')
+
+        # Internalise parameters.
+        self._stddev_init = stddev_init
+        self._stddev_final = stddev_final
+        self._stddev_schedule_timesteps = stddev_schedule_timesteps
+
+        # Internal counter.
+        self._counter = tf.Variable(0.0)
+
+    def __call__(self, inputs: tf.Tensor) -> tf.Tensor:
+
+        # Calculate new stddev value.
+        self._counter.assign(self._counter + 1.0)
+        fraction = tf.math.minimum(self._counter / self._stddev_schedule_timesteps, 1.0)
+        stddev = self._stddev_init + fraction * (self._stddev_final - self._stddev_init)
+
+        # Noise distribution.
+        noise = tfp.distributions.Normal(loc=0., scale=stddev)
+
+        # Add noise to inputs.
+        output = inputs + noise.sample(inputs.shape)
+
         return output
 
 
@@ -31,8 +79,8 @@ class EpsilonGreedyExploration(snt.Module):
 
             * epsilon_final: int
                 Final epsilon value.
-            * epsilon_schedule_timesteps: int
 
+            * epsilon_schedule_timesteps: int
                 Number of timesteps to decay epsilon from 'epsilon_init'
                 to 'epsilon_final'
 
@@ -60,7 +108,7 @@ class EpsilonGreedyExploration(snt.Module):
                             inputs.dtype)
         greedy_probs /= tf.reduce_sum(greedy_probs, axis=-1, keepdims=True)
 
-        # Calculate new epsilon.
+        # Calculate new epsilon value.
         self.counter.assign(self.counter + 1.0)
         fraction = tf.math.minimum(self.counter / self.epsilon_schedule_timesteps, 1.0)
         epsilon = self.epsilon_init + fraction * (self.epsilon_final - self.epsilon_init)

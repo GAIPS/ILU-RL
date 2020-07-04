@@ -412,7 +412,9 @@ class DDPGParams(Printable):
             max_replay_size: int = 30000,
             samples_per_insert: float = 50.0,
             n_step: int = 5,
-            sigma: float = 0.3,
+            sigma_init: float = 0.3,
+            sigma_final: float = 0.01,
+            sigma_schedule_timesteps: float = 45000,
             clipping: bool = True,
         ):
         """Instantiate DDPG parameters.

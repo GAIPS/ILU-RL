@@ -259,7 +259,9 @@ class Parser(object):
                         max_replay_size=int(ddpg_args['max_replay_size']),
                         samples_per_insert=float(ddpg_args['samples_per_insert']),
                         n_step=int(ddpg_args['n_step']),
-                        sigma=float(ddpg_args['sigma']),
+                        sigma_init=float(ddpg_args['sigma_init']),
+                        sigma_final=float(ddpg_args['sigma_final']),
+                        sigma_schedule_timesteps=int(ddpg_args['sigma_schedule_timesteps']),
                         clipping=str2bool(ddpg_args['clipping']),
         )
 
