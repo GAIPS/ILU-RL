@@ -33,7 +33,9 @@ import tensorflow as tf
 import trfl
 
 from ilurl.utils import tf2_savers
+from ilurl.utils.tf2_layers import EpsilonGreedyExploration
 from ilurl.agents.acme_datasets_reverb import make_reverb_dataset
+
 
 
 class DQN(agent.Agent):
@@ -58,7 +60,9 @@ class DQN(agent.Agent):
             importance_sampling_exponent: float = 0.2,
             priority_exponent: float = 0.6,
             n_step: int = 5,
-            epsilon: tf.Tensor = None,
+            epsilon_init: float = 1.0,
+            epsilon_final: float = 0.01,
+            epsilon_schedule_timesteps: int = 20000,
             learning_rate: float = 1e-3,
             discount: float = 0.99,
             logger: loggers.Logger = None,
@@ -82,8 +86,10 @@ class DQN(agent.Agent):
             before normalizing.
         priority_exponent: exponent used in prioritized sampling.
         n_step: number of steps to squash into a single transition.
-        epsilon: probability of taking a random action; ignored if a policy
-            network is given.
+        epsilon_init: Initial epsilon value (probability of taking a random action)
+        epsilon_final: Final epsilon value (probability of taking a random action)
+        epsilon_schedule_timesteps: timesteps to decay epsilon from 'epsilon_init'
+            to 'epsilon_final'. 
         learning_rate: learning rate for the q-network update.
         discount: discount to use for TD updates.
         logger: logger object to be used by learner.
@@ -117,12 +123,11 @@ class DQN(agent.Agent):
             prefetch_size=prefetch_size,
             transition_adder=True)
 
-        # Use constant 0.05 epsilon greedy policy by default.
-        if epsilon is None:
-            epsilon = tf.Variable(0.05, trainable=False)
         policy_network = snt.Sequential([
             network,
-            lambda q: trfl.epsilon_greedy(q, epsilon=epsilon).sample(),
+            EpsilonGreedyExploration(epsilon_init=epsilon_init,
+                                     epsilon_final=epsilon_final,
+                                     epsilon_schedule_timesteps=epsilon_schedule_timesteps)
         ])
 
         # Create a target network.

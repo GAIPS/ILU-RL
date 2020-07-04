@@ -92,7 +92,9 @@ class DQN(AgentWorker,AgentInterface):
                                     importance_sampling_exponent=params.importance_sampling_exponent,
                                     priority_exponent=params.priority_exponent,
                                     n_step=params.n_step,
-                                    epsilon=params.epsilon,
+                                    epsilon_init=params.epsilon_init,
+                                    epsilon_final=params.epsilon_final,
+                                    epsilon_schedule_timesteps=params.epsilon_schedule_timesteps,
                                     learning_rate=params.learning_rate,
                                     discount=params.discount_factor,
                                     logger=agent_logger)

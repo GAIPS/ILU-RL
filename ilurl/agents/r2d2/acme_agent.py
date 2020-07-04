@@ -34,6 +34,7 @@ import trfl
 
 from ilurl.utils import tf2_savers
 from ilurl.agents.acme_datasets_reverb import make_reverb_dataset
+from ilurl.utils.tf2_layers import EpsilonGreedyExploration
 
 
 class R2D2(agent.Agent):
@@ -60,7 +61,9 @@ class R2D2(agent.Agent):
         target_update_period: int = 100,
         importance_sampling_exponent: float = 0.2,
         priority_exponent: float = 0.6,
-        epsilon: float = 0.01,
+        epsilon_init: float = 1.0,
+        epsilon_final: float = 0.01,
+        epsilon_schedule_timesteps: float = 20000,
         learning_rate: float = 1e-3,
         min_replay_size: int = 1000,
         max_replay_size: int = 1000000,
@@ -129,7 +132,9 @@ class R2D2(agent.Agent):
 
         policy_network = snt.DeepRNN([
             network,
-            lambda qs: trfl.epsilon_greedy(qs, epsilon=epsilon).sample(),
+            EpsilonGreedyExploration(epsilon_init=epsilon_init,
+                                     epsilon_final=epsilon_final,
+                                     epsilon_schedule_timesteps=epsilon_schedule_timesteps)
         ])
         actor = actors.RecurrentActor(policy_network, adder)
 

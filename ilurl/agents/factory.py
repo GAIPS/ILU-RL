@@ -33,8 +33,6 @@ class AgentFactory(object):
     @classmethod
     def get(cls, name : str) -> ClassVar:
 
-        print(name)
-
         if not cls._class:
 
             module_path = f'ilurl.agents.{name.lower()}.agent'
