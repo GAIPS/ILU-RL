@@ -14,6 +14,8 @@ from ilurl.meta import (MetaState, MetaStateCollection,
                              MetaStateCategorizer)
 from ilurl.utils.aux import camelize, flatten
 
+#TODO: Erase me
+from ilurl.state.state import State
 
 
 def get_states():
@@ -144,6 +146,8 @@ def build_states(network, mdp_params):
                                   velocity_threshold=velocity_threshold)
 
             states.append(state)
+
+    state = State(network, mdp_params)
     return StateCollection(mdp_params, states)
 
 
