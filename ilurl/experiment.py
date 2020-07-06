@@ -180,6 +180,8 @@ class Experiment:
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
+        import ipdb
+        ipdb.set_trace()
         self.env.mas.terminate()
         self.env.terminate()
 

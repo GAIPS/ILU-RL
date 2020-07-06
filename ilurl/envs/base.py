@@ -70,7 +70,7 @@ class TrafficLightEnv(Env):
         self.states_log = {}
 
         # overrides GYM's observation space
-        self.observation_space = build_states(network, mdp_params)
+        self.observation_space, self.features = build_states(network, mdp_params)
 
         # Continuous action space signal plans.
         self.signal_plans_continous = {}
@@ -188,12 +188,13 @@ class TrafficLightEnv(Env):
 
         self.observation_space.update(prev, vehs)
 
+        self.features.update(prev, vehs, None)
         return self.observation_space
 
     def get_state(self):
         """
         Return the state of the simulation as perceived by the RL agent.
-        
+
         Returns:
         -------
         state : array_like
@@ -202,20 +203,20 @@ class TrafficLightEnv(Env):
         """
         # Categorize.
 
+        if self.mdp_params.discretize_state_space:
+            obs = self.get_observation_space().categorize()
+        else:
+            obs = self.get_observation_space().state()
+
+        obs = self.get_observation_space().flatten(obs)
+
+        #TODO: REPLACE
+        obs1 = self.features.feature_map(categorize=True, flatten=True)
         try:
-            if self.mdp_params.discretize_state_space:
-                obs = self.get_observation_space().categorize()
-            else:
-                obs = self.get_observation_space().state()
-
-            obs = self.get_observation_space().flatten(obs)
-
-            if max([o for _obs in obs.values() for o in _obs]) > 6:
-                ipdb.set_trace()
-
-        except TypeError:
-                ipdb.set_trace()
-
+            assert obs == obs1
+        except AssertionError:
+            import ipdb
+            ipdb.set_trace()
         return obs
 
     def rl_actions(self, state):

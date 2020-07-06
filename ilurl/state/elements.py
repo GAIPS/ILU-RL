@@ -29,10 +29,10 @@ class Intersection:
     def phases(self):
         return self._phases
 
-    #TODO: implement
-    def update(duration, vehs, tls):
-        for phase in self.phases:
-            phase.update(duration, vehs, tls)
+    def update(self, duration, vehs, tls):
+
+        for p, phase in enumerate(self.phases):
+            phase.update(duration, vehs[p], tls)
 
     def feature_map(self, filter_by=None, categorize=True, split=False):
        ret = [phase.feature_map(filter_by, categorize)
@@ -51,7 +51,8 @@ class Phase:
         * Composed of many lanes.
         * Performs normalization.
         * Performs categorization.
-        * Aggregate wrt lanes.
+        * Aggregates wrt lanes.
+        * Aggregates wrt cycles.
     """
 
     def __init__(self, mdp_params, phase_id, phase_data, max_capacity):
@@ -70,11 +71,15 @@ class Phase:
         self._max_speed, self._max_count =  max_capacity
 
         lanes = []
-        for phase_component in phase_data['components']:
-            edge_id, lane_ids = phase_component
+        components = []
+        for _component in phase_data['components']:
+            edge_id, lane_ids = _component
             for lane_id in lane_ids:
+                components.append((edge_id, lane_id))
                 lanes.append(Lane(mdp_params, f'{edge_id}#{lane_id}'))
+
         self._lanes = lanes
+        self._components = components
 
     @property
     def phase_id(self):
@@ -85,13 +90,23 @@ class Phase:
         return self._labels
 
     @property
+    def components(self):
+        return self._components
+
+    @property
     def lanes(self):
         return self._lanes
 
-    def update(duration, vehs, tls):
+    def update(self, duration, vehs, tls):
+
+        def _in(veh, lne):
+            eid, lid = lne.lane_id.split('#')
+            return veh.edge_id == eid and veh.lane == int(lid)
+
+        # TODO: Filter tls.
         for lane in self.lanes:
-            # TODO: filter lane -- both on vehs and tls
-            lane.update(duration, vehs, tls)
+            _vehs = [v for v in vehs if _in(v, lane)]
+            lane.update(duration, _vehs, tls)
 
     def feature_map(self, filter_by=None, categorize=True):
         # 1) Select features.
@@ -104,9 +119,8 @@ class Phase:
         # 3) Categorize each phase feature.
         if categorize:
             ret = [
-                np.digitize(val, bins=self._bin[lbl])
-                for val, lbl in zip(ret, sel)
-            ]
+                np.digitize(val, bins=self._bins[lbl])
+                for val, lbl in zip(ret, sel)]
         return ret
 
 
@@ -114,13 +128,37 @@ class Phase:
     def speed(self):
         """Aggregates and normalizes speed wrt lane"""
         cap = self._max_speed if self._normalize else 1
-        return round(np.nanmean([l.speed / cap for l in self.lanes]), 2)
+
+        # TODO: Set no vehicles as nan
+        total = 0
+        K = len(self.lanes[0].cache)
+        prods = [0] * K
+        counts = [0] * K
+        for lane in self.lanes:
+            # Sum of velocities / duration
+            for i, s_c in enumerate(zip(lane.speed, lane.count)):
+                s, c  = s_c
+                prods[i] += s * c
+                counts[i] += c
+
+        product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
+        return round(sum(product) / (cap * K), 2)
 
     @property
     def count(self):
         """Aggregates count wrt lane"""
-        cap = self._max_speed if self._normalize else 1
-        return round(np.nanmean([l.speed / cap for l in self.lanes]), 2)
+        # disable for now
+        # cap = self._max_count if self._normalize else 1
+        first = True
+        count = None
+        for lane in self.lanes:
+            if first:
+                count = lane.count
+                first = False
+            else:
+                count = [c1 + c2 for c1, c2 in zip(count, lane.count)]
+
+        return round(np.nanmean(count) if len(count) > 0 else 0.0, 2)
 
     @property
     def delay(self):
@@ -136,7 +174,6 @@ class Lane:
         * Leaf nodes.
         * Caches observation data.
         * Computes feature.
-        * Aggregate wrt cycles.
     """
     def __init__(self, mdp_params, lane_id):
         self._lane_id = lane_id
@@ -154,26 +191,22 @@ class Lane:
     def reset(self):
         self._cache = {}
 
-    def update(duration, vehs, tls):
+    def update(self, duration, vehs, tls):
         self._cache[duration] = (vehs, tls)
 
     @property
     def speed(self):
-        """Aggregates speed wrt time"""
-        ret = [veh.speed for vehs, _ in self.cache.values() for veh in vehs]
+        """Project speed"""
+        ret = [np.nanmean([v.speed for v in vehs]) if any(vehs) else 0.0
+                for vehs, _ in self.cache.values()]
 
-        # TODO: handle nan
-        ret = np.nanmean(ret) if any(ret) else 0
         return ret
 
     @property
     def count(self):
-        """Aggregates count wrt time"""
+        """Project count"""
         ret = [len(vehs) for vehs, _ in self.cache.values()]
-
-        # TODO: handle nan
-        ret = np.nanmean(ret) if any(ret) else 0
-        return ret 
+        return ret
 
     @property
     def delay(self):

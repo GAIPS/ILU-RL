@@ -147,8 +147,7 @@ def build_states(network, mdp_params):
 
             states.append(state)
 
-    state = State(network, mdp_params)
-    return StateCollection(mdp_params, states)
+    return StateCollection(mdp_params, states), State(network, mdp_params)
 
 
 class StateCollection(object, metaclass=MetaStateCollection):

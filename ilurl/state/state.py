@@ -1,5 +1,5 @@
 from ilurl.state.elements import Intersection
-from ilurl.utils.aux import flatten
+from ilurl.utils.aux import flatten as flat
 
 class State:
 
@@ -38,6 +38,11 @@ class State:
         return self._tls_ids
 
 
+    def update(self, duration, vehs, tls=None):
+
+        for tls_id, i in self._intersections.items():
+            i.update(duration, vehs[tls_id], tls)
+
     def feature_map(self, filter_by=None, categorize=False, split=False, flatten=False):
         ret = {k:v.feature_map(filter_by=filter_by,
                                categorize=categorize,
@@ -45,5 +50,5 @@ class State:
                for k, v in self._intersections.items()}
 
         if flatten:
-            ret = {k: flatten(v) for k, v in ret.items()}
+            ret = {k: tuple(flat(v)) for k, v in ret.items()}
         return ret
