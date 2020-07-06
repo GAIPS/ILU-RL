@@ -99,6 +99,9 @@ class Parser(object):
         train_config.read(str(self.config_path))
 
         mdp_args = train_config['mdp_args']
+
+        time_period = int(mdp_args['time_period']) if not isNone(mdp_args['time_period']) else None
+
         mdp_params = MDPParams(
             discount_factor=float(mdp_args['discount_factor']),
             action_space=literal_eval(mdp_args['action_space']),
@@ -114,7 +117,7 @@ class Parser(object):
             reward_rescale=float(mdp_args['reward_rescale']),
             target_velocity=literal_eval(mdp_args['target_velocity']),
             velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
-            time_period=literal_eval(mdp_args['time_period']),
+            time_period=time_period,
         )
 
         return mdp_params
