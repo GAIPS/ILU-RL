@@ -1,12 +1,13 @@
+import re
 import numpy as np
 
 class Intersection:
     """Represents an intersection.
 
-        * Nodes on a transportation network
-        * Root node on a tree hierarchy
+        * Nodes on a transportation network.
+        * Root node on a tree hierarchy.
         * Basic unit on the feature map (an agent controls an intersection)
-        * Splits outputs
+        * Splits outputs.
     """
 
     def __init__(self, mdp_params, tls_id, phases, phase_capacity):
@@ -40,7 +41,6 @@ class Intersection:
 
        if split:
            # num_features x num_phases 
-
            return tuple(zip(*ret))
        return ret
 
@@ -69,6 +69,7 @@ class Phase:
         self._normalize = mdp_params.normalize_state_space
         self._max_speed, self._max_count =  max_capacity
         self._velocity_threshold = mdp_params.velocity_threshold
+        self._matcher = re.compile('\[(.*?)\]')
 
         lanes = []
         components = []
@@ -82,6 +83,7 @@ class Phase:
 
         self._lanes = lanes
         self._components = components
+        self._prev_features = {}
 
     @property
     def phase_id(self):
@@ -101,6 +103,14 @@ class Phase:
 
     def update(self, duration, vehs, tls):
 
+        if duration == 0:
+            # stores previous cycle for lag labels
+            for label in self.labels:
+                if 'lag' in label:
+                    derived_label = self._get_derived(label)
+                    self._prev_features[derived_feature] = \
+                                    getattr(self, derived_feature)
+
         def _in(veh, lne):
             eid, lid = lne.lane_id.split('#')
             return veh.edge_id == eid and veh.lane == int(lid)
@@ -109,17 +119,18 @@ class Phase:
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
 
-    def feature_map(self, filter_by=None, categorize=True):
+
+    def feature_map(self, filter_by=None, categorize=False):
         # 1) Select features.
         sel = [lbl for lbl in self.labels
            if filter_by is None or lbl in filter_by]
 
         # 2) Performs computes phases' features.
-        ret = [getattr(self, label) for label in sel]
+        ret = [self._get_feature_by(label) for label in sel]
 
         # 3) Categorize each phase feature.
         if categorize:
-            ret = [np.digitize(val, bins=self._bins[lbl])
+            ret = [np.digitize(val, bins=self._bins[self._get_derived(lbl)])
                    for val, lbl in zip(ret, sel)]
         return ret
 
@@ -163,6 +174,33 @@ class Phase:
 
         # K = len(self.lanes[0].cache)
         return round(ret, 2)
+
+    @property
+    def queue(self):
+        """Aggregates delay wrt time and lanes"""
+        # TODO: Divide by K?
+        ret = 0
+        for lane in self.lanes:
+            ret = max(ret, max(lane.delay))
+
+        return round(ret, 2)
+
+    def _get_feature_by(self, label):
+        """Returns feature by label"""
+        if 'lag' in label:
+            derived_feature = \
+                self._matcher.search(label).groups(0)
+            return self._prev_features[derived_feature]
+        return getattr(self, label)
+
+    def _get_derived(self, label):
+        """Returns label or derived label"""
+        derived_label = None
+        if 'lag' in label:
+            derived_label = \
+                self._matcher.search(label).groups(0)
+        return derived_label or label
+
 
 class Lane:
     """ Represents a lane within an edge.
