@@ -183,8 +183,6 @@ class DDPG(agent.Agent):
         deterministic_network = snt.Sequential([
             observation_network,
             policy_network,
-            tf2_layers.GaussianNoise(0.0),
-            lambda x: tf.nn.softmax(x)
         ])
         self._deterministic_actor = actors.FeedForwardActor(deterministic_network)
 
