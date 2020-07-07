@@ -49,10 +49,9 @@ class Phase:
     """Represents a phase.
 
         * Composed of many lanes.
-        * Performs normalization.
         * Performs categorization.
         * Aggregates wrt lanes.
-        * Aggregates wrt cycles.
+        * Aggregates wrt time.
     """
 
     def __init__(self, mdp_params, phase_id, phase_data, max_capacity):
@@ -69,6 +68,7 @@ class Phase:
         self._labels = mdp_params.states
         self._normalize = mdp_params.normalize_state_space
         self._max_speed, self._max_count =  max_capacity
+        self._velocity_threshold = mdp_params.velocity_threshold
 
         lanes = []
         components = []
@@ -76,7 +76,9 @@ class Phase:
             edge_id, lane_ids = _component
             for lane_id in lane_ids:
                 components.append((edge_id, lane_id))
-                lanes.append(Lane(mdp_params, f'{edge_id}#{lane_id}'))
+                lanes.append(Lane(mdp_params,
+                                  f'{edge_id}#{lane_id}',
+                                  self._max_speed))
 
         self._lanes = lanes
         self._components = components
@@ -103,7 +105,6 @@ class Phase:
             eid, lid = lne.lane_id.split('#')
             return veh.edge_id == eid and veh.lane == int(lid)
 
-        # TODO: Filter tls.
         for lane in self.lanes:
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
@@ -118,15 +119,14 @@ class Phase:
 
         # 3) Categorize each phase feature.
         if categorize:
-            ret = [
-                np.digitize(val, bins=self._bins[lbl])
-                for val, lbl in zip(ret, sel)]
+            ret = [np.digitize(val, bins=self._bins[lbl])
+                   for val, lbl in zip(ret, sel)]
         return ret
 
 
     @property
     def speed(self):
-        """Aggregates and normalizes speed wrt lane"""
+        """Aggregates and normalizes speed wrt time and lane"""
         cap = self._max_speed if self._normalize else 1
 
         # TODO: Set no vehicles as nan
@@ -146,38 +146,39 @@ class Phase:
 
     @property
     def count(self):
-        """Aggregates count wrt lane"""
+        """Aggregates count wrt time and lanes"""
         # disable for now
         # cap = self._max_count if self._normalize else 1
-        first = True
-        count = None
-        for lane in self.lanes:
-            if first:
-                count = lane.count
-                first = False
-            else:
-                count = [c1 + c2 for c1, c2 in zip(count, lane.count)]
-
-        return round(np.nanmean(count) if len(count) > 0 else 0.0, 2)
+        ret = sum([sum(lane.count) for lane in self.lanes])
+        K = len(self.lanes[0].cache)
+        return round(ret / K, 2)
 
     @property
     def delay(self):
-        """Aggregates delay wrt lane"""
-        _delays = \
-            [len([v for v in vehs if v.speed < self._velocity_threshold])
-             for vehs, _ in self.cache.values()]
-        return np.nansum(_delays)
+        """Aggregates delay wrt time and lanes"""
+        # TODO: Make average
+        ret = 0
+        for lane in self.lanes:
+            ret += sum(lane.delay)
+
+        # K = len(self.lanes[0].cache)
+        return round(ret, 2)
 
 class Lane:
     """ Represents a lane within an edge.
 
         * Leaf nodes.
         * Caches observation data.
-        * Computes feature.
+        * Performs normalization.
+        * Computes feature per time step.
+        * Aggregates wrt vehicles.
     """
-    def __init__(self, mdp_params, lane_id):
+    def __init__(self, mdp_params, lane_id, max_speed):
         self._lane_id = lane_id
-        self._velocity_threshold = mdp_params.velocity_threshold
+        self._min_speed = mdp_params.velocity_threshold
+        self._max_speed = max_speed
+        self._normalize = mdp_params.normalize_state_space
+        self._last_duration = 0
         self.reset()
 
     @property
@@ -193,10 +194,12 @@ class Lane:
 
     def update(self, duration, vehs, tls):
         self._cache[duration] = (vehs, tls)
+        self._last_duration = duration
 
     @property
     def speed(self):
-        """Project speed"""
+        """Mean speed per lane and time step"""
+        # 1) IF no cars are available revert to zero
         ret = [np.nanmean([v.speed for v in vehs]) if any(vehs) else 0.0
                 for vehs, _ in self.cache.values()]
 
@@ -204,17 +207,20 @@ class Lane:
 
     @property
     def count(self):
-        """Project count"""
+        """Number of vehicles per lane and time step"""
         ret = [len(vehs) for vehs, _ in self.cache.values()]
         return ret
 
     @property
     def delay(self):
-        """Aggregates delay  wrt time"""
-        ret = [len([v for v in vehs if v.speed < self._velocity_threshold])
-               for vehs, _ in self.cache.values()]
+        """Every cars' speed per lane and time step"""
+        cap = self._max_speed if self._normalize else 1
+        ds = self._min_speed
 
-        # TODO: handle nan
-        ret = np.nansum(ret) if any(ret) else 0
+        vehs = [vehs_tls[0] if any(vehs_tls[0]) else []
+                for d, vehs_tls in self.cache.items() if d <= self._last_duration]
+
+        ret = [sum([v.speed / cap < ds for v in veh]) if any(veh) else 0
+                for veh in vehs]
         return ret
 
