@@ -55,22 +55,24 @@ class Phase:
     """
 
     def __init__(self, mdp_params, phase_id, phase_data, max_capacity):
+        # 1) Define base attributes
         self._phase_id = phase_id
-
-        # 1) Get categorization bins
-        # fn: extracts category_<feature_name>s from mdp_params
-        def fn(x):
-            return [getattr(mdp_params, y) for y in dir(mdp_params)
-                    if (x in y) and ('category_' in y)][0]
-        self._bins = {_feat: fn(_feat) for _feat in mdp_params.states}
-
-        # TODO: Rename states to features
         self._labels = mdp_params.states
         self._normalize = mdp_params.normalize_state_space
         self._max_speed, self._max_count =  max_capacity
         self._velocity_threshold = mdp_params.velocity_threshold
         self._matcher = re.compile('\[(.*?)\]')
 
+        # 2) Get categorization bins.
+        # fn: extracts category_<feature_name>s from mdp_params
+        def fn(x):
+            z = self._get_derived(x)
+            return [getattr(mdp_params, y) for y in dir(mdp_params)
+                    if (z in y) and ('category_' in y)][0]
+        self._bins = {_feat: fn(_feat) for _feat in mdp_params.states}
+
+
+        # 3) Instanciate lanes
         lanes = []
         components = []
         for _component in phase_data['components']:
@@ -108,8 +110,8 @@ class Phase:
             for label in self.labels:
                 if 'lag' in label:
                     derived_label = self._get_derived(label)
-                    self._prev_features[derived_feature] = \
-                                    getattr(self, derived_feature)
+                    self._prev_features[derived_label] = \
+                                    getattr(self, derived_label)
 
         def _in(veh, lne):
             eid, lid = lne.lane_id.split('#')
@@ -181,7 +183,7 @@ class Phase:
         # TODO: Divide by K?
         ret = 0
         for lane in self.lanes:
-            ret = max(ret, max(lane.delay))
+            ret = max(ret, max(lane.delay) if any(lane.delay) else 0)
 
         return round(ret, 2)
 
@@ -189,7 +191,7 @@ class Phase:
         """Returns feature by label"""
         if 'lag' in label:
             derived_feature = \
-                self._matcher.search(label).groups(0)
+                self._matcher.search(label).groups()[0]
             return self._prev_features[derived_feature]
         return getattr(self, label)
 
@@ -198,7 +200,7 @@ class Phase:
         derived_label = None
         if 'lag' in label:
             derived_label = \
-                self._matcher.search(label).groups(0)
+                self._matcher.search(label).groups()[0]
         return derived_label or label
 
 
