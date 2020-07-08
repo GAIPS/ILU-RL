@@ -1,11 +1,14 @@
 import os
 import random
+from typing import Sequence
+
 import numpy as np
+
+import dm_env
 
 import tensorflow as tf
 import sonnet as snt
 
-import dm_env
 import acme
 from acme import specs
 from acme.tf import networks
@@ -17,18 +20,22 @@ from ilurl.utils.default_logger import make_default_logger
 from ilurl.utils.precision import double_to_single_precision
 
 _TF_USE_GPU = False
-_TF_NUM_THREADS = 1
+_TF_NUM_THREADS = 32
 
 
-# TODO: Allow for dynamic network creation via user parameters.
-class SimpleNetwork(networks.RNNCore):
+class Network(networks.RNNCore):
 
-  def __init__(self, action_spec: specs.DiscreteArray):
+  def __init__(self, num_actions : int,
+                     rnn_hidden_size : int = 10,
+                     head_layers : Sequence[int] = [5]):
     super().__init__(name='r2d2_network')
+
     self._net = snt.DeepRNN([
         snt.Flatten(),
-        snt.LSTM(10),
-        snt.nets.MLP([5, action_spec.num_values])
+        # LSTM core.
+        snt.LSTM(rnn_hidden_size),
+        # Dueling MLP head.
+        networks.DuellingMLP(num_actions=num_actions, hidden_sizes=head_layers)
     ])
 
   def __call__(self, inputs, state):
@@ -98,8 +105,12 @@ class R2D2(AgentWorker,AgentInterface):
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
 
+        network = Network(num_actions=env_spec.actions.num_values,
+                          rnn_hidden_size=params.rnn_hidden_size,
+                          head_layers=params.head_layers)
+
         self.agent = acme_agent.R2D2(environment_spec=env_spec,
-                                     network=SimpleNetwork(env_spec.actions), # TODO.
+                                     network=network,
                                      batch_size=params.batch_size,
                                      samples_per_insert=params.samples_per_insert,
                                      burn_in_length=params.burn_in_length,

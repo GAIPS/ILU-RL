@@ -380,6 +380,8 @@ class R2D2Params(Printable):
             epsilon_init: float,
             epsilon_final: float,
             epsilon_schedule_timesteps: int,
+            rnn_hidden_size: int,
+            head_layers: list
         ):
         """ Instantiate R2D2 parameters.
 
@@ -395,6 +397,12 @@ class R2D2Params(Printable):
 
         * epsilon_schedule_timesteps: int
             Number of timesteps to decay epsilon from 'epsilon_init' to 'epsilon_final'.
+
+        * rnn_hidden_size: int
+            Number of nodes in the RNN core of the network.
+
+        * head_layers: list
+            Head (duelling) MLP network layers.
 
         """
         kwargs = locals()

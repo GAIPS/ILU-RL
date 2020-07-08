@@ -241,6 +241,8 @@ class Parser(object):
                         epsilon_init=float(r2d2_args['epsilon_init']),
                         epsilon_final=float(r2d2_args['epsilon_final']),
                         epsilon_schedule_timesteps=int(r2d2_args['epsilon_schedule_timesteps']),
+                        rnn_hidden_size=int(r2d2_args['rnn_hidden_size']),
+                        head_layers=json.loads(r2d2_args['head_layers']),
         )
 
         # print(r2d2_params)
