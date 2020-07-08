@@ -305,11 +305,65 @@ class Lane:
 
     def reset(self):
         self._cache = OrderedDict()
+        self._cached_speeds = []
+        self._cached_counts = []
+        self._cached_delays = []
+
         self._last_duration = 0
+
 
     def update(self, duration, vehs, tls):
         self._cache[duration] = (vehs, tls)
         self._last_duration = duration
+
+        self._update_counts()
+        self._update_delays()
+        self._update_speeds()
+
+    def _update_speeds(self):
+        """Step update for speeds variable"""
+        # 1) Retrieve data 
+        cap = self._max_speed if self._normalize else 1
+        vehs, _ = self.cache[self._last_duration]
+
+        # 2) Compute speed @ duration time step
+        step_speed = \
+            np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
+
+        # 3) Append or update
+        if self._last_duration == len(self._cached_speeds):
+            self._cached_speeds.append(step_speed)
+        else:
+            self._cached_speeds[int(self._last_duration)] = step_speed
+
+    def _update_counts(self):
+        # 1) Retrieve data 
+        vehs, _ = self.cache[self._last_duration]
+
+        # 2) Compute count @ duration time step
+        step_count = len(vehs)
+
+        # 3) Append or update
+        if self._last_duration == len(self._cached_counts):
+            self._cached_counts.append(step_count)
+        else:
+            self._cached_counts[int(self._last_duration)] = step_count
+
+    def _update_delays(self):
+        # 1) Retrieve data 
+        cap = self._max_speed if self._normalize else 1
+        vt = self._min_speed
+        vehs, _ = self.cache[self._last_duration]
+
+        # 2) Compute speed @ duration time step
+        step_delay = len([v.speed / cap < vt for v in vehs])
+
+        # 3) Append or update
+        if self._last_duration == len(self._cached_delays):
+            self._cached_delays.append(step_delay)
+        else:
+            self._cached_delays[int(self._last_duration)] = step_delay
+
 
     @property
     def speeds(self):
@@ -319,13 +373,18 @@ class Lane:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        cap = self._max_speed if self._normalize else 1
+        # if self._last_duration in self._cached_speeds:
+        #     return self._cached_speeds[self._last_duration]
 
-        # 1) IF no cars are available revert to zero
-        ret = [np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
-                for vehs, _ in self.cache.values()]
+        # if not(self._cached_speeds):
+        #     prev = []
 
-        return ret
+        # cap = self._max_speed if self._normalize else 1
+        # # 1) IF no cars are available revert to zero
+        # ret = np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
+        #         for vehs, _ in self.cache[self._last_duration].values()]
+
+        return self._cached_speeds
 
     @property
     def counts(self):
@@ -335,8 +394,9 @@ class Lane:
             count: list<int>
             Is a duration sized list containing the total number of vehicles
         """
-        ret = [len(vehs) for vehs, _ in self.cache.values()]
-        return ret
+        # ret = [len(vehs) for vehs, _ in self.cache.values()]
+        # return ret
+        return self._cached_counts
 
     @property
     def delays(self):
@@ -348,13 +408,14 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        cap = self._max_speed if self._normalize else 1
-        ds = self._min_speed
+        # cap = self._max_speed if self._normalize else 1
+        # ds = self._min_speed
 
-        vehs = [vehs_tls[0] if any(vehs_tls[0]) else []
-                for d, vehs_tls in self.cache.items() if d <= self._last_duration]
+        # vehs = [vehs_tls[0] if any(vehs_tls[0]) else []
+        #         for d, vehs_tls in self.cache.items() if d <= self._last_duration]
 
-        ret = [sum([v.speed / cap < ds for v in veh]) if any(veh) else 0
-                for veh in vehs]
-        return ret
+        # ret = [sum([v.speed / cap < ds for v in veh]) if any(veh) else 0
+        #         for veh in vehs]
+        # return ret
+        return self._cached_delays
 
