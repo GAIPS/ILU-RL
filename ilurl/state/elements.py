@@ -158,7 +158,6 @@ class Phase:
         """
         K = len(self.lanes[0].cache)
         if K > 0:
-
             # TODO: Set no vehicles as nan
             total = 0
             prods = [0] * K

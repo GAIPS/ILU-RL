@@ -7,7 +7,6 @@ import numpy as np
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
-# from ilurl.states import build_states
 from ilurl.state.state import State
 from ilurl.rewards import build_rewards
 
@@ -69,7 +68,6 @@ class TrafficLightEnv(Env):
         self.states_log = {}
 
         # overrides GYM's observation space
-        # self.observation_space, self.features = build_states(network, mdp_params)
         self.observation_space = State(network, mdp_params)
 
         # Continuous action space signal plans.
@@ -188,7 +186,6 @@ class TrafficLightEnv(Env):
 
         self.observation_space.update(prev, vehs)
 
-        # self.features.update(prev, vehs, None)
         return self.observation_space
 
     def get_state(self):
@@ -205,7 +202,6 @@ class TrafficLightEnv(Env):
             categorize=self.mdp_params.discretize_state_space,
             flatten=True
         )
-
         return obs
 
     def rl_actions(self, state):
