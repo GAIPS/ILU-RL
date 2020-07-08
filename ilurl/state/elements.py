@@ -1,5 +1,8 @@
 import re
+from collections import OrderedDict
+
 import numpy as np
+
 
 class Intersection:
     """Represents an intersection.
@@ -34,6 +37,10 @@ class Intersection:
 
         for p, phase in enumerate(self.phases):
             phase.update(duration, vehs[p], tls)
+
+    def reset(self):
+        for phase in self.phases:
+            phase.reset()
 
     def feature_map(self, filter_by=None, categorize=True, split=False):
        ret = [phase.feature_map(filter_by, categorize)
@@ -122,6 +129,11 @@ class Phase:
             lane.update(duration, _vehs, tls)
 
 
+    def reset(self):
+        for lane in self.lanes:
+            lane.reset()
+        self._prev_features = {}
+
     def feature_map(self, filter_by=None, categorize=False):
         # 1) Select features.
         sel = [lbl for lbl in self.labels
@@ -134,37 +146,44 @@ class Phase:
         if categorize:
             ret = [np.digitize(val, bins=self._bins[self._get_derived(lbl)])
                    for val, lbl in zip(ret, sel)]
+
         return ret
 
 
     @property
     def speed(self):
         """Aggregates and normalizes speed wrt time and lane"""
-        cap = self._max_speed if self._normalize else 1
-
-        # TODO: Set no vehicles as nan
-        total = 0
         K = len(self.lanes[0].cache)
-        prods = [0] * K
-        counts = [0] * K
-        for lane in self.lanes:
-            # Sum of velocities / duration
-            for i, s_c in enumerate(zip(lane.speed, lane.count)):
-                s, c  = s_c
-                prods[i] += s * c
-                counts[i] += c
+        if K > 0:
+            cap = self._max_speed if self._normalize else 1
 
-        product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
-        return round(sum(product) / (cap * K), 2)
+            # TODO: Set no vehicles as nan
+            total = 0
+            prods = [0] * K
+            counts = [0] * K
+            for lane in self.lanes:
+                # Sum of velocities / duration
+                for i, s_c in enumerate(zip(lane.speed, lane.count)):
+                    s, c  = s_c
+                    prods[i] += s * c
+                    counts[i] += c
+
+            product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
+            return round(sum(product) / (cap * K), 2)
+        # TODO: Return nan?
+        return 0.0
 
     @property
     def count(self):
         """Aggregates count wrt time and lanes"""
         # disable for now
         # cap = self._max_count if self._normalize else 1
-        ret = sum([sum(lane.count) for lane in self.lanes])
         K = len(self.lanes[0].cache)
-        return round(ret / K, 2)
+        if K > 0:
+            ret = sum([sum(lane.count) for lane in self.lanes])
+            return round(ret / K, 2)
+        #TODO: Return nan?
+        return 0
 
     @property
     def delay(self):
@@ -179,7 +198,25 @@ class Phase:
 
     @property
     def queue(self):
-        """Aggregates delay wrt time and lanes"""
+        """Max. number of delayed vehicles per lane
+
+         Reference:
+        ----------
+        * El-Tantawy, et al. 2014
+            "Design for Reinforcement Learning Parameters for Seamless"
+
+        See also:
+        --------
+        * Balaji et al., 2010
+            "Urban traffic signal control using reinforcement learning agent"
+
+        * Richter, S., Aberdeen, D., & Yu, J., 2007
+            "Natural actor-critic for road traffic optimisation."
+
+        * Abdulhai et al., 2003
+            "Reinforcement learning for true adaptive traffic signal
+            control."
+        """
         # TODO: Divide by K?
         ret = 0
         for lane in self.lanes:
@@ -230,7 +267,8 @@ class Lane:
         return self._cache
 
     def reset(self):
-        self._cache = {}
+        self._cache = OrderedDict()
+        self._last_duration = 0
 
     def update(self, duration, vehs, tls):
         self._cache[duration] = (vehs, tls)
@@ -253,7 +291,27 @@ class Lane:
 
     @property
     def delay(self):
-        """Every cars' speed per lane and time step"""
+        """Every cars' speed per lane and time step
+
+        References:
+        ----------
+        * El-Tantawy, et al. 2014
+            "Design for Reinforcement Learning Parameters for Seamless"
+
+        See also:
+        --------
+        * Lu, Liu, & Dai. 2008
+            "Incremental multistep Q-learning for adaptive traffic signal control"
+
+        * Shoufeng et al., 2008
+            "Q-Learning for adaptive traffic signal control based on delay"
+
+        * Abdullhai et al. 2003
+            "Reinforcement learning for true adaptive traffic signal control."
+
+        * Wiering, 2000
+            "Multi-agent reinforcement learning for traffic light control."
+        """
         cap = self._max_speed if self._normalize else 1
         ds = self._min_speed
 

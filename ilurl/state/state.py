@@ -67,6 +67,12 @@ class State:
         for tls_id, i in self._intersections.items():
             i.update(duration, vehs[tls_id], tls)
 
+    def reset(self):
+        self._last_time = -1
+        self._time = -1
+        for intersection in self._intersections.values():
+            intersection.reset()
+
     def feature_map(self, filter_by=None, categorize=False, split=False, flatten=False):
         ret = {k:v.feature_map(filter_by=filter_by,
                                categorize=categorize,
