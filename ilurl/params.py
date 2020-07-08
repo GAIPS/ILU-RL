@@ -416,6 +416,8 @@ class DDPGParams(Printable):
             sigma_final: float = 0.01,
             sigma_schedule_timesteps: float = 45000,
             clipping: bool = True,
+            policy_layers: list = [5, 5],
+            critic_layers: list = [5, 5],
         ):
         """Instantiate DDPG parameters.
 

@@ -266,6 +266,8 @@ class Parser(object):
                         sigma_final=float(ddpg_args['sigma_final']),
                         sigma_schedule_timesteps=int(ddpg_args['sigma_schedule_timesteps']),
                         clipping=str2bool(ddpg_args['clipping']),
+                        policy_layers=json.loads(ddpg_args['policy_layers']),
+                        critic_layers=json.loads(ddpg_args['critic_layers']),
         )
 
         # print(ddpg_params)

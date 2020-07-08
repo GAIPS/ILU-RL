@@ -23,7 +23,7 @@ _TF_USE_GPU = False
 _TF_NUM_THREADS = 1
 
 
-def make_networks(
+def _make_networks(
         actions_dim : int,
         policy_layers : Sequence[int] = [5, 5],
         critic_layers : Sequence[int] = [5, 5],
@@ -109,7 +109,9 @@ class DDPG(AgentWorker,AgentInterface):
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
 
-        networks = make_networks(actions_dim=params.num_phases)
+        networks = _make_networks(actions_dim=params.num_phases,
+                                  policy_layers=params.policy_layers,
+                                  critic_layers=params.critic_layers)
 
         self.agent = acme_agent.DDPG(environment_spec=env_spec,
                                     policy_network=networks['policy'],
