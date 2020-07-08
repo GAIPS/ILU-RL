@@ -155,7 +155,8 @@ class Experiment:
 
             if self._is_save_step():
 
-                observation_spaces.append(self.env.get_observation_space().state())
+                observation_spaces.append(
+                    self.env.get_observation_space().feature_map())
 
                 rewards.append(reward)
 
@@ -180,8 +181,6 @@ class Experiment:
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
-        import ipdb
-        ipdb.set_trace()
         self.env.mas.terminate()
         self.env.terminate()
 

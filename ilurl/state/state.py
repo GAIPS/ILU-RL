@@ -30,6 +30,7 @@ class State:
         * state
         """
         self._tls_ids = network.tls_ids
+        
         # Global features: e.g Time
         self._time = -1
         self._has_time = False
@@ -55,10 +56,6 @@ class State:
     @property
     def tls_ids(self):
         return self._tls_ids
-
-    @property
-    def time(self):
-        return self._time
 
     def update(self, duration, vehs, tls=None):
         # 1) Update time.
@@ -105,7 +102,7 @@ class State:
             # 1) Verify time conditions.
             if filter_by is None or ('time' in filter_by):
                 # 2) Number of periods (e.g hours) % Rolling update.
-                ret  = (self.time // period) % int(24 * 3600 / period)
+                ret  = (self._time // period) % int(24 * 3600 / period)
 
                 # 3) Convert into category.
                 if categorize:

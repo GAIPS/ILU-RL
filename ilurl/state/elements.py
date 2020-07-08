@@ -158,7 +158,6 @@ class Phase:
         """
         K = len(self.lanes[0].cache)
         if K > 0:
-            cap = self._max_speed if self._normalize else 1
 
             # TODO: Set no vehicles as nan
             total = 0
@@ -172,7 +171,7 @@ class Phase:
                     counts[i] += c
 
             product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
-            return round(sum(product) / (cap * K), 2)
+            return round(sum(product) / K, 2)
         # TODO: Return nan?
         return 0.0
 

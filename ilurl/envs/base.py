@@ -2,14 +2,13 @@
     Traffic Lights Environment.
 '''
 __date__ = "2019-12-10"
-
-import ipdb
 import numpy as np
 
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
-from ilurl.states import build_states
+# from ilurl.states import build_states
+from ilurl.state.state import State
 from ilurl.rewards import build_rewards
 
 from ilurl.utils.properties import lazy_property
@@ -70,7 +69,8 @@ class TrafficLightEnv(Env):
         self.states_log = {}
 
         # overrides GYM's observation space
-        self.observation_space, self.features = build_states(network, mdp_params)
+        # self.observation_space, self.features = build_states(network, mdp_params)
+        self.observation_space = State(network, mdp_params)
 
         # Continuous action space signal plans.
         self.signal_plans_continous = {}
@@ -188,7 +188,7 @@ class TrafficLightEnv(Env):
 
         self.observation_space.update(prev, vehs)
 
-        self.features.update(prev, vehs, None)
+        # self.features.update(prev, vehs, None)
         return self.observation_space
 
     def get_state(self):
@@ -201,22 +201,11 @@ class TrafficLightEnv(Env):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        # Categorize.
+        obs = self.get_observation_space().feature_map(
+            categorize=self.mdp_params.discretize_state_space,
+            flatten=True
+        )
 
-        if self.mdp_params.discretize_state_space:
-            obs = self.get_observation_space().categorize()
-        else:
-            obs = self.get_observation_space().state()
-
-        obs = self.get_observation_space().flatten(obs)
-
-        #TODO: REPLACE
-        obs1 = self.features.feature_map(categorize=True, flatten=True)
-        try:
-            assert obs == obs1
-        except AssertionError:
-            import ipdb
-            ipdb.set_trace()
         return obs
 
     def rl_actions(self, state):

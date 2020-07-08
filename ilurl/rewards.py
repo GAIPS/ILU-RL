@@ -106,11 +106,10 @@ def reward_max_speed_count(target_velocity, states, *args):
     ----------
 
     """
-    if not ('speed' in states.label and 'count' in states.label):
-        raise ValueError(
-            'Speed and Count not present in StateCollection')
-    else:
-        speeds_counts = states.split(('speed', 'count'))
+    speeds_counts = states.feature_map(
+        filter_by=('speed', 'count'),
+        split=True
+    )
 
     ret = {}
     for k, v in speeds_counts.items():
@@ -162,11 +161,9 @@ def reward_min_delay(states, *args):
         "Multi-agent reinforcement learning for traffic light control."
 
     """
-    if 'delay' not in states.label:
-        raise ValueError('DelayState not present in StateCollection')
-    else:
-        state = states.state(('delay',))
-
+    delays = states.feature_map(
+        filter_by=('delay',)
+    )
     ret = {}
     for tls_id, phase_obs in state.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
@@ -202,11 +199,10 @@ def reward_min_queue_squared(states):
     * Camponogara and Kraus, 2003
         "Distributed learning agents in urban traffic control."
     """
-
-    if not ('queue' in states.label or 'lag[queue]' in states.label):
-        raise ValueError('QueueState not present in StateCollection')
-    else:
-        queue_lagqueue = states.split(('queue', 'lag[queue]'))
+    queue_lagqueue.feature_map(
+        filter_by=('queue', 'lag[queue]'),
+        split=True
+    )
 
     ret = {}
     for tls_id, q_lq in queue_lagqueue.items():
