@@ -243,6 +243,8 @@ class DQNParams(Printable):
             epsilon_init: float = 1.0,
             epsilon_final: float = 0.01,
             epsilon_schedule_timesteps: int = 50000,
+            torso_layers : list = [5],
+            head_layers  : list = [5],
         ):
         """Instantiate Deep Q-network parameters.
 
@@ -292,6 +294,12 @@ class DQNParams(Printable):
 
         * epsilon_schedule_timesteps: int
             Number of timesteps to decay epsilon from 'epsilon_init' to 'epsilon_final'.
+
+        * torso_layers: list
+            Torso MLP network layers.
+
+        * head_layers: list
+            Head (duelling) MLP network layers.
 
         """
         kwargs = locals()
