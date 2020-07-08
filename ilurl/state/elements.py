@@ -65,9 +65,7 @@ class Phase:
         # 1) Define base attributes
         self._phase_id = phase_id
         self._labels = mdp_params.states
-        self._normalize = mdp_params.normalize_state_space
         self._max_speed, self._max_count =  max_capacity
-        self._velocity_threshold = mdp_params.velocity_threshold
         self._matcher = re.compile('\[(.*?)\]')
 
         # 2) Get categorization bins.
@@ -151,7 +149,13 @@ class Phase:
 
     @property
     def speed(self):
-        """Aggregates and normalizes speed wrt time and lane"""
+        """Aggregates speed wrt time and lane
+
+        Returns:
+        -------
+        * speed: float
+            The average speed of all cars in the phase
+        """
         K = len(self.lanes[0].cache)
         if K > 0:
             cap = self._max_speed if self._normalize else 1
@@ -162,7 +166,7 @@ class Phase:
             counts = [0] * K
             for lane in self.lanes:
                 # Sum of velocities / duration
-                for i, s_c in enumerate(zip(lane.speed, lane.count)):
+                for i, s_c in enumerate(zip(lane.speeds, lane.counts)):
                     s, c  = s_c
                     prods[i] += s * c
                     counts[i] += c
@@ -174,30 +178,65 @@ class Phase:
 
     @property
     def count(self):
-        """Aggregates count wrt time and lanes"""
-        # disable for now
-        # cap = self._max_count if self._normalize else 1
+        """Aggregates count wrt time and lanes
+
+        Returns:
+        -------
+        * count: float
+            The average number of vehicles in the approach
+        """
         K = len(self.lanes[0].cache)
         if K > 0:
-            ret = sum([sum(lane.count) for lane in self.lanes])
+            ret = sum([sum(lane.counts) for lane in self.lanes])
             return round(ret / K, 2)
+
         #TODO: Return nan?
         return 0
 
     @property
     def delay(self):
-        """Aggregates delay wrt time and lanes"""
+        """Aggregates delay wrt time and lanes
+
+        Returns:
+        -------
+        * delay: float
+            The average number of vehicles in delay in the cycle
+
+        References:
+        ----------
+        * El-Tantawy, et al. 2014
+            "Design for Reinforcement Learning Parameters for Seamless"
+
+        See also:
+        --------
+        * Lu, Liu, & Dai. 2008
+            "Incremental multistep Q-learning for adaptive traffic signal control"
+
+        * Shoufeng et al., 2008
+            "Q-Learning for adaptive traffic signal control based on delay"
+
+        * Abdullhai et al. 2003
+            "Reinforcement learning for true adaptive traffic signal control."
+
+        * Wiering, 2000
+            "Multi-agent reinforcement learning for traffic light control."
+        """
         # TODO: Make average
         ret = 0
         for lane in self.lanes:
-            ret += sum(lane.delay)
+            ret += sum(lane.delays)
 
         # K = len(self.lanes[0].cache)
         return round(ret, 2)
 
     @property
     def queue(self):
-        """Max. number of delayed vehicles per lane
+        """Max. queue of vehicles wrt lane and time steps.
+
+        Returns:
+        -------
+        * queue: int
+            The maximum number of queued cars over all lanes
 
          Reference:
         ----------
@@ -219,7 +258,7 @@ class Phase:
         # TODO: Divide by K?
         ret = 0
         for lane in self.lanes:
-            ret = max(ret, max(lane.delay) if any(lane.delay) else 0)
+            ret = max(ret, max(lane.delays) if any(lane.delays) else 0)
 
         return round(ret, 2)
 
@@ -274,42 +313,41 @@ class Lane:
         self._last_duration = duration
 
     @property
-    def speed(self):
-        """Mean speed per lane and time step"""
+    def speeds(self):
+        """Vehicles' speeds per time step.
+
+        Returns:
+            speeds: list<float>
+            Is a duration sized list containing averages
+        """
+        cap = self._max_speed if self._normalize else 1
+
         # 1) IF no cars are available revert to zero
-        ret = [np.nanmean([v.speed for v in vehs]) if any(vehs) else 0.0
+        ret = [np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
                 for vehs, _ in self.cache.values()]
 
         return ret
 
     @property
-    def count(self):
-        """Number of vehicles per lane and time step"""
+    def counts(self):
+        """Number of vehicles per time step.
+
+        Returns:
+            count: list<int>
+            Is a duration sized list containing the total number of vehicles
+        """
         ret = [len(vehs) for vehs, _ in self.cache.values()]
         return ret
 
     @property
-    def delay(self):
-        """Every cars' speed per lane and time step
+    def delays(self):
+        """Total of vehicles circulating under a velocity threshold
 
-        References:
-        ----------
-        * El-Tantawy, et al. 2014
-            "Design for Reinforcement Learning Parameters for Seamless"
-
-        See also:
-        --------
-        * Lu, Liu, & Dai. 2008
-            "Incremental multistep Q-learning for adaptive traffic signal control"
-
-        * Shoufeng et al., 2008
-            "Q-Learning for adaptive traffic signal control based on delay"
-
-        * Abdullhai et al. 2003
-            "Reinforcement learning for true adaptive traffic signal control."
-
-        * Wiering, 2000
-            "Multi-agent reinforcement learning for traffic light control."
+        Returns:
+        -------
+            * delay: list<int>
+            Is a duration sized list containing the total number of slow moving
+            vehicles.
         """
         cap = self._max_speed if self._normalize else 1
         ds = self._min_speed
