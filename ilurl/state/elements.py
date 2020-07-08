@@ -128,7 +128,6 @@ class Phase:
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
 
-
     def reset(self):
         for lane in self.lanes:
             lane.reset()

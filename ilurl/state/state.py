@@ -33,7 +33,8 @@ class State:
         # Global features: e.g Time
         self._time = -1
         self._has_time = False
-        if 'time' in mdp_params.states and mdp_params.time_period is not None:
+        #if 'time' in mdp_params.states and mdp_params.time_period is not None:
+        if mdp_params.time_period is not None:
             self._has_time = True
             self._bins = mdp_params.category_times
             self._last_time = -1
@@ -74,11 +75,19 @@ class State:
             intersection.reset()
 
     def feature_map(self, filter_by=None, categorize=False, split=False, flatten=False):
+        # 1) Delegate feature computation to tree.
         ret = {k:v.feature_map(filter_by=filter_by,
                                categorize=categorize,
                                split=split)
                for k, v in self._intersections.items()}
 
+
+        # 2) Add network features.
+        if self._has_time:
+            ret = {k:self._add_time(filter_by, categorize, split, v)
+                   for k, v in ret.items()}
+
+        # 3) Flatten results.
         if flatten:
             ret = {k: tuple(flat(v)) for k, v in ret.items()}
         return ret
@@ -100,7 +109,7 @@ class State:
 
                 # 3) Convert into category.
                 if categorize:
-                    ret = np.digitize(time, self._bins)
+                    ret = np.digitize(ret, self._bins)
 
                 # 4) Add to features.
                 if split:
