@@ -1,14 +1,9 @@
-'''
-    Traffic Lights Environment.
-'''
-__date__ = "2019-12-10"
-
 import numpy as np
 
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
-from ilurl.states import build_states
+from ilurl.state import State
 from ilurl.rewards import build_rewards
 
 from ilurl.utils.properties import lazy_property
@@ -69,7 +64,7 @@ class TrafficLightEnv(Env):
         self.states_log = {}
 
         # overrides GYM's observation space
-        self.observation_space = build_states(network, mdp_params)
+        self.observation_space = State(network, mdp_params)
 
         # Continuous action space signal plans.
         self.signal_plans_continous = {}
@@ -192,21 +187,17 @@ class TrafficLightEnv(Env):
     def get_state(self):
         """
         Return the state of the simulation as perceived by the RL agent.
-        
+
         Returns:
         -------
         state : array_like
             information on the state of the vehicles, which is provided to the
             agent
         """
-        # Categorize.
-        if self.mdp_params.discretize_state_space:
-            obs = self.get_observation_space().categorize()
-        else:
-            obs = self.get_observation_space().state()
-
-        obs = self.get_observation_space().flatten(obs)
-
+        obs = self.get_observation_space().feature_map(
+            categorize=self.mdp_params.discretize_state_space,
+            flatten=True
+        )
         return obs
 
     def rl_actions(self, state):
@@ -218,7 +209,7 @@ class TrafficLightEnv(Env):
             state : dict
             information on the state of the vehicles, which is provided to the
             agent
-        
+
         Returns:
         -------
             action : array_like
@@ -235,7 +226,7 @@ class TrafficLightEnv(Env):
 
     def cl_actions(self, static=False):
         """Executes the control action according to a program
-            
+
         Params:
         ------
             * static: boolean
