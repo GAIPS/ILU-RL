@@ -128,8 +128,8 @@ def reward_max_speed_count(target_velocity, states, *args):
     return ret
 
 
-def reward_min_delay(states, *args):
-    """Minimizing the delta of queue length squared 
+def reward_min_delay(state, *args):
+    """Minimizing the delta of queue length squared
 
     Reward definition 1: Minimizing the delay
 
@@ -161,17 +161,17 @@ def reward_min_delay(states, *args):
         "Multi-agent reinforcement learning for traffic light control."
 
     """
-    delays = states.feature_map(
+    delays = state.feature_map(
         filter_by=('delay',)
     )
     ret = {}
-    for tls_id, phase_obs in state.items():
+    for tls_id, phase_obs in delays.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
     return ret
 
 
-def reward_min_queue_squared(states):
-    """Minimizing the delta of queue length squared 
+def reward_min_queue_squared(state):
+    """Minimizing the delta of queue length squared
 
     Reward definition 3: Minimizing and Balancing Queue Length
 
@@ -199,7 +199,7 @@ def reward_min_queue_squared(states):
     * Camponogara and Kraus, 2003
         "Distributed learning agents in urban traffic control."
     """
-    queue_lagqueue.feature_map(
+    queue_lagqueue = state.feature_map(
         filter_by=('queue', 'lag[queue]'),
         split=True
     )
