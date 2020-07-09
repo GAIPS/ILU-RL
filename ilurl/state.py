@@ -276,7 +276,6 @@ class Intersection:
               for phase in self.phases]
 
         if split:
-           # num_features x num_phases 
            return tuple(zip(*ret))
         return ret
 
@@ -376,28 +375,68 @@ class Phase:
             * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
                 Container for traffic light program representation
         """
+        # 1) Ignores update for the same duration.
+        if duration != self._last_update:
+            if duration == 0:
+                # 2) Stores previous cycle for lag labels.
+                for label in self.labels:
+                    if 'lag' in label:
+                        derived_label = self._get_derived(label)
+                        self._prev_features[derived_label] = \
+                                        getattr(self, derived_label)
 
-        if duration == 0:
-            # stores previous cycle for lag labels
-            for label in self.labels:
-                if 'lag' in label:
-                    derived_label = self._get_derived(label)
-                    self._prev_features[derived_label] = \
-                                    getattr(self, derived_label)
+                # 3) Reset data for new cycle.
+                # TODO: remove this after refactor (redundant)
+                self.reset(reset_previous_features=False)
 
-        def _in(veh, lne):
-            eid, lid = lne.lane_id.split('#')
-            return veh.edge_id == eid and veh.lane == int(lid)
+            # 4) Define a help function filtering function.
+            def _in(veh, lne):
+                eid, lid = lne.lane_id.split('#')
+                return veh.edge_id == eid and veh.lane == int(lid)
 
-        for lane in self.lanes:
-            _vehs = [v for v in vehs if _in(v, lane)]
-            lane.update(duration, _vehs, tls)
+            step_speed = 0
+            step_count = 0
+            step_delay = 0
+            for lane in self.lanes:
+                _vehs = [v for v in vehs if _in(v, lane)]
+                lane.update(duration, _vehs, tls)
 
-    def reset(self):
+
+                step_count += lane._cached_counts2
+                step_speed += lane._cached_speeds2
+                step_delay += lane._cached_delays2
+
+            self._update_counter += 1
+            self._last_update = duration
+
+            K = self._update_counter
+            speed_update = (K - 1) * self._cached_speed
+            if step_count > 0:
+                speed_update += step_speed / step_count
+            self._cached_speed = speed_update / K
+
+
+            count_update = (K - 1) * self._cached_count
+            self._cached_count  = (step_count + count_update) / K
+
+            self._cached_delay  += step_delay
+
+
+    def reset(self, reset_previous_features=True):
         """Clears data from previous cycles, broadcasts method to lanes"""
         for lane in self.lanes:
             lane.reset()
-        self._prev_features = {}
+
+        if reset_previous_features:
+            self._prev_features = {}
+
+        # Test variables
+        self._cached_speed = 0
+        self._cached_count = 0
+        self._cached_delay = 0
+
+        self._update_counter = 0
+        self._last_update = -1
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -441,6 +480,7 @@ class Phase:
             The average speed of all cars in the phase
         """
         K = len(self.lanes[0].cache)
+        ret = 0.0
         if K > 0:
             # TODO: Set no vehicles as nan
             total = 0
@@ -454,9 +494,18 @@ class Phase:
                     counts[i] += c
 
             product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
-            return round(sum(product) / K, 2)
+            ret = round(sum(product) / K, 2)
+
+            # test new process
+            try:
+                assert round(self._cached_speed, 2) == ret
+            except AssertionError:
+                import ipdb
+                ipdb.set_trace()
+
+            return ret
         # TODO: Return nan?
-        return 0.0
+        return ret
 
     @property
     def count(self):
@@ -471,6 +520,15 @@ class Phase:
         if K > 0:
             ret = sum([sum(lane.counts) for lane in self.lanes])
             return round(ret / K, 2)
+
+            # test new process
+            try:
+                assert round(self._cached_count, 2) == ret
+            except AssertionError:
+                import ipdb
+                ipdb.set_trace()
+
+            return ret
 
         #TODO: Return nan?
         return 0
@@ -508,7 +566,12 @@ class Phase:
         for lane in self.lanes:
             ret += sum(lane.delays)
 
-        # K = len(self.lanes[0].cache)
+        try:
+            assert round(self._cached_delay, 2) == round(ret, 2)
+        except AssertionError:
+            import ipdb
+            ipdb.set_trace()
+
         return round(ret, 2)
 
     @property
@@ -607,6 +670,11 @@ class Lane:
         self._cached_counts = []
         self._cached_delays = []
 
+
+        # Test variables
+        self._cached_speeds2 = (-1, 0)
+        self._cached_counts2 = (-1, 0)
+        self._cached_delay2 = (-1, 0)
         self._last_duration = 0
 
 
@@ -633,6 +701,9 @@ class Lane:
         # TODO: As of now stores an array with the cycles' data
         # More efficient to only store last time_step
         # cross sectional data or intra time_step data.
+        if duration == 0:
+            self.reset()
+
         self._cache[duration] = (vehs, tls)
         self._last_duration = duration
 
@@ -656,6 +727,11 @@ class Lane:
         else:
             self._cached_speeds[int(self._last_duration)] = step_speed
 
+        # 4) new state
+        self._cached_speeds2 = \
+            sum([v.speed for v in vehs]) / cap if any(vehs) else 0.0
+
+
     def _update_counts(self):
         """Step update for counts variable"""
         # 1) Retrieve data 
@@ -669,6 +745,9 @@ class Lane:
             self._cached_counts.append(step_count)
         else:
             self._cached_counts[int(self._last_duration)] = step_count
+
+        # 4) new state
+        self._cached_counts2 = step_count
 
     def _update_delays(self):
         """Step update for delays variable"""
@@ -686,6 +765,8 @@ class Lane:
         else:
             self._cached_delays[int(self._last_duration)] = step_delay
 
+        # 4) new state
+        self._cached_delays2 = step_delay
 
     @property
     def speeds(self):
@@ -695,17 +776,6 @@ class Lane:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        # if self._last_duration in self._cached_speeds:
-        #     return self._cached_speeds[self._last_duration]
-
-        # if not(self._cached_speeds):
-        #     prev = []
-
-        # cap = self._max_speed if self._normalize else 1
-        # # 1) IF no cars are available revert to zero
-        # ret = np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
-        #         for vehs, _ in self.cache[self._last_duration].values()]
-
         return self._cached_speeds
 
     @property
@@ -716,8 +786,6 @@ class Lane:
             count: list<int>
             Is a duration sized list containing the total number of vehicles
         """
-        # ret = [len(vehs) for vehs, _ in self.cache.values()]
-        # return ret
         return self._cached_counts
 
     @property
@@ -730,14 +798,5 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        # cap = self._max_speed if self._normalize else 1
-        # ds = self._min_speed
-
-        # vehs = [vehs_tls[0] if any(vehs_tls[0]) else []
-        #         for d, vehs_tls in self.cache.items() if d <= self._last_duration]
-
-        # ret = [sum([v.speed / cap < ds for v in veh]) if any(veh) else 0
-        #         for veh in vehs]
-        # return ret
         return self._cached_delays
 
