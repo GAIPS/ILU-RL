@@ -99,6 +99,9 @@ class Parser(object):
         train_config.read(str(self.config_path))
 
         mdp_args = train_config['mdp_args']
+
+        time_period = int(mdp_args['time_period']) if not isNone(mdp_args['time_period']) else None
+
         mdp_params = MDPParams(
             discount_factor=float(mdp_args['discount_factor']),
             action_space=literal_eval(mdp_args['action_space']),
@@ -114,7 +117,7 @@ class Parser(object):
             reward_rescale=float(mdp_args['reward_rescale']),
             target_velocity=literal_eval(mdp_args['target_velocity']),
             velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
-            time_period=literal_eval(mdp_args['time_period']),
+            time_period=time_period,
         )
 
         return mdp_params
@@ -200,7 +203,11 @@ class Parser(object):
                         importance_sampling_exponent=float(dqn_args['importance_sampling_exponent']),
                         priority_exponent=float(dqn_args['priority_exponent']),
                         n_step=int(dqn_args['n_step']),
-                        epsilon=float(dqn_args['epsilon']),
+                        epsilon_init=float(dqn_args['epsilon_init']),
+                        epsilon_final=float(dqn_args['epsilon_final']),
+                        epsilon_schedule_timesteps=int(dqn_args['epsilon_schedule_timesteps']),
+                        torso_layers=json.loads(dqn_args['torso_layers']),
+                        head_layers=json.loads(dqn_args['head_layers']),
         )
 
         # print(dqn_params)
@@ -225,13 +232,17 @@ class Parser(object):
                         target_update_period=int(r2d2_args['target_update_period']),
                         importance_sampling_exponent=float(r2d2_args['importance_sampling_exponent']),
                         priority_exponent=float(r2d2_args['priority_exponent']),
-                        epsilon=float(r2d2_args['epsilon']),
                         learning_rate= float(r2d2_args['learning_rate']),
                         min_replay_size=int(r2d2_args['min_replay_size']),
                         max_replay_size=int(r2d2_args['max_replay_size']),
                         samples_per_insert=float(r2d2_args['samples_per_insert']),
                         store_lstm_state=str2bool(r2d2_args['store_lstm_state']),
                         max_priority_weight=float(r2d2_args['max_priority_weight']),
+                        epsilon_init=float(r2d2_args['epsilon_init']),
+                        epsilon_final=float(r2d2_args['epsilon_final']),
+                        epsilon_schedule_timesteps=int(r2d2_args['epsilon_schedule_timesteps']),
+                        rnn_hidden_size=int(r2d2_args['rnn_hidden_size']),
+                        head_layers=json.loads(r2d2_args['head_layers']),
         )
 
         # print(r2d2_params)
@@ -255,8 +266,12 @@ class Parser(object):
                         max_replay_size=int(ddpg_args['max_replay_size']),
                         samples_per_insert=float(ddpg_args['samples_per_insert']),
                         n_step=int(ddpg_args['n_step']),
-                        sigma=float(ddpg_args['sigma']),
+                        sigma_init=float(ddpg_args['sigma_init']),
+                        sigma_final=float(ddpg_args['sigma_final']),
+                        sigma_schedule_timesteps=int(ddpg_args['sigma_schedule_timesteps']),
                         clipping=str2bool(ddpg_args['clipping']),
+                        policy_layers=json.loads(ddpg_args['policy_layers']),
+                        critic_layers=json.loads(ddpg_args['critic_layers']),
         )
 
         # print(ddpg_params)

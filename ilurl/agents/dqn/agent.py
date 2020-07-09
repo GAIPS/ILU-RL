@@ -1,10 +1,13 @@
 import os
 import random
+from typing import Sequence
+
 import numpy as np
 
-import tensorflow as tf
-
 import dm_env
+
+import tensorflow as tf
+import sonnet as snt
 
 import acme
 from acme import specs
@@ -18,6 +21,19 @@ from ilurl.utils.precision import double_to_single_precision
 
 _TF_USE_GPU = False
 _TF_NUM_THREADS = 32
+
+
+def _make_network(num_actions : int,
+                  torso_layers : Sequence[int] = [5],
+                  head_layers  : Sequence[int] = [5]):
+    network = snt.Sequential([
+        # Torso MLP.
+        snt.nets.MLP(torso_layers),
+        # Dueling MLP head.
+        networks.DuellingMLP(num_actions=num_actions,
+                                      hidden_sizes=head_layers)  
+    ])
+    return network
 
 
 class DQN(AgentWorker,AgentInterface):
@@ -76,10 +92,10 @@ class DQN(AgentWorker,AgentInterface):
         dir_path = f'{params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
-        
-        # TODO: Allow for dynamic network creation via user parameters.
-        network = networks.duelling.DuellingMLP(num_actions=env_spec.actions.num_values,
-                                                hidden_sizes=[8])
+
+        network = _make_network(num_actions=env_spec.actions.num_values,
+                                torso_layers=params.torso_layers,
+                                head_layers=params.head_layers)
 
         self.agent = acme_agent.DQN(environment_spec=env_spec,
                                     network=network,
@@ -92,7 +108,9 @@ class DQN(AgentWorker,AgentInterface):
                                     importance_sampling_exponent=params.importance_sampling_exponent,
                                     priority_exponent=params.priority_exponent,
                                     n_step=params.n_step,
-                                    epsilon=params.epsilon,
+                                    epsilon_init=params.epsilon_init,
+                                    epsilon_final=params.epsilon_final,
+                                    epsilon_schedule_timesteps=params.epsilon_schedule_timesteps,
                                     learning_rate=params.learning_rate,
                                     discount=params.discount_factor,
                                     logger=agent_logger)

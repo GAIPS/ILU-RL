@@ -57,7 +57,9 @@ class DDPG(agent.Agent):
                 max_replay_size: int = 1000000,
                 samples_per_insert: float = 32.0,
                 n_step: int = 5,
-                sigma: float = 0.3,
+                sigma_init: float = 0.3,
+                sigma_final: float = 0.01,
+                sigma_schedule_timesteps: int = 20000,
                 clipping: bool = True,
                 logger: loggers.Logger = None,
                 counter: counting.Counter = None,
@@ -81,7 +83,10 @@ class DDPG(agent.Agent):
             samples_per_insert: number of samples to take from replay for every insert
                 that is made.
             n_step: number of steps to squash into a single transition.
-            sigma: standard deviation of zero-mean, Gaussian exploration noise.
+            sigma_init: initial stddev value (gaussian exploration noise).
+            sigma_final: final stddev value (gaussian exploration noise).
+            sigma_schedule_timesteps: number of timesteps to decay stddev from 'stddev_init'
+                to 'stddev_final'.
             clipping: whether to clip gradients by global norm.
             logger: logger object to be used by learner.
             counter: counter object used to keep track of steps.
@@ -133,7 +138,9 @@ class DDPG(agent.Agent):
         behavior_network = snt.Sequential([
             observation_network,
             policy_network,
-            tf2_layers.GaussianNoise(sigma),
+            tf2_layers.GaussianNoiseExploration(stddev_init=sigma_init,
+                                                stddev_final=sigma_final,
+                                                stddev_schedule_timesteps=sigma_schedule_timesteps),
             lambda x: tf.nn.softmax(x)
         ])
 
@@ -176,8 +183,6 @@ class DDPG(agent.Agent):
         deterministic_network = snt.Sequential([
             observation_network,
             policy_network,
-            tf2_layers.GaussianNoise(0.0),
-            lambda x: tf.nn.softmax(x)
         ])
         self._deterministic_actor = actors.FeedForwardActor(deterministic_network)
 

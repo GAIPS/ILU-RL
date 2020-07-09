@@ -240,7 +240,11 @@ class DQNParams(Printable):
             importance_sampling_exponent: float = 0.2,
             priority_exponent: float = 0.6,
             n_step: int = 5,
-            epsilon: float = 0.05,
+            epsilon_init: float = 1.0,
+            epsilon_final: float = 0.01,
+            epsilon_schedule_timesteps: int = 50000,
+            torso_layers : list = [5],
+            head_layers  : list = [5],
         ):
         """Instantiate Deep Q-network parameters.
 
@@ -282,9 +286,20 @@ class DQNParams(Printable):
         * n_step: int
             number of steps to squash into a single transition.
 
-        * epsilon: float
-            probability of taking a random action; ignored if a policy
-            network is given.
+        * epsilon_init: float
+            Initial epsilon value (probability of taking a random action).
+
+        * epsilon_final: float
+            Final epsilon value (probability of taking a random action).
+
+        * epsilon_schedule_timesteps: int
+            Number of timesteps to decay epsilon from 'epsilon_init' to 'epsilon_final'.
+
+        * torso_layers: list
+            Torso MLP network layers.
+
+        * head_layers: list
+            Head (duelling) MLP network layers.
 
         """
         kwargs = locals()
@@ -293,9 +308,18 @@ class DQNParams(Printable):
             raise ValueError('''The ineq 0 < lr < 1 must hold.
                     Got lr = {}.'''.format(learning_rate))
 
-        if epsilon <= 0 or epsilon > 1:
-            raise ValueError('''The ineq 0 < epsilon <= 1 must hold.
-                    Got epsilon = {}.'''.format(epsilon))
+        if epsilon_init < 0 or epsilon_init > 1:
+            raise ValueError('''The ineq 0 < epsilon_init <= 1 must hold.
+                    Got epsilon_init = {}.'''.format(epsilon))
+
+        if epsilon_final < 0 or epsilon_final > 1:
+            raise ValueError('''The ineq 0 < epsilon_final <= 1 must hold.
+                    Got epsilon_final = {}.'''.format(epsilon))
+
+        if epsilon_schedule_timesteps <= 0:
+            raise ValueError('''The ineq epsilon_schedule_timesteps > 0
+                    must hold. Got epsilon_schedule_timesteps = {}
+                    '''.format(samples_per_insert))
 
         if samples_per_insert <= 0:
             raise ValueError('''The ineq samples_per_insert > 0
@@ -341,25 +365,44 @@ class R2D2Params(Printable):
             self,
             burn_in_length: int,
             trace_length: int,
-            replay_period: int,  
-            batch_size: int,      
+            replay_period: int,
+            batch_size: int,
             prefetch_size: int,
             target_update_period: int,
             importance_sampling_exponent: float,
             priority_exponent: float,
-            epsilon: float,
             learning_rate: float,
             min_replay_size: int,
             max_replay_size: int,
             samples_per_insert: float,
             store_lstm_state: bool,
             max_priority_weight: float,
+            epsilon_init: float,
+            epsilon_final: float,
+            epsilon_schedule_timesteps: int,
+            rnn_hidden_size: int,
+            head_layers: list
         ):
-        """Instantiate R2D2 parameters.
+        """ Instantiate R2D2 parameters.
 
         Parameters:
         ----------
         * (See acme.agents.tf.r2d2.agent.py file for more info).
+
+        * epsilon_init: float
+            Initial epsilon value (probability of taking a random action).
+
+        * epsilon_final: float
+            Final epsilon value (probability of taking a random action).
+
+        * epsilon_schedule_timesteps: int
+            Number of timesteps to decay epsilon from 'epsilon_init' to 'epsilon_final'.
+
+        * rnn_hidden_size: int
+            Number of nodes in the RNN core of the network.
+
+        * head_layers: list
+            Head (duelling) MLP network layers.
 
         """
         kwargs = locals()
@@ -385,8 +428,12 @@ class DDPGParams(Printable):
             max_replay_size: int = 30000,
             samples_per_insert: float = 50.0,
             n_step: int = 5,
-            sigma: float = 0.3,
+            sigma_init: float = 0.3,
+            sigma_final: float = 0.01,
+            sigma_schedule_timesteps: float = 45000,
             clipping: bool = True,
+            policy_layers: list = [5, 5],
+            critic_layers: list = [5, 5],
         ):
         """Instantiate DDPG parameters.
 

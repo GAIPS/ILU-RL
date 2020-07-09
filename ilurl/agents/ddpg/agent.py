@@ -23,7 +23,7 @@ _TF_USE_GPU = False
 _TF_NUM_THREADS = 1
 
 
-def make_networks(
+def _make_networks(
         actions_dim : int,
         policy_layers : Sequence[int] = [5, 5],
         critic_layers : Sequence[int] = [5, 5],
@@ -33,6 +33,7 @@ def make_networks(
     policy_network = snt.Sequential([
         networks.LayerNormMLP(policy_layers, activate_final=True),
         networks.NearZeroInitializedLinear(actions_dim),
+        lambda x: tf.nn.softmax(x)
     ])
 
     # Create the critic network.
@@ -108,7 +109,9 @@ class DDPG(AgentWorker,AgentInterface):
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
 
-        networks = make_networks(actions_dim=params.num_phases)
+        networks = _make_networks(actions_dim=params.num_phases,
+                                  policy_layers=params.policy_layers,
+                                  critic_layers=params.critic_layers)
 
         self.agent = acme_agent.DDPG(environment_spec=env_spec,
                                     policy_network=networks['policy'],
@@ -121,7 +124,9 @@ class DDPG(AgentWorker,AgentInterface):
                                     max_replay_size=params.max_replay_size,
                                     samples_per_insert=params.samples_per_insert,
                                     n_step=params.n_step,
-                                    sigma=params.sigma,
+                                    sigma_init=params.sigma_init,
+                                    sigma_final=params.sigma_final,
+                                    sigma_schedule_timesteps=params.sigma_schedule_timesteps,
                                     clipping=params.clipping,
                                     logger=agent_logger,
                                     checkpoint=False,

@@ -1,7 +1,3 @@
-'''
-    Traffic Lights Environment.
-'''
-__date__ = "2019-12-10"
 import numpy as np
 
 from flow.envs.base import Env
@@ -213,7 +209,7 @@ class TrafficLightEnv(Env):
             state : dict
             information on the state of the vehicles, which is provided to the
             agent
-        
+
         Returns:
         -------
             action : array_like
@@ -230,7 +226,7 @@ class TrafficLightEnv(Env):
 
     def cl_actions(self, static=False):
         """Executes the control action according to a program
-            
+
         Params:
         ------
             * static: boolean
