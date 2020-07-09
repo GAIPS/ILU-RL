@@ -7,7 +7,7 @@ import numpy as np
 from flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
-from ilurl.state.state import State
+from ilurl.state.elements import State
 from ilurl.rewards import build_rewards
 
 from ilurl.utils.properties import lazy_property

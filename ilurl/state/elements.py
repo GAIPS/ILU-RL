@@ -3,6 +3,171 @@ from collections import OrderedDict
 
 import numpy as np
 
+from ilurl.utils.aux import flatten as flat
+
+
+class State:
+    """Describes the state space
+
+        * Forest: composed of root nodes of trees (intersections).
+        * Receives kernel data from vehicles (e.g speed) and
+          intersections (e.g states).
+        * Broadcasts data to intersections.
+        * Outputs features.
+        * Computes global features e.g Time
+    """
+
+    def __init__(self, network, mdp_params):
+        """Instanciate State object
+
+            * Singleton object that produces features for all the network.
+
+        Params:
+        ------
+        * network: ilurl.networks.base.Network
+            network to be described by states
+
+        * mdp_params: ilurl.core.params.MDPParams
+            mdp specification: agent, states, rewards, gamma and learning params
+
+        Returns:
+        --------
+        * state
+            A state is an aggregate of features indexed by intersections' ids.
+        """
+        self._tls_ids = network.tls_ids
+
+        # Global features: e.g Time
+        self._time = -1
+        self._has_time = False
+        if mdp_params.time_period is not None:
+            self._has_time = True
+            self._bins = mdp_params.category_times
+            self._last_time = -1
+            self._time_period = mdp_params.time_period
+
+
+        # Local features.
+        self._intersections = []
+
+        # Local feature
+        self._intersections = {
+            tls_id: Intersection(mdp_params,
+                                 tls_id,
+                                 network.tls_phases[tls_id],
+                                 network.tls_max_capacity[tls_id])
+            for tls_id in network.tls_ids}
+
+    @property
+    def tls_ids(self):
+        return self._tls_ids
+
+    def update(self, duration, vehs, tls=None):
+        """Update data structures with observation space
+
+            * Broadcast it to intersections
+
+        Params:
+        -------
+            * duration: float
+                Number of time steps in seconds within a cycle.
+                Assumption: min time_step 1 second.
+                Circular updates: 0.0, 1.0, 2.0, ..., 0.0, 1.0, ...
+
+            * vehs: list<namedtuple<ilurl.envs.elements.Vehicles>>
+                Container for vehicle data (from VehicleKernel)
+
+            * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
+                Container for traffic light program representation
+        """
+        # 1) Update time.
+        self._update_time(duration)
+
+        # 2) Broadcast update to intersections.
+        for tls_id, i in self._intersections.items():
+            i.update(duration, vehs[tls_id], tls)
+
+    def reset(self):
+        """Clears data from previous cycles, broadcasts method to phases"""
+        self._last_time = -1
+        self._time = -1
+        for intersection in self._intersections.values():
+            intersection.reset()
+
+    def feature_map(self, filter_by=None, categorize=False,
+                    split=False, flatten=False):
+        """Computes features for all intersections
+
+            * Computes network wide features. (e.g time)
+            * Delegates for each intersection it's features construction.
+
+        Params:
+        -------
+            * filter_by: list<str>
+                select the labels of the features to output.
+
+            * categorize: bool
+                discretizes the output according to preset categories.
+
+            * split: bool
+                groups outputs by features, not by phases.
+
+            * flatten: bool
+                the results are not nested wrt to phases or features.
+
+        Returns:
+        -------
+            * intersection_features: dict<str, list<list<numeric>>>
+                Keys are junction ids
+                Each nested list represents the phases's features.
+                If categorize then numeric is integer (category) else is float.
+                If split then groups features instead of phases.
+                If flatten then nested list becomes flattened.
+        """
+        # 1) Delegate feature computation to tree.
+        ret = {k:v.feature_map(filter_by=filter_by,
+                               categorize=categorize,
+                               split=split)
+               for k, v in self._intersections.items()}
+
+
+        # 2) Add network features.
+        if self._has_time:
+            ret = {k:self._add_time(filter_by, categorize, split, v)
+                   for k, v in ret.items()}
+
+        # 3) Flatten results.
+        if flatten:
+            ret = {k: tuple(flat(v)) for k, v in ret.items()}
+        return ret
+
+    def _update_time(self, duration):
+        """Update time as feature"""
+        if self._has_time and self._last_time != duration:
+            self._time += 1
+            self._last_time = duration
+
+    def _add_time(self, filter_by, categorize, split, features):
+        """Add time as feature to intersections"""
+        if self._has_time:
+            period = self._time_period
+            # 1) Verify time conditions.
+            if filter_by is None or ('time' in filter_by):
+                # 2) Number of periods (e.g hours) % Rolling update.
+                ret  = (self._time // period) % int(24 * 3600 / period)
+
+                # 3) Convert into category.
+                if categorize:
+                    ret = np.digitize(ret, self._bins)
+
+                # 4) Add to features.
+                if split:
+                    ret = tuple([ret] + list(features))
+                else:
+                    ret = [ret] + list(features)
+                return ret
+            return features
+        return features
 
 class Intersection:
     """Represents an intersection.
@@ -14,7 +179,36 @@ class Intersection:
     """
 
     def __init__(self, mdp_params, tls_id, phases, phase_capacity):
-        """Instanciate intersection object"""
+        """Instanciate intersection object
+
+        Params:
+        ------
+        * network: ilurl.networks.base.Network
+            network to be described by states
+
+        * mdp_params: ilurl.core.params.MDPParams
+            mdp specification: agent, states, rewards, gamma and learning params
+
+        * tls_id: str
+            an id for the traffic light signal
+
+        * phases: dict<int, (str, list<int>)>
+            key is the index of the phase.
+            tuple is the phase component where:
+                str is the edge_id
+                list<int> is the list of lane_ids which belong to phase.
+
+        * phase_capacity: dict<int, (float, float)>
+            key is the index of the phase.
+            tuple is the maximum capacity where:
+                float is the max speed of vehicles for the phase.
+                float is the max count of vehicles for the phase.
+
+        Returns:
+        --------
+        * state
+            A state is an aggregate of features indexed by intersections' ids.
+        """
         self._tls_id = tls_id
 
         # 2) Define children nodes: Phase
@@ -34,22 +228,57 @@ class Intersection:
         return self._phases
 
     def update(self, duration, vehs, tls):
+        """Update data structures with observation space
 
+            * Broadcast it to phases
+
+        Params:
+        -------
+            * duration: float
+                Number of time steps in seconds within a cycle.
+                Assumption: min time_step 1 second.
+                Circular updates: 0.0, 1.0, 2.0, ..., 0.0, 1.0, ...
+
+            * vehs: list<namedtuple<ilurl.envs.elements.Vehicles>>
+                Container for vehicle data (from VehicleKernel)
+
+            * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
+                Container for traffic light program representation
+        """
         for p, phase in enumerate(self.phases):
             phase.update(duration, vehs[p], tls)
 
     def reset(self):
+        """Clears data from previous cycles, broadcasts method to phases"""
         for phase in self.phases:
             phase.reset()
 
     def feature_map(self, filter_by=None, categorize=True, split=False):
-       ret = [phase.feature_map(filter_by, categorize)
+        """Computes intersection's features
+
+        Params:
+        -------
+            * filter_by: list<str>
+                select the labels of the features to output.
+
+            * categorize: bool
+                discretizes the output according to preset categories.
+
+            * split: bool
+                groups outputs by features, not by phases.
+
+        Returns:
+        -------
+            * phase_features: list<list<float>> or list<list<int>>
+                Each nested list represents the phases's features.
+        """
+        ret = [phase.feature_map(filter_by, categorize)
               for phase in self.phases]
 
-       if split:
+        if split:
            # num_features x num_phases 
            return tuple(zip(*ret))
-       return ret
+        return ret
 
 
 class Phase:
@@ -62,6 +291,27 @@ class Phase:
     """
 
     def __init__(self, mdp_params, phase_id, phase_data, max_capacity):
+        """Builds phase
+
+        Params:
+        ------
+        * mdp_params: ilurl.core.params.MDPParams
+            mdp specification: agent, states, rewards, gamma and
+                               learning params
+
+        * phase_id: int
+            key is the index of the phase.
+
+        * phase_data: (str, list<int>)
+            tuple is the phase component where:
+                str is the edge_id
+                list<int> is the list of lane_ids which belong to phase.
+
+        * max_capacity: (float, float)
+            float is the max count of vehicles for the phase.
+            float is the max speed of vehicles for the phase.
+
+        """
         # 1) Define base attributes
         self._phase_id = phase_id
         self._labels = mdp_params.states
@@ -109,6 +359,23 @@ class Phase:
         return self._lanes
 
     def update(self, duration, vehs, tls):
+        """Update data structures with observation space
+
+            * Updates also bound lanes.
+
+        Params:
+        -------
+            * duration: float
+                Number of time steps in seconds within a cycle.
+                Assumption: min time_step 1 second.
+                Circular updates: 0.0, 1.0, 2.0, ..., 0.0, 1.0, ...
+
+            * vehs: list<namedtuple<ilurl.envs.elements.Vehicles>>
+                Container for vehicle data (from VehicleKernel)
+
+            * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
+                Container for traffic light program representation
+        """
 
         if duration == 0:
             # stores previous cycle for lag labels
@@ -127,11 +394,28 @@ class Phase:
             lane.update(duration, _vehs, tls)
 
     def reset(self):
+        """Clears data from previous cycles, broadcasts method to lanes"""
         for lane in self.lanes:
             lane.reset()
         self._prev_features = {}
 
     def feature_map(self, filter_by=None, categorize=False):
+        """Computes phases' features
+
+        Params:
+        -------
+            * filter_by: list<str>
+                select the labels of the features to output.
+
+            * categorize: bool
+                discretizes the output according to preset categories.
+
+        Returns:
+        -------
+            * phase_features: list<float> or list<int>
+                len(.) == number of selected labels.
+                if categorized is set to true then list<int>
+        """
         # 1) Select features.
         sel = [lbl for lbl in self.labels
            if filter_by is None or lbl in filter_by]
@@ -203,7 +487,7 @@ class Phase:
         References:
         ----------
         * El-Tantawy, et al. 2014
-            "Design for Reinforcement Learning Parameters for Seamless"
+            "Design for Reinforcement Learning Params for Seamless"
 
         See also:
         --------
@@ -239,7 +523,7 @@ class Phase:
          Reference:
         ----------
         * El-Tantawy, et al. 2014
-            "Design for Reinforcement Learning Parameters for Seamless"
+            "Design for Reinforcement Learning Params for Seamless"
 
         See also:
         --------
@@ -287,6 +571,20 @@ class Lane:
         * Aggregates wrt vehicles.
     """
     def __init__(self, mdp_params, lane_id, max_speed):
+        """Builds lane
+
+        Params:
+        ------
+        * mdp_params: ilurl.core.params.MDPParams
+            mdp specification: agent, states, rewards, gamma and
+                               learning params
+
+        * lane_id: int
+            key is the index of the lane.
+
+        * max_speed: float
+            max velocity a car can travel.
+        """
         self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
         self._max_speed = max_speed
@@ -303,6 +601,7 @@ class Lane:
         return self._cache
 
     def reset(self):
+        """Clears data from previous cycles, define data structures"""
         self._cache = OrderedDict()
         self._cached_speeds = []
         self._cached_counts = []
@@ -312,6 +611,28 @@ class Lane:
 
 
     def update(self, duration, vehs, tls):
+        """Update data structures with observation space
+
+            * Holds vehs and tls data for the duration of a cycle
+
+            * Updates features of interest for a time step.
+
+        Params:
+        -------
+            * duration: float
+                Number of time steps in seconds within a cycle.
+                Assumption: min time_step 1 second.
+                Circular updates: 0.0, 1.0, 2.0, ..., 0.0, 1.0, ...
+
+            * vehs: list<namedtuple<ilurl.envs.elements.Vehicles>>
+                Container for vehicle data (from VehicleKernel)
+
+            * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
+                Container for traffic light program representation
+        """
+        # TODO: As of now stores an array with the cycles' data
+        # More efficient to only store last time_step
+        # cross sectional data or intra time_step data.
         self._cache[duration] = (vehs, tls)
         self._last_duration = duration
 
@@ -336,6 +657,7 @@ class Lane:
             self._cached_speeds[int(self._last_duration)] = step_speed
 
     def _update_counts(self):
+        """Step update for counts variable"""
         # 1) Retrieve data 
         vehs, _ = self.cache[self._last_duration]
 
@@ -349,6 +671,7 @@ class Lane:
             self._cached_counts[int(self._last_duration)] = step_count
 
     def _update_delays(self):
+        """Step update for delays variable"""
         # 1) Retrieve data 
         cap = self._max_speed if self._normalize else 1
         vt = self._min_speed
