@@ -385,7 +385,6 @@ class Phase:
                                         getattr(self, derived_label)
 
                 # 3) Reset data for new cycle.
-                # TODO: remove this after refactor (redundant)
                 self.reset(reset_previous_features=False)
 
             # 4) Define a help function filtering function.
@@ -395,29 +394,24 @@ class Phase:
             step_speed = 0
             step_count = 0
             step_delay = 0
+            step_queue = 0
             for lane in self.lanes:
                 _vehs = [v for v in vehs if _in(v, lane)]
                 lane.update(duration, _vehs, tls)
 
 
-                step_count += lane._cached_counts2
-                step_speed += lane._cached_speeds2
-                step_delay += lane._cached_delays2
+                step_count += lane.counts
+                step_speed += lane.speeds
+                step_delay += lane.delays
+                step_queue = max(step_queue, lane.queues)
 
-            self._update_counter += 1
+            # 5) Update phase's features.
             self._last_update = duration
+            self._update_speed(step_speed, step_count, duration)
+            self._update_count(step_count, duration)
+            self._update_delay(step_delay)
+            self._update_queue(step_queue)
 
-            K = self._update_counter
-            speed_update = (K - 1) * self._cached_speed
-            if step_count > 0:
-                speed_update += step_speed / step_count
-            self._cached_speed = speed_update / K
-
-
-            count_update = (K - 1) * self._cached_count
-            self._cached_count  = (step_count + count_update) / K
-
-            self._cached_delay  += step_delay
 
 
     def reset(self, reset_previous_features=True):
@@ -432,8 +426,8 @@ class Phase:
         self._cached_speed = 0
         self._cached_count = 0
         self._cached_delay = 0
+        self._cached_queue = 0
 
-        self._update_counter = 0
         self._last_update = -1
 
     def feature_map(self, filter_by=None, categorize=False):
@@ -476,33 +470,7 @@ class Phase:
         * speed: float
             The average speed of all cars in the phase
         """
-        # K = len(self.lanes[0].cache)
-        # ret = 0.0
-        # if K > 0:
-        #     # TODO: Set no vehicles as nan
-        #     total = 0
-        #     prods = [0] * K
-        #     counts = [0] * K
-        #     for lane in self.lanes:
-        #         # Sum of velocities / duration
-        #         for i, s_c in enumerate(zip(lane.speeds, lane.counts)):
-        #             s, c  = s_c
-        #             prods[i] += s * c
-        #             counts[i] += c
-
-        #     product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
-        #     ret = round(sum(product) / K, 2)
-
-        #     # test new process
-        #     try:
-        #         assert round(self._cached_speed, 2) == ret
-        #     except AssertionError:
-        #         import ipdb
-        #         ipdb.set_trace()
-
         return round(self._cached_speed, 2)
-        # TODO: Return nan?
-        # return ret
 
     @property
     def count(self):
@@ -513,22 +481,6 @@ class Phase:
         * count: float
             The average number of vehicles in the approach
         """
-        # K = len(self.lanes[0].cache)
-        # if K > 0:
-        #     ret = sum([sum(lane.counts) for lane in self.lanes])
-        #     return round(ret / K, 2)
-
-        #     # test new process
-        #     try:
-        #         assert round(self._cached_count, 2) == ret
-        #     except AssertionError:
-        #         import ipdb
-        #         ipdb.set_trace()
-
-        # return ret
-
-        # #TODO: Return nan?
-        # return 0
         return round(self._cached_count, 2)
 
     @property
@@ -559,18 +511,6 @@ class Phase:
         * Wiering, 2000
             "Multi-agent reinforcement learning for traffic light control."
         """
-        # # TODO: Make average
-        # ret = 0
-        # for lane in self.lanes:
-        #     ret += sum(lane.delays)
-
-        # try:
-        #     assert round(self._cached_delay, 2) == round(ret, 2)
-        # except AssertionError:
-        #     import ipdb
-        #     ipdb.set_trace()
-
-        # return round(ret, 2)
         return round(self._cached_delay, 2)
 
     @property
@@ -599,12 +539,30 @@ class Phase:
             "Reinforcement learning for true adaptive traffic signal
             control."
         """
-        # TODO: Divide by K?
-        ret = 0
-        for lane in self.lanes:
-            ret = max(ret, max(lane.delays) if any(lane.delays) else 0)
+        # ret = 0
+        # for lane in self.lanes:
+        #     ret = max(ret, max(lane.delays) if any(lane.delays) else 0)
 
-        return round(ret, 2)
+        # return round(ret, 2)
+        return round(self._cached_queue, 2)
+
+
+
+    def _update_speed(self, step_speed, step_count, duration):
+        speed_update = duration * self._cached_speed
+        if step_count > 0:
+            speed_update += step_speed / step_count
+        self._cached_speed = speed_update / (duration + 1)
+
+    def _update_count(self, step_count, duration):
+        count_update = duration * self._cached_count
+        self._cached_count  = (step_count + count_update) / (duration + 1)
+
+    def _update_delay(self, step_delay):
+        self._cached_delay  += step_delay
+
+    def _update_queue(self, step_queue):
+        self._cached_queue  = max(self._cached_queue, step_queue)
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
@@ -673,15 +631,11 @@ class Lane:
     def reset(self):
         """Clears data from previous cycles, define data structures"""
         self._cache = OrderedDict()
-        self._cached_speeds = []
-        self._cached_counts = []
-        self._cached_delays = []
+        self._cached_speeds = None
+        self._cached_counts = None
+        self._cached_delays = None
+        self._cached_queues = None
 
-
-        # Test variables
-        self._cached_speeds2 = (-1, 0)
-        self._cached_counts2 = (-1, 0)
-        self._cached_delay2 = (-1, 0)
         self._last_duration = 0
 
 
@@ -711,66 +665,44 @@ class Lane:
         self._cache[duration] = (vehs, tls)
         self._last_duration = duration
 
-        self._update_counts()
-        self._update_delays()
-        self._update_speeds()
+        self._update_counts(vehs)
+        self._update_delays(vehs)
+        self._update_speeds(vehs)
+        self._update_queues(vehs)
 
-    def _update_speeds(self):
+    def _update_speeds(self, vehs):
         """Step update for speeds variable"""
-        # 1) Retrieve data 
+        # 1) Normalization factor
         cap = self._max_speed if self._normalize else 1
-        vehs, _ = self.cache[self._last_duration]
 
         # 2) Compute speed @ duration time step
-        step_speed = \
-            np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
-
-        # # 3) Append or update
-        # if self._last_duration == len(self._cached_speeds):
-        #     self._cached_speeds.append(step_speed)
-        # else:
-        #     self._cached_speeds[int(self._last_duration)] = step_speed
-
-        # 4) new state
-        self._cached_speeds2 = \
+        self._cached_speeds = \
             sum([v.speed for v in vehs]) / cap if any(vehs) else 0.0
 
 
-    def _update_counts(self):
+    def _update_counts(self, vehs):
         """Step update for counts variable"""
-        # 1) Retrieve data 
-        vehs, _ = self.cache[self._last_duration]
+        # 1) Compute count @ duration time step
+        self._cached_counts = len(vehs)
 
-        # 2) Compute count @ duration time step
-        step_count = len(vehs)
-
-        # # 3) Append or update
-        # if self._last_duration == len(self._cached_counts):
-        #     self._cached_counts.append(step_count)
-        # else:
-        #     self._cached_counts[int(self._last_duration)] = step_count
-
-        # 4) new state
-        self._cached_counts2 = step_count
-
-    def _update_delays(self):
+    def _update_delays(self, vehs):
         """Step update for delays variable"""
-        # 1) Retrieve data 
+        # 1) Normalization factor and threshold
         cap = self._max_speed if self._normalize else 1
         vt = self._min_speed
-        vehs, _ = self.cache[self._last_duration]
 
-        # 2) Compute speed @ duration time step
-        step_delay = len([v.speed / cap < vt for v in vehs])
+        # 2) Compute delays @ duration time step
+        self._cached_delays = len([v.speed / cap < vt for v in vehs])
 
-        # 3) Append or update
-        # if self._last_duration == len(self._cached_delays):
-        #     self._cached_delays.append(step_delay)
-        # else:
-        #     self._cached_delays[int(self._last_duration)] = step_delay
+    def _update_queues(self, vehs):
+        """Step update for queues variable"""
+        # 1) Normalization factor and threshold
+        cap = self._max_speed if self._normalize else 1
+        vt = self._min_speed
 
-        # 4) new state
-        self._cached_delays2 = step_delay
+        # 2) Compute delays @ duration time step
+        self._cached_queues = len([v.speed / cap < vt for v in vehs])
+
 
     @property
     def speeds(self):
@@ -780,7 +712,7 @@ class Lane:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        return self._cached_speeds2
+        return self._cached_speeds
 
     @property
     def counts(self):
@@ -790,7 +722,7 @@ class Lane:
             count: list<int>
             Is a duration sized list containing the total number of vehicles
         """
-        return self._cached_counts2
+        return self._cached_counts
 
     @property
     def delays(self):
@@ -802,5 +734,16 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return self._cached_delays2
+        return self._cached_delays
 
+    @property
+    def queues(self):
+        """Max. vehicles circulating under a velocity threshold
+
+        Returns:
+        -------
+            * queue: list<int>
+            Is a duration sized list containing the total number of slow moving
+            vehicles.
+        """
+        return self._cached_queues

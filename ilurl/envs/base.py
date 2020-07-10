@@ -306,6 +306,11 @@ class TrafficLightEnv(Env):
         rl_actions: list of actions or None
         """
 
+        # Gets state before update_observation_space:
+        # observation space is reset at 0
+        if self.duration == 0:
+            state = self.get_state()
+
         # Update observation space.
         self.update_observation_space()
 
@@ -316,9 +321,6 @@ class TrafficLightEnv(Env):
                 # Get the number of the current cycle.
                 cycle_number = \
                     int(self.step_counter / self.cycle_time)
-
-                # Get current state.
-                state = self.get_state()
 
                 # Select new action.
                 if rl_actions is None:
@@ -345,6 +347,8 @@ class TrafficLightEnv(Env):
         # Update timer.
         self.duration = \
             round(self.duration + self.sim_step, 2) % self.cycle_time
+
+
 
     def _apply_cl_actions(self, cl_actions):
         """For each tls shift phase or keep phase
