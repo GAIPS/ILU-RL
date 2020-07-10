@@ -476,33 +476,33 @@ class Phase:
         * speed: float
             The average speed of all cars in the phase
         """
-        K = len(self.lanes[0].cache)
-        ret = 0.0
-        if K > 0:
-            # TODO: Set no vehicles as nan
-            total = 0
-            prods = [0] * K
-            counts = [0] * K
-            for lane in self.lanes:
-                # Sum of velocities / duration
-                for i, s_c in enumerate(zip(lane.speeds, lane.counts)):
-                    s, c  = s_c
-                    prods[i] += s * c
-                    counts[i] += c
+        # K = len(self.lanes[0].cache)
+        # ret = 0.0
+        # if K > 0:
+        #     # TODO: Set no vehicles as nan
+        #     total = 0
+        #     prods = [0] * K
+        #     counts = [0] * K
+        #     for lane in self.lanes:
+        #         # Sum of velocities / duration
+        #         for i, s_c in enumerate(zip(lane.speeds, lane.counts)):
+        #             s, c  = s_c
+        #             prods[i] += s * c
+        #             counts[i] += c
 
-            product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
-            ret = round(sum(product) / K, 2)
+        #     product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
+        #     ret = round(sum(product) / K, 2)
 
-            # test new process
-            try:
-                assert round(self._cached_speed, 2) == ret
-            except AssertionError:
-                import ipdb
-                ipdb.set_trace()
+        #     # test new process
+        #     try:
+        #         assert round(self._cached_speed, 2) == ret
+        #     except AssertionError:
+        #         import ipdb
+        #         ipdb.set_trace()
 
-            return ret
+        return round(self._cached_speed, 2)
         # TODO: Return nan?
-        return ret
+        # return ret
 
     @property
     def count(self):
@@ -513,22 +513,23 @@ class Phase:
         * count: float
             The average number of vehicles in the approach
         """
-        K = len(self.lanes[0].cache)
-        if K > 0:
-            ret = sum([sum(lane.counts) for lane in self.lanes])
-            return round(ret / K, 2)
+        # K = len(self.lanes[0].cache)
+        # if K > 0:
+        #     ret = sum([sum(lane.counts) for lane in self.lanes])
+        #     return round(ret / K, 2)
 
-            # test new process
-            try:
-                assert round(self._cached_count, 2) == ret
-            except AssertionError:
-                import ipdb
-                ipdb.set_trace()
+        #     # test new process
+        #     try:
+        #         assert round(self._cached_count, 2) == ret
+        #     except AssertionError:
+        #         import ipdb
+        #         ipdb.set_trace()
 
-            return ret
+        # return ret
 
-        #TODO: Return nan?
-        return 0
+        # #TODO: Return nan?
+        # return 0
+        return round(self._cached_count, 2)
 
     @property
     def delay(self):
@@ -558,18 +559,19 @@ class Phase:
         * Wiering, 2000
             "Multi-agent reinforcement learning for traffic light control."
         """
-        # TODO: Make average
-        ret = 0
-        for lane in self.lanes:
-            ret += sum(lane.delays)
+        # # TODO: Make average
+        # ret = 0
+        # for lane in self.lanes:
+        #     ret += sum(lane.delays)
 
-        try:
-            assert round(self._cached_delay, 2) == round(ret, 2)
-        except AssertionError:
-            import ipdb
-            ipdb.set_trace()
+        # try:
+        #     assert round(self._cached_delay, 2) == round(ret, 2)
+        # except AssertionError:
+        #     import ipdb
+        #     ipdb.set_trace()
 
-        return round(ret, 2)
+        # return round(ret, 2)
+        return round(self._cached_delay, 2)
 
     @property
     def queue(self):
@@ -723,11 +725,11 @@ class Lane:
         step_speed = \
             np.nanmean([v.speed for v in vehs]) / cap if any(vehs) else 0.0
 
-        # 3) Append or update
-        if self._last_duration == len(self._cached_speeds):
-            self._cached_speeds.append(step_speed)
-        else:
-            self._cached_speeds[int(self._last_duration)] = step_speed
+        # # 3) Append or update
+        # if self._last_duration == len(self._cached_speeds):
+        #     self._cached_speeds.append(step_speed)
+        # else:
+        #     self._cached_speeds[int(self._last_duration)] = step_speed
 
         # 4) new state
         self._cached_speeds2 = \
@@ -742,11 +744,11 @@ class Lane:
         # 2) Compute count @ duration time step
         step_count = len(vehs)
 
-        # 3) Append or update
-        if self._last_duration == len(self._cached_counts):
-            self._cached_counts.append(step_count)
-        else:
-            self._cached_counts[int(self._last_duration)] = step_count
+        # # 3) Append or update
+        # if self._last_duration == len(self._cached_counts):
+        #     self._cached_counts.append(step_count)
+        # else:
+        #     self._cached_counts[int(self._last_duration)] = step_count
 
         # 4) new state
         self._cached_counts2 = step_count
@@ -762,10 +764,10 @@ class Lane:
         step_delay = len([v.speed / cap < vt for v in vehs])
 
         # 3) Append or update
-        if self._last_duration == len(self._cached_delays):
-            self._cached_delays.append(step_delay)
-        else:
-            self._cached_delays[int(self._last_duration)] = step_delay
+        # if self._last_duration == len(self._cached_delays):
+        #     self._cached_delays.append(step_delay)
+        # else:
+        #     self._cached_delays[int(self._last_duration)] = step_delay
 
         # 4) new state
         self._cached_delays2 = step_delay
@@ -778,7 +780,7 @@ class Lane:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        return self._cached_speeds
+        return self._cached_speeds2
 
     @property
     def counts(self):
@@ -788,7 +790,7 @@ class Lane:
             count: list<int>
             Is a duration sized list containing the total number of vehicles
         """
-        return self._cached_counts
+        return self._cached_counts2
 
     @property
     def delays(self):
@@ -800,5 +802,5 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return self._cached_delays
+        return self._cached_delays2
 
