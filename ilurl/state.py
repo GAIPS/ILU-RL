@@ -158,7 +158,7 @@ class State:
 
                 # 3) Convert into category.
                 if categorize:
-                    ret = np.digitize(ret, self._bins)
+                    ret = int(np.digitize(ret, self._bins))
 
                 # 4) Add to features.
                 if split:
@@ -423,8 +423,7 @@ class Phase:
 
         # 3) Categorize each phase feature.
         if categorize:
-            ret = [np.digitize(val, bins=self._bins[self._get_derived(lbl)])
-                   for val, lbl in zip(ret, sel)]
+            ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
 
         return ret
 
@@ -558,6 +557,9 @@ class Phase:
                 self._matcher.search(label).groups()[0]
         return derived_label or label
 
+    def _digitize(self, value, label):
+        _bins = self._bins[self._get_derived(label)]
+        return int(np.digitize(value, bins=_bins))
 
 class Lane:
     """ Represents a lane within an edge.
