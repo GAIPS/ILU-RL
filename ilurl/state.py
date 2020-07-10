@@ -158,7 +158,7 @@ class State:
 
                 # 3) Convert into category.
                 if categorize:
-                    ret = np.digitize(ret, self._bins)
+                    ret = int(np.digitize(ret, self._bins))
 
                 # 4) Add to features.
                 if split:
@@ -333,9 +333,8 @@ class Phase:
             edge_id, lane_ids = _component
             for lane_id in lane_ids:
                 components.append((edge_id, lane_id))
-                lanes.append(Lane(mdp_params,
-                                  f'{edge_id}#{lane_id}',
-                                  self._max_speed))
+                lanes.append(
+                    Lane(mdp_params, edge_id, lane_id, self._max_speed))
 
         self._lanes = lanes
         self._components = components
@@ -390,9 +389,8 @@ class Phase:
                 self.reset(reset_previous_features=False)
 
             # 4) Define a help function filtering function.
-            def _in(veh, lne):
-                eid, lid = lne.lane_id.split('#')
-                return veh.edge_id == eid and veh.lane == int(lid)
+            def _in(veh, lane):
+                return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
 
             step_speed = 0
             step_count = 0
@@ -464,8 +462,7 @@ class Phase:
 
         # 3) Categorize each phase feature.
         if categorize:
-            ret = [np.digitize(val, bins=self._bins[self._get_derived(lbl)])
-                   for val, lbl in zip(ret, sel)]
+            ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
 
         return ret
 
@@ -623,6 +620,9 @@ class Phase:
                 self._matcher.search(label).groups()[0]
         return derived_label or label
 
+    def _digitize(self, value, label):
+        _bins = self._bins[self._get_derived(label)]
+        return int(np.digitize(value, bins=_bins))
 
 class Lane:
     """ Represents a lane within an edge.
@@ -633,7 +633,7 @@ class Lane:
         * Computes feature per time step.
         * Aggregates wrt vehicles.
     """
-    def __init__(self, mdp_params, lane_id, max_speed):
+    def __init__(self, mdp_params, edge_id, lane_id, max_speed):
         """Builds lane
 
         Params:
@@ -648,6 +648,7 @@ class Lane:
         * max_speed: float
             max velocity a car can travel.
         """
+        self._edge_id = edge_id
         self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
         self._max_speed = max_speed
@@ -658,6 +659,10 @@ class Lane:
     @property
     def lane_id(self):
         return self._lane_id
+
+    @property
+    def edge_id(self):
+        return self._edge_id
 
     @property
     def cache(self):
@@ -701,9 +706,6 @@ class Lane:
         # TODO: As of now stores an array with the cycles' data
         # More efficient to only store last time_step
         # cross sectional data or intra time_step data.
-        if duration == 0:
-            self.reset()
-
         self._cache[duration] = (vehs, tls)
         self._last_duration = duration
 
