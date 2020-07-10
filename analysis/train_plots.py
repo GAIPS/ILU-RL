@@ -81,7 +81,7 @@ def main(experiment_root_folder=None):
     print('\nOutput folder:\n{0}\n'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
-    actions = []
+    # actions = []
     rewards = []
     rewards_2 = []
     vehicles = []
@@ -108,7 +108,7 @@ def main(experiment_root_folder=None):
         velocities.append(json_data['velocities'])
 
         # Agent's actions.
-        actions.append(json_data['actions'])
+        # actions.append(json_data['actions'])
 
     """
         Rewards per cycle.
@@ -242,7 +242,7 @@ def main(experiment_root_folder=None):
     """ 
         Actions per intersection.
     """
-    dfs_a = [pd.DataFrame(a) for a in actions]
+    """ dfs_a = [pd.DataFrame(a) for a in actions]
 
     df_concat = pd.concat(dfs_a)
 
@@ -265,7 +265,7 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
-    plt.close()
+    plt.close() """
 
 if __name__ == '__main__':
     main()

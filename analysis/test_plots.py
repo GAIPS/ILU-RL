@@ -401,7 +401,7 @@ def main(experiment_root_folder=None):
     """
         Actions per intersection.
     """
-    dfs_a = [pd.DataFrame(r) for r in json_data['actions'][id]]
+    """ dfs_a = [pd.DataFrame(r) for r in json_data['actions'][id]]
 
     df_concat = pd.concat(dfs_a)
 
@@ -422,7 +422,7 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
-    plt.close()
+    plt.close() """
 
     """
         Number of vehicles.
