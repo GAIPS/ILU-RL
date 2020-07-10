@@ -334,9 +334,8 @@ class Phase:
             edge_id, lane_ids = _component
             for lane_id in lane_ids:
                 components.append((edge_id, lane_id))
-                lanes.append(Lane(mdp_params,
-                                  f'{edge_id}#{lane_id}',
-                                  self._max_speed))
+                lanes.append(
+                    Lane(mdp_params, edge_id, lane_id, self._max_speed))
 
         self._lanes = lanes
         self._components = components
@@ -385,9 +384,8 @@ class Phase:
                     self._prev_features[derived_label] = \
                                     getattr(self, derived_label)
 
-        def _in(veh, lne):
-            eid, lid = lne.lane_id.split('#')
-            return veh.edge_id == eid and veh.lane == int(lid)
+        def _in(veh, lane):
+            return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
 
         for lane in self.lanes:
             _vehs = [v for v in vehs if _in(v, lane)]
@@ -570,7 +568,7 @@ class Lane:
         * Computes feature per time step.
         * Aggregates wrt vehicles.
     """
-    def __init__(self, mdp_params, lane_id, max_speed):
+    def __init__(self, mdp_params, edge_id, lane_id, max_speed):
         """Builds lane
 
         Params:
@@ -585,6 +583,7 @@ class Lane:
         * max_speed: float
             max velocity a car can travel.
         """
+        self._edge_id = edge_id
         self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
         self._max_speed = max_speed
@@ -595,6 +594,10 @@ class Lane:
     @property
     def lane_id(self):
         return self._lane_id
+
+    @property
+    def edge_id(self):
+        return self._edge_id
 
     @property
     def cache(self):
