@@ -410,47 +410,6 @@ class Phase:
                 self._update_delay()
                 self._update_queue()
 
-                if self.phase_id == '247123161#0':
-                    # verification
-                    test_speed = np.mean([veh.speed / self._max_speed
-                                            for lane in self.lanes
-                                            for t, vehs_tls in lane._cache.items()
-                                            for veh in vehs_tls[0]])
-
-                    test_count = len([veh for lane in self.lanes
-                                            for t, vehs_tls in lane._cache.items()
-                                            for veh in vehs_tls[0]]) / 90
-
-
-                    # test_delay = np.sum([veh.speed / self._max_speed < lane._min_speed
-                    #                         for lane in self.lanes
-                    #                         for t, vehs_tls in lane._cache.items()
-                    #                         for veh in vehs_tls[0]]) / 90
-
-                    # queue_1 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                    #                     for t, vehs_tls in self.lanes[0]._cache.items()}
-
-
-                    # queue_2 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                    #                     for t, vehs_tls in self.lanes[1]._cache.items()}
-
-                    # queue_3 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                    #                     for t, vehs_tls in self.lanes[2]._cache.items()}
-
-                    # queue_4 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                    #                     for t, vehs_tls in self.lanes[3]._cache.items()}
-
-                    # test_queue = max([max(queue_1.values()), max(queue_2.values()), max(queue_3.values()), max(queue_4.values())])
-                    if not np.isnan(test_speed):
-                        try:
-                            print(round(self.speed, 2), round(test_speed, 2))
-                            print(round(self.count, 2), round(test_count, 2))
-                            assert self.speed == round(test_speed, 2)
-                            assert self.count == round(test_count, 2)
-                        except AssertionError:
-                            import ipdb
-                            ipdb.set_trace()
-
                 self._num_updates = 0
             else:
                 self._num_updates += 1
@@ -505,6 +464,8 @@ class Phase:
         if categorize:
             ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
 
+        if self.phase_id == '247123161#0' and self._num_updates == 0:
+            print(self.labels, ret)
         return ret
 
 
