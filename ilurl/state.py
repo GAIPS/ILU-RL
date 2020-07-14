@@ -464,8 +464,6 @@ class Phase:
         if categorize:
             ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
 
-        if self.phase_id == '247123161#0' and self._num_updates == 0:
-            print(self.labels, ret)
         return ret
 
 
