@@ -422,15 +422,29 @@ class Phase:
                     #                         for veh in vehs_tls[0]]) / 90
 
 
-                    test_delay = np.sum([veh.speed / self._max_speed < lane._min_speed
-                                            for lane in self.lanes
-                                            for t, vehs_tls in lane._cache.items()
-                                            for veh in vehs_tls[0]]) / 90
-                    if not np.isnan(test_delay):
-                        try:
+                    # test_delay = np.sum([veh.speed / self._max_speed < lane._min_speed
+                    #                         for lane in self.lanes
+                    #                         for t, vehs_tls in lane._cache.items()
+                    #                         for veh in vehs_tls[0]]) / 90
 
-                            print(round(self.delay, 2), round(test_delay, 2))
-                            assert self.delay == round(test_delay, 2)
+                    queue_1 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                                        for t, vehs_tls in self.lanes[0]._cache.items()}
+
+
+                    queue_2 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                                        for t, vehs_tls in self.lanes[1]._cache.items()}
+
+                    queue_3 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                                        for t, vehs_tls in self.lanes[2]._cache.items()}
+
+                    queue_4 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                                        for t, vehs_tls in self.lanes[3]._cache.items()}
+
+                    test_queue = max([max(queue_1.values()), max(queue_2.values()), max(queue_3.values()), max(queue_4.values())])
+                    if not np.isnan(test_queue):
+                        try:
+                            print(round(self.queue, 2), round(test_queue, 2))
+                            assert self.queue == round(test_queue, 2)
                         except AssertionError:
                             import ipdb
                             ipdb.set_trace()
@@ -454,7 +468,7 @@ class Phase:
         self._cached_speed = None
         self._cached_count = None
         self._cached_delay = None
-        self._cached_queue = []
+        self._cached_queue = None
 
         self._cached_weight = 0
 
@@ -578,6 +592,8 @@ class Phase:
             "Reinforcement learning for true adaptive traffic signal
             control."
         """
+        if self._cached_queue is None:
+            return 0.0
         return round(self._cached_queue, 2)
 
 
@@ -602,7 +618,7 @@ class Phase:
 
     def _update_queue(self):
         if 'queue' in self.labels:
-            self._cached_queue  = max([lane.delay for lane in self.lanes])
+            self._cached_queue  = max([lane.queue for lane in self.lanes])
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
@@ -791,7 +807,7 @@ class Lane:
 
     @property
     def queue(self):
-        """Max. vehicles circulating under a velocity threshold
+        """Max. vehicles circulating under a velocity threshold (per lane).
 
         Returns:
         -------
@@ -799,4 +815,4 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return max([step_delay for step_count in self._cached_delays])
+        return max([sum(_delays) for _delays in self._cached_delays])
