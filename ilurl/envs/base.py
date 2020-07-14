@@ -306,17 +306,15 @@ class TrafficLightEnv(Env):
         rl_actions: list of actions or None
         """
 
-        # Gets state before update_observation_space:
-        # observation space is reset at 0
-        if self.duration == 0:
-            state = self.get_state()
-
         # Update observation space.
         self.update_observation_space()
 
         if self.tls_type != 'actuated':
             if self.duration == 0:
                 # New cycle.
+                # At duration 0: The state has been updated cycle_time
+                if self.duration == 0:
+                    state = self.get_state()
 
                 # Get the number of the current cycle.
                 cycle_number = \
@@ -367,7 +365,7 @@ class TrafficLightEnv(Env):
                 next_state = states[self.state_indicator[tid]]
                 self.k.traffic_light.set_state(
                     node_id=tid, state=next_state)
-            
+
     def _current_rl_action(self):
         """Returns current rl action"""
         # adjust for duration

@@ -312,8 +312,9 @@ class Phase:
 
         """
         # 1) Define base attributes
+        print(phase_id)
         self._phase_id = phase_id
-        self._labels = mdp_params.states
+        self._labels = mdp_params.features
         self._max_speed, self._max_count =  max_capacity
         self._matcher = re.compile('\[(.*?)\]')
 
@@ -323,7 +324,7 @@ class Phase:
             z = self._get_derived(x)
             return [getattr(mdp_params, y) for y in dir(mdp_params)
                     if (z in y) and ('category_' in y)][0]
-        self._bins = {_feat: fn(_feat) for _feat in mdp_params.states}
+        self._bins = {_feat: fn(_feat) for _feat in mdp_params.features}
 
 
         # 3) Instanciate lanes
@@ -338,7 +339,8 @@ class Phase:
 
         self._lanes = lanes
         self._components = components
-        self._prev_features = {}
+        self.cached_features = {}
+        self._num_updates = 0
 
     @property
     def phase_id(self):
@@ -374,61 +376,88 @@ class Phase:
             * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
                 Container for traffic light program representation
         """
-        # 1) Ignores update for the same duration.
+        # 1) Ignores updates more than 1 update for given duration.
+        # And only updates at the begining of new cycle.
         if duration != self._last_update:
+            # 2) Stores previous cycle for lag labels.
             if duration == 0:
-                # 2) Stores previous cycle for lag labels.
                 for label in self.labels:
                     if 'lag' in label:
                         derived_label = self._get_derived(label)
-                        self._prev_features[derived_label] = \
+                        self._cached_features[derived_label] = \
                                         getattr(self, derived_label)
 
-                # 3) Reset data for new cycle.
-                self.reset(reset_previous_features=False)
-
-            # 4) Define a help function filtering function.
+            # 2) Define a helpful filtering function.
             def _in(veh, lane):
                 return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
 
-            step_speed = 0
-            step_count = 0
-            step_delay = 0
+
+            # 3) Update lanes
+            # TODO: investigate generators to solve this feature computation issue.
+            step_speed = []
+            step_count = []
+            step_delay = []
             step_queue = 0
             for lane in self.lanes:
                 _vehs = [v for v in vehs if _in(v, lane)]
                 lane.update(duration, _vehs, tls)
 
 
-                step_count += lane.counts
-                step_speed += lane.speeds
-                step_delay += lane.delays
-                step_queue = max(step_queue, lane.queues)
-
-            # 5) Update phase's features.
+            # 4) Update phase's features.
             self._last_update = duration
-            self._update_speed(step_speed, step_count, duration)
-            self._update_count(step_count, duration)
-            self._update_delay(step_delay)
-            self._update_queue(step_queue)
+            if duration == 0:
+                self._update_speed()
+                self._update_count()
+                self._update_delay()
+                self._update_queue()
+
+                if self.phase_id == '247123161#0':
+                    # verification
+                    test_speed = np.mean([veh.speed / self._max_speed
+                                            for lane in self.lanes
+                                            for t, vehs_tls in lane._cache.items()
+                                            for veh in vehs_tls[0]])
+
+                    # test_count = len([veh for lane in self.lanes
+                    #                         for t, vehs_tls in lane._cache.items()
+                    #                         for veh in vehs_tls[0]]) / 90
+
+                    import ipdb
+                    ipdb.set_trace()
+                    if not np.isnan(test_speed):
+                        try:
+
+                            print(round(self.speed, 2), round(test_speed, 2))
+                            assert self.speed == round(test_speed, 2)
+                        except AssertionError:
+                            import ipdb
+                            ipdb.set_trace()
+                self._num_updates = 0
+            else:
+                self._num_updates += 1
 
 
 
-    def reset(self, reset_previous_features=True):
+
+    def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
+        # 1) Communicates update for every lane
         for lane in self.lanes:
             lane.reset()
 
-        if reset_previous_features:
-            self._prev_features = {}
+        # 2) Erases previous cycle's memory
+        self._cached_features = {}
 
-        # Test variables
-        self._cached_speed = 0
-        self._cached_count = 0
-        self._cached_delay = 0
-        self._cached_queue = 0
+        # 3) Defines or erases history
+        self._cached_speed = None
+        self._cached_count = []
+        self._cached_delay = []
+        self._cached_queue = []
+
+        self._cached_weight = 0
 
         self._last_update = -1
+        self._num_updates = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -470,6 +499,9 @@ class Phase:
         * speed: float
             The average speed of all cars in the phase
         """
+        # TODO: handle nan case.
+        if self._cached_speed is None:
+            return 0.0
         return round(self._cached_speed, 2)
 
     @property
@@ -539,37 +571,35 @@ class Phase:
             "Reinforcement learning for true adaptive traffic signal
             control."
         """
-        # ret = 0
-        # for lane in self.lanes:
-        #     ret = max(ret, max(lane.delays) if any(lane.delays) else 0)
-
-        # return round(ret, 2)
         return round(self._cached_queue, 2)
 
 
 
-    def _update_speed(self, step_speed, step_count, duration):
-        speed_update = duration * self._cached_speed
-        if step_count > 0:
-            speed_update += step_speed / step_count
-        self._cached_speed = speed_update / (duration + 1)
+    def _update_speed(self):
+        if 'speed' in self.labels and self._num_updates > 0:
+            self._cached_speed = \
+                np.mean([vel for lane in self.lanes for vel in lane.speed])
+            self._cached_speed = self._cached_speed
 
-    def _update_count(self, step_count, duration):
-        count_update = duration * self._cached_count
-        self._cached_count  = (step_count + count_update) / (duration + 1)
+    def _update_count(self):
+        if 'count' in self.labels:
+            self._cached_count = sum([lane.count for lane in self.lanes])
 
-    def _update_delay(self, step_delay):
-        self._cached_delay  += step_delay
+    def _update_delay(self):
+        if 'delay' in self.labels:
+            # It suffices to get the signal to reset.
+            self._cached_delay  = sum([lane.delay for lane in self.lanes])
 
-    def _update_queue(self, step_queue):
-        self._cached_queue  = max(self._cached_queue, step_queue)
+    def _update_queue(self):
+        if 'queue' in self.labels:
+            self._cached_queue  = max([lane.delay for lane in self.lanes])
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
         if 'lag' in label:
             derived_feature = \
                 self._matcher.search(label).groups()[0]
-            return self._prev_features[derived_feature]
+            return self._cached_features[derived_feature]
         return getattr(self, label)
 
     def _get_derived(self, label):
@@ -613,7 +643,7 @@ class Lane:
         self._min_speed = mdp_params.velocity_threshold
         self._max_speed = max_speed
         self._normalize = mdp_params.normalize_state_space
-        self._last_duration = 0
+        self._labels = mdp_params.features
         self.reset()
 
     @property
@@ -628,15 +658,17 @@ class Lane:
     def cache(self):
         return self._cache
 
+    @property
+    def labels(self):
+        return self._labels
+
     def reset(self):
         """Clears data from previous cycles, define data structures"""
         self._cache = OrderedDict()
-        self._cached_speeds = None
-        self._cached_counts = None
-        self._cached_delays = None
-        self._cached_queues = None
-
-        self._last_duration = 0
+        self._cached_speeds = []
+        self._cached_counts = []
+        self._cached_delays = []
+        self._last_duration = -1
 
 
     def update(self, duration, vehs, tls):
@@ -662,71 +694,82 @@ class Lane:
         # TODO: As of now stores an array with the cycles' data
         # More efficient to only store last time_step
         # cross sectional data or intra time_step data.
-        self._cache[duration] = (vehs, tls)
-        self._last_duration = duration
+        if duration != self._last_duration:
+            # 1) Uncomment for validation 
+            self._cache[duration] = (vehs, tls)
+            self._last_duration = duration
 
-        self._update_counts(vehs)
-        self._update_delays(vehs)
-        self._update_speeds(vehs)
-        self._update_queues(vehs)
 
-    def _update_speeds(self, vehs):
+            self._update_speeds(int(duration), vehs)
+            self._update_counts(int(duration), vehs)
+            self._update_delays(int(duration), vehs)
+
+    def _update_speeds(self, duration, vehs):
         """Step update for speeds variable"""
-        # 1) Normalization factor
-        cap = self._max_speed if self._normalize else 1
+        if 'speed' in self.labels:
+            # 1) Normalization factor
+            cap = self._max_speed if self._normalize else 1
 
-        # 2) Compute speed @ duration time step
-        self._cached_speeds = \
-            sum([v.speed for v in vehs]) / cap if any(vehs) else 0.0
+            # 2) Compute speeds
+            step_speeds = [v.speed / cap for v in vehs]
+
+            # 3) Append speeds
+            if duration == len(self._cached_speeds):
+                self._cached_speeds.append(step_speeds)
+            else:
+                self._cached_speeds[duration] = step_speeds
 
 
-    def _update_counts(self, vehs):
+    def _update_counts(self, duration, vehs):
         """Step update for counts variable"""
         # 1) Compute count @ duration time step
-        self._cached_counts = len(vehs)
+        if 'count' in self.labels:
+            if duration == len(self._cached_counts):
+                self._cached_counts.append(len(vehs))
+            else:
+                self._cached_counts[duration] = len(vehs)
 
-    def _update_delays(self, vehs):
+    def _update_delays(self, duration, vehs):
         """Step update for delays variable"""
-        # 1) Normalization factor and threshold
-        cap = self._max_speed if self._normalize else 1
-        vt = self._min_speed
+        if 'delay' in self.labels or 'queue' in self.labels:
+            # 1) Normalization factor and threshold
+            cap = self._max_speed if self._normalize else 1
+            vt = self._min_speed
 
-        # 2) Compute delays @ duration time step
-        self._cached_delays = len([v.speed / cap < vt for v in vehs])
+            # 2) Compute delays
+            step_delays = [v.speed / cap < vt for v in vehs]
 
-    def _update_queues(self, vehs):
-        """Step update for queues variable"""
-        # 1) Normalization factor and threshold
-        cap = self._max_speed if self._normalize else 1
-        vt = self._min_speed
-
-        # 2) Compute delays @ duration time step
-        self._cached_queues = len([v.speed / cap < vt for v in vehs])
+            # 3) Append or assign delays
+            if duration == len(self._cached_delays):
+                self._cached_delays.append(step_delays)
+            else:
+                self._cached_delay[duration] = step_delays
 
 
     @property
-    def speeds(self):
-        """Vehicles' speeds per time step.
+    def speed(self):
+        """Vehicles' speeds per time step (per lane).
 
         Returns:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        return self._cached_speeds
+        return [vel for step_speeds in self._cached_speeds
+                for vel in step_speeds]
 
     @property
-    def counts(self):
-        """Number of vehicles per time step.
+    def count(self):
+        """Average number of vehicles during cycle (per lane)
 
         Returns:
-            count: list<int>
+            count: list<float>
             Is a duration sized list containing the total number of vehicles
         """
-        return self._cached_counts
+        return np.mean([step_count for step_count in self._cached_counts])
 
     @property
-    def delays(self):
-        """Total of vehicles circulating under a velocity threshold
+    def delay(self):
+        """Total of vehicles circulating under a velocity threshold (per lane)
 
         Returns:
         -------
@@ -734,10 +777,10 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return self._cached_delays
+        return sum([step_delay for step_delay in self._cached_delays])
 
     @property
-    def queues(self):
+    def queue(self):
         """Max. vehicles circulating under a velocity threshold
 
         Returns:
@@ -746,4 +789,4 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return self._cached_queues
+        return max([step_delay for step_count in self._cached_delays])
