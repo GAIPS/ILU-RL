@@ -312,7 +312,6 @@ class Phase:
 
         """
         # 1) Define base attributes
-        print(phase_id)
         self._phase_id = phase_id
         self._labels = mdp_params.features
         self._max_speed, self._max_count =  max_capacity
@@ -479,7 +478,7 @@ class Phase:
         # TODO: handle nan case.
         if self._cached_speed is None:
             return 0.0
-        return round(self._cached_speed, 2)
+        return round(float(self._cached_speed), 2)
 
     @property
     def count(self):
@@ -490,10 +489,9 @@ class Phase:
         * count: float
             The average number of vehicles in the approach
         """
-
         if self._cached_count is None:
             return 0.0
-        return round(self._cached_count, 2)
+        return round(float(self._cached_count), 2)
 
     @property
     def delay(self):
@@ -525,7 +523,7 @@ class Phase:
         """
         if self._cached_delay is None:
             return 0.0
-        return round(self._cached_delay, 2)
+        return round(float(self._cached_delay), 2)
 
     @property
     def queue(self):
@@ -555,7 +553,7 @@ class Phase:
         """
         if self._cached_queue is None:
             return 0.0
-        return round(self._cached_queue, 2)
+        return round(float(self._cached_queue), 2)
 
 
 
