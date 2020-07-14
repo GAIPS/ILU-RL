@@ -340,7 +340,6 @@ class Phase:
         self._lanes = lanes
         self._components = components
         self.cached_features = {}
-        self._num_updates = 0
 
     @property
     def phase_id(self):
@@ -413,29 +412,27 @@ class Phase:
 
                 if self.phase_id == '247123161#0':
                     # verification
-                    test_speed = np.mean([veh.speed / self._max_speed
-                                            for lane in self.lanes
-                                            for t, vehs_tls in lane._cache.items()
-                                            for veh in vehs_tls[0]])
-
-                    # test_count = len([veh for lane in self.lanes
+                    # test_speed = np.mean([veh.speed / self._max_speed
+                    #                         for lane in self.lanes
                     #                         for t, vehs_tls in lane._cache.items()
-                    #                         for veh in vehs_tls[0]]) / 90
+                    #                         for veh in vehs_tls[0]])
 
-                    import ipdb
-                    ipdb.set_trace()
-                    if not np.isnan(test_speed):
+                    test_count = len([veh for lane in self.lanes
+                                            for t, vehs_tls in lane._cache.items()
+                                            for veh in vehs_tls[0]]) / 90
+
+                    if not np.isnan(test_count):
                         try:
 
-                            print(round(self.speed, 2), round(test_speed, 2))
-                            assert self.speed == round(test_speed, 2)
+                            print(round(self.count, 2), round(test_count, 2))
+                            assert self.count == round(test_count, 2)
                         except AssertionError:
                             import ipdb
                             ipdb.set_trace()
+
                 self._num_updates = 0
             else:
                 self._num_updates += 1
-
 
 
 
@@ -456,8 +453,8 @@ class Phase:
 
         self._cached_weight = 0
 
-        self._last_update = -1
         self._num_updates = 0
+        self._last_update = -1
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -576,14 +573,16 @@ class Phase:
 
 
     def _update_speed(self):
-        if 'speed' in self.labels and self._num_updates > 0:
+        if 'speed' in self.labels:
             self._cached_speed = \
                 np.mean([vel for lane in self.lanes for vel in lane.speed])
             self._cached_speed = self._cached_speed
 
     def _update_count(self):
         if 'count' in self.labels:
-            self._cached_count = sum([lane.count for lane in self.lanes])
+            self._cached_count = \
+                np.sum([count for lane in self.lanes for count in lane.count])
+            self._cached_count = self._cached_count / (self._num_updates + 1)
 
     def _update_delay(self):
         if 'delay' in self.labels:
@@ -765,7 +764,7 @@ class Lane:
             count: list<float>
             Is a duration sized list containing the total number of vehicles
         """
-        return np.mean([step_count for step_count in self._cached_counts])
+        return [step_count for step_count in self._cached_counts]
 
     @property
     def delay(self):
