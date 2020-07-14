@@ -651,7 +651,8 @@ class Lane:
 
     def reset(self):
         """Clears data from previous cycles, define data structures"""
-        self._cache = OrderedDict()
+        # Uncomment for validation
+        # self._cache = OrderedDict()
         self._cached_speeds = []
         self._cached_counts = []
         self._cached_delays = []
@@ -683,7 +684,7 @@ class Lane:
         # cross sectional data or intra time_step data.
         if duration != self._last_duration:
             # 1) Uncomment for validation 
-            self._cache[duration] = (vehs, tls)
+            # self._cache[duration] = (vehs, tls)
             self._last_duration = duration
 
 
