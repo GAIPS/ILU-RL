@@ -451,7 +451,7 @@ class Phase:
                     counts[i] += c
 
             product = [p / c if c > 0.0 else 0.0 for p, c in zip(prods, counts)]
-            return round(sum(product) / K, 2)
+            return float(round(sum(product) / K, 2))
         # TODO: Return nan?
         return 0.0
 
@@ -467,10 +467,10 @@ class Phase:
         K = len(self.lanes[0].cache)
         if K > 0:
             ret = sum([sum(lane.counts) for lane in self.lanes])
-            return round(ret / K, 2)
+            return float(round(ret / K, 2))
 
         #TODO: Return nan?
-        return 0
+        return 0.0
 
     @property
     def delay(self):
@@ -506,7 +506,7 @@ class Phase:
             ret += sum(lane.delays)
 
         # K = len(self.lanes[0].cache)
-        return round(ret, 2)
+        return float(round(ret, 2))
 
     @property
     def queue(self):
@@ -539,7 +539,7 @@ class Phase:
         for lane in self.lanes:
             ret = max(ret, max(lane.delays) if any(lane.delays) else 0)
 
-        return round(ret, 2)
+        return float(round(ret, 2))
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
