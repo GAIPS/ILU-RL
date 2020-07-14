@@ -412,14 +412,14 @@ class Phase:
 
                 if self.phase_id == '247123161#0':
                     # verification
-                    # test_speed = np.mean([veh.speed / self._max_speed
-                    #                         for lane in self.lanes
-                    #                         for t, vehs_tls in lane._cache.items()
-                    #                         for veh in vehs_tls[0]])
+                    test_speed = np.mean([veh.speed / self._max_speed
+                                            for lane in self.lanes
+                                            for t, vehs_tls in lane._cache.items()
+                                            for veh in vehs_tls[0]])
 
-                    # test_count = len([veh for lane in self.lanes
-                    #                         for t, vehs_tls in lane._cache.items()
-                    #                         for veh in vehs_tls[0]]) / 90
+                    test_count = len([veh for lane in self.lanes
+                                            for t, vehs_tls in lane._cache.items()
+                                            for veh in vehs_tls[0]]) / 90
 
 
                     # test_delay = np.sum([veh.speed / self._max_speed < lane._min_speed
@@ -427,24 +427,26 @@ class Phase:
                     #                         for t, vehs_tls in lane._cache.items()
                     #                         for veh in vehs_tls[0]]) / 90
 
-                    queue_1 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                                        for t, vehs_tls in self.lanes[0]._cache.items()}
+                    # queue_1 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                    #                     for t, vehs_tls in self.lanes[0]._cache.items()}
 
 
-                    queue_2 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                                        for t, vehs_tls in self.lanes[1]._cache.items()}
+                    # queue_2 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                    #                     for t, vehs_tls in self.lanes[1]._cache.items()}
 
-                    queue_3 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                                        for t, vehs_tls in self.lanes[2]._cache.items()}
+                    # queue_3 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                    #                     for t, vehs_tls in self.lanes[2]._cache.items()}
 
-                    queue_4 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
-                                        for t, vehs_tls in self.lanes[3]._cache.items()}
+                    # queue_4 = {t: sum([veh.speed / self._max_speed < lane._min_speed for veh in vehs_tls[0]])
+                    #                     for t, vehs_tls in self.lanes[3]._cache.items()}
 
-                    test_queue = max([max(queue_1.values()), max(queue_2.values()), max(queue_3.values()), max(queue_4.values())])
-                    if not np.isnan(test_queue):
+                    # test_queue = max([max(queue_1.values()), max(queue_2.values()), max(queue_3.values()), max(queue_4.values())])
+                    if not np.isnan(test_speed):
                         try:
-                            print(round(self.queue, 2), round(test_queue, 2))
-                            assert self.queue == round(test_queue, 2)
+                            print(round(self.speed, 2), round(test_speed, 2))
+                            print(round(self.count, 2), round(test_count, 2))
+                            assert self.speed == round(test_speed, 2)
+                            assert self.count == round(test_count, 2)
                         except AssertionError:
                             import ipdb
                             ipdb.set_trace()
