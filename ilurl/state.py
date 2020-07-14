@@ -417,15 +417,20 @@ class Phase:
                     #                         for t, vehs_tls in lane._cache.items()
                     #                         for veh in vehs_tls[0]])
 
-                    test_count = len([veh for lane in self.lanes
+                    # test_count = len([veh for lane in self.lanes
+                    #                         for t, vehs_tls in lane._cache.items()
+                    #                         for veh in vehs_tls[0]]) / 90
+
+
+                    test_delay = np.sum([veh.speed / self._max_speed < lane._min_speed
+                                            for lane in self.lanes
                                             for t, vehs_tls in lane._cache.items()
                                             for veh in vehs_tls[0]]) / 90
-
-                    if not np.isnan(test_count):
+                    if not np.isnan(test_delay):
                         try:
 
-                            print(round(self.count, 2), round(test_count, 2))
-                            assert self.count == round(test_count, 2)
+                            print(round(self.delay, 2), round(test_delay, 2))
+                            assert self.delay == round(test_delay, 2)
                         except AssertionError:
                             import ipdb
                             ipdb.set_trace()
@@ -447,8 +452,8 @@ class Phase:
 
         # 3) Defines or erases history
         self._cached_speed = None
-        self._cached_count = []
-        self._cached_delay = []
+        self._cached_count = None
+        self._cached_delay = None
         self._cached_queue = []
 
         self._cached_weight = 0
@@ -510,6 +515,9 @@ class Phase:
         * count: float
             The average number of vehicles in the approach
         """
+
+        if self._cached_count is None:
+            return 0.0
         return round(self._cached_count, 2)
 
     @property
@@ -540,6 +548,8 @@ class Phase:
         * Wiering, 2000
             "Multi-agent reinforcement learning for traffic light control."
         """
+        if self._cached_delay is None:
+            return 0.0
         return round(self._cached_delay, 2)
 
     @property
@@ -588,6 +598,7 @@ class Phase:
         if 'delay' in self.labels:
             # It suffices to get the signal to reset.
             self._cached_delay  = sum([lane.delay for lane in self.lanes])
+            self._cached_delay  = self._cached_delay / (self._num_updates + 1)
 
     def _update_queue(self):
         if 'queue' in self.labels:
@@ -742,7 +753,7 @@ class Lane:
             if duration == len(self._cached_delays):
                 self._cached_delays.append(step_delays)
             else:
-                self._cached_delay[duration] = step_delays
+                self._cached_delays[duration] = step_delays
 
 
     @property
@@ -776,7 +787,7 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return sum([step_delay for step_delay in self._cached_delays])
+        return sum([_delay for _delays in self._cached_delays for _delay in _delays])
 
     @property
     def queue(self):
