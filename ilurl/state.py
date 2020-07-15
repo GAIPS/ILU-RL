@@ -463,6 +463,9 @@ class Phase:
         if categorize:
             ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
 
+        if any(np.isnan(ret)):
+            import ipdb
+            ipdb.set_trace()
         return ret
 
 
@@ -476,7 +479,7 @@ class Phase:
             The average speed of all cars in the phase
         """
         # TODO: handle nan case.
-        if self._cached_speed is None:
+        if self._cached_speed is None or np.isnan(self._cached_speed):
             return 0.0
         return round(float(self._cached_speed), 2)
 
@@ -560,13 +563,13 @@ class Phase:
     def _update_speed(self):
         if 'speed' in self.labels:
             self._cached_speed = \
-                np.mean([vel for lane in self.lanes for vel in lane.speed])
+                np.nanmean([vel for lane in self.lanes for vel in lane.speed])
             self._cached_speed = self._cached_speed
 
     def _update_count(self):
         if 'count' in self.labels:
             self._cached_count = \
-                np.sum([count for lane in self.lanes for count in lane.count])
+                np.nansum([count for lane in self.lanes for count in lane.count])
             self._cached_count = self._cached_count / (self._num_updates + 1)
 
     def _update_delay(self):

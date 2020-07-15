@@ -312,13 +312,13 @@ class TrafficLightEnv(Env):
         if self.tls_type != 'actuated':
             if self.duration == 0:
                 # New cycle.
-                # At duration 0: The state has been updated cycle_time
-                if self.duration == 0:
-                    state = self.get_state()
 
                 # Get the number of the current cycle.
                 cycle_number = \
                     int(self.step_counter / self.cycle_time)
+
+                # Get current state.
+                state = self.get_state()
 
                 # Select new action.
                 if rl_actions is None:
@@ -372,6 +372,7 @@ class TrafficLightEnv(Env):
         N = (self.cycle_time / self.sim_step)
         actid = \
             int(max(0, self.step_counter - 1) / N)
+
         return self.actions_log[actid]
 
     def compute_reward(self, rl_actions, **kwargs):
