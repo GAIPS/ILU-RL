@@ -105,7 +105,7 @@ class Parser(object):
         mdp_params = MDPParams(
             discount_factor=float(mdp_args['discount_factor']),
             action_space=literal_eval(mdp_args['action_space']),
-            states=literal_eval(mdp_args['states']),
+            features=literal_eval(mdp_args['features']),
             category_counts=json.loads(mdp_args['category_counts']),
             category_delays=json.loads(mdp_args['category_delays']),
             category_speeds=json.loads(mdp_args['category_speeds']),

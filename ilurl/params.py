@@ -47,7 +47,7 @@ class MDPParams(Printable):
     def __init__(self,
                 discount_factor: float = 0.95,
                 action_space: str = 'discrete',
-                states: Tuple[str] = ('speed', 'count'),
+                features: Tuple[str] = ('speed', 'count'),
                 normalize_state_space: bool = True,
                 discretize_state_space: bool = True,
                 category_counts: List[float] = [8.56, 13.00],

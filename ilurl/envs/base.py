@@ -346,6 +346,8 @@ class TrafficLightEnv(Env):
         self.duration = \
             round(self.duration + self.sim_step, 2) % self.cycle_time
 
+
+
     def _apply_cl_actions(self, cl_actions):
         """For each tls shift phase or keep phase
 
@@ -363,13 +365,14 @@ class TrafficLightEnv(Env):
                 next_state = states[self.state_indicator[tid]]
                 self.k.traffic_light.set_state(
                     node_id=tid, state=next_state)
-            
+
     def _current_rl_action(self):
         """Returns current rl action"""
         # adjust for duration
         N = (self.cycle_time / self.sim_step)
         actid = \
             int(max(0, self.step_counter - 1) / N)
+
         return self.actions_log[actid]
 
     def compute_reward(self, rl_actions, **kwargs):

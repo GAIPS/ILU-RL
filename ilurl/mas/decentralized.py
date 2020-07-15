@@ -20,7 +20,7 @@ class DecentralizedMAS(MASInterface):
         # Create agents.
         agents = {}
 
-        num_variables = len(mdp_params.states_labels)
+        num_variables = len(mdp_params.features)
         for tid in mdp_params.phases_per_traffic_light:
             agent_params_ = deepcopy(agent_params)
 
