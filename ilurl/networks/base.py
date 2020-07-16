@@ -11,7 +11,7 @@ from collections import defaultdict
 from flow.core.params import InitialConfig, TrafficLightParams
 from flow.core.params import (VehicleParams, SumoCarFollowingParams,
                             SumoLaneChangeParams)
-from ilurl.controllers.routing_controllers import GreedyRouter
+#from ilurl.controllers.routing_controllers import GreedyRouter
 
 import flow.networks.base as flownet
 
@@ -53,7 +53,7 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    routing_controller=(GreedyRouter, {}),
+                    #routing_controller=(GreedyRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
                         decel=7.5,  # avoid collisions at emergency stops
@@ -358,6 +358,7 @@ class Network(flownet.Network):
                 else:
                     # states only `r` and `y`
                     _phases[nid][i-1]['states'].append(state)
+        print(_phases)
         return _phases
 
     @lazy_property
