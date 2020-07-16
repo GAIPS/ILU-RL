@@ -404,10 +404,11 @@ class Phase:
 
             step_speed += lane._cached_speeds if 'speed' in self.labels else 0
             step_count += lane._cached_counts if 'count' in self.labels else 0
+            step_delay += lane._cached_delays if 'delay' in self.labels else 0
 
         self._update_speed(step_speed)
         self._update_count(step_count)
-        # self._update_delay(step_delay)
+        self._update_delay(step_delay)
         # self._update_queue(step_queue)
 
         # 4) Update phase's features.
@@ -418,9 +419,13 @@ class Phase:
 
                 test_count = sum([len(vehs) for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
 
+
+                test_delay = sum([len([veh.speed / lane._max_speed < lane._min_speed for veh in vehs])
+                                  for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
                 try:
-                    assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
-                    assert self.count == round(test_count, 2)
+                    # assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
+                    # assert self.count == round(test_count, 2)
+                    assert self.delay == round(test_delay, 2)
                 except AssertionError:
                     import ipdb
                     ipdb.set_trace()
@@ -437,12 +442,10 @@ class Phase:
         # 3) Defines or erases history
         self._cached_speed = 0
         self._cached_count = 0
-        self._cached_delay = None
+        self._cached_delay = 0
         self._cached_queue = None
 
         self._cached_weight = 0
-
-        self._last_update = -1
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -532,9 +535,8 @@ class Phase:
         * Wiering, 2000
             "Multi-agent reinforcement learning for traffic light control."
         """
-        if self._cached_delay is None:
-            return 0.0
-        return round(float(self._cached_delay), 2)
+        w = self._cached_weight
+        return round(float(self._cached_delay / (w + 1)), 2)
 
     @property
     def queue(self):
@@ -582,11 +584,13 @@ class Phase:
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
 
-    def _update_delay(self):
+    def _update_delay(self, step_delay):
         if 'delay' in self.labels:
             # It suffices to get the signal to reset.
-            self._cached_delay  = sum([lane.delay for lane in self.lanes])
-            self._cached_delay  = self._cached_delay / (self._num_updates + 1)
+            # self._cached_delay  = sum([lane.delay for lane in self.lanes])
+            # self._cached_delay  = self._cached_delay / (self._num_updates + 1)
+            w = self._cached_weight
+            self._cached_delay = step_delay + (w > 0) * self._cached_delay
 
     def _update_queue(self):
         if 'queue' in self.labels:
@@ -741,10 +745,11 @@ class Lane:
             step_delays = [v.speed / cap < vt for v in vehs]
 
             # 3) Append or assign delays
-            if duration == len(self._cached_delays):
-                self._cached_delays.append(step_delays)
-            else:
-                self._cached_delays[duration] = step_delays
+            # if duration == len(self._cached_delays):
+            #     self._cached_delays.append(step_delays)
+            # else:
+            #     self._cached_delays[duration] = step_delays
+            self._cached_delays = len(step_delays)
 
 
     @property
@@ -780,7 +785,8 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return sum([_delay for _delays in self._cached_delays for _delay in _delays])
+        # return sum([_delay for _delays in self._cached_delays for _delay in _delays])
+        return self._cached_delays
 
     @property
     def queue(self):
