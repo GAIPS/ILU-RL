@@ -218,7 +218,6 @@ class Intersection:
                               phase_capacity[phase_id])
                         for phase_id, phase_comp in phases.items()]
 
-
     @property
     def tls_id(self):
         return self._tls_id
@@ -339,6 +338,7 @@ class Phase:
         self._lanes = lanes
         self._components = components
         self.cached_features = {}
+        self._first = True
 
     @property
     def phase_id(self):
@@ -376,44 +376,54 @@ class Phase:
         """
         # 1) Ignores updates more than 1 update for given duration.
         # And only updates at the begining of new cycle.
-        if duration != self._last_update:
-            # 2) Stores previous cycle for lag labels.
-            if duration == 0:
-                for label in self.labels:
-                    if 'lag' in label:
-                        derived_label = self._get_derived(label)
-                        self._cached_features[derived_label] = \
-                                        getattr(self, derived_label)
+        # 2) Stores previous cycle for lag labels.
+        if duration == 0:
+            for label in self.labels:
+                if 'lag' in label:
+                    derived_label = self._get_derived(label)
+                    self._cached_features[derived_label] = \
+                                    getattr(self, derived_label)
 
-            # 2) Define a helpful filtering function.
-            def _in(veh, lane):
-                return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
-
-
-            # 3) Update lanes
-            # TODO: investigate generators to solve this feature computation issue.
-            step_speed = []
-            step_count = []
-            step_delay = []
-            step_queue = 0
-            for lane in self.lanes:
-                _vehs = [v for v in vehs if _in(v, lane)]
-                lane.update(duration, _vehs, tls)
+        # 2) Define a helpful filtering function.
+        def _in(veh, lane):
+            return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
 
 
-            # 4) Update phase's features.
-            self._last_update = duration
-            if duration == 0:
-                self._update_speed()
-                self._update_count()
-                self._update_delay()
-                self._update_queue()
-
-                self._num_updates = 0
-            else:
-                self._num_updates += 1
+        # 3) Update lanes
+        # TODO: investigate generators to solve this feature computation issue.
+        step_speed = 0
+        step_count = 0
+        step_delay = 0
+        step_queue = 0
+        self._update_cached_weight(duration)
 
 
+        for lane in self.lanes:
+            _vehs = [v for v in vehs if _in(v, lane)]
+            lane.update(duration, _vehs, tls)
+
+            step_speed += lane._cached_speeds if 'speed' in self.labels else 0
+            step_count += lane._cached_counts if 'count' in self.labels else 0
+
+        self._update_speed(step_speed)
+        self._update_count(step_count)
+        # self._update_delay(step_delay)
+        # self._update_queue(step_queue)
+
+        # 4) Update phase's features.
+        if duration == 0:
+            if self.phase_id == '247123161#0':
+                test_speed = np.nanmean([veh.speed / self._max_speed for lane in self.lanes
+                                      for t, vehs_tls in lane._cache.items() for veh in vehs_tls[0]])
+
+                test_count = sum([len(vehs) for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
+
+                try:
+                    assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
+                    assert self.count == round(test_count, 2)
+                except AssertionError:
+                    import ipdb
+                    ipdb.set_trace()
 
     def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
@@ -425,14 +435,13 @@ class Phase:
         self._cached_features = {}
 
         # 3) Defines or erases history
-        self._cached_speed = None
-        self._cached_count = None
+        self._cached_speed = 0
+        self._cached_count = 0
         self._cached_delay = None
         self._cached_queue = None
 
         self._cached_weight = 0
 
-        self._num_updates = 0
         self._last_update = -1
 
     def feature_map(self, filter_by=None, categorize=False):
@@ -463,9 +472,6 @@ class Phase:
         if categorize:
             ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
 
-        if any(np.isnan(ret)):
-            import ipdb
-            ipdb.set_trace()
         return ret
 
 
@@ -478,10 +484,12 @@ class Phase:
         * speed: float
             The average speed of all cars in the phase
         """
-        # TODO: handle nan case.
-        if self._cached_speed is None or np.isnan(self._cached_speed):
+        if self._cached_count > 0:
+            ret = float(self._cached_speed / self._cached_count)
+            return round(ret, 2)
+        else:
             return 0.0
-        return round(float(self._cached_speed), 2)
+
 
     @property
     def count(self):
@@ -492,9 +500,9 @@ class Phase:
         * count: float
             The average number of vehicles in the approach
         """
-        if self._cached_count is None:
-            return 0.0
-        return round(float(self._cached_count), 2)
+        w = self._cached_weight
+        ret = float(self._cached_count / (w + 1))
+        return round(ret, 2)
 
     @property
     def delay(self):
@@ -560,17 +568,19 @@ class Phase:
 
 
 
-    def _update_speed(self):
-        if 'speed' in self.labels:
-            self._cached_speed = \
-                np.nanmean([vel for lane in self.lanes for vel in lane.speed])
-            self._cached_speed = self._cached_speed
+    def _update_cached_weight(self, duration):
+        """ If duration == 0 then history's weight must be zero."""
+        self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
 
-    def _update_count(self):
+    def _update_speed(self, step_speed):
+        if 'speed' in self.labels:
+            w = self._cached_weight
+            self._cached_speed = step_speed + (w > 0) * self._cached_speed
+
+    def _update_count(self, step_count):
         if 'count' in self.labels:
-            self._cached_count = \
-                np.nansum([count for lane in self.lanes for count in lane.count])
-            self._cached_count = self._cached_count / (self._num_updates + 1)
+            w = self._cached_weight
+            self._cached_count = step_count + (w > 0) * self._cached_count
 
     def _update_delay(self):
         if 'delay' in self.labels:
@@ -653,10 +663,10 @@ class Lane:
     def reset(self):
         """Clears data from previous cycles, define data structures"""
         # Uncomment for validation
-        # self._cache = OrderedDict()
-        self._cached_speeds = []
-        self._cached_counts = []
-        self._cached_delays = []
+        self._cache = OrderedDict()
+        self._cached_speeds = 0
+        self._cached_counts = 0
+        self._cached_delays = 0
         self._last_duration = -1
 
 
@@ -685,7 +695,7 @@ class Lane:
         # cross sectional data or intra time_step data.
         if duration != self._last_duration:
             # 1) Uncomment for validation 
-            # self._cache[duration] = (vehs, tls)
+            self._cache[duration] = (vehs, tls)
             self._last_duration = duration
 
 
@@ -702,21 +712,23 @@ class Lane:
             # 2) Compute speeds
             step_speeds = [v.speed / cap for v in vehs]
 
-            # 3) Append speeds
-            if duration == len(self._cached_speeds):
-                self._cached_speeds.append(step_speeds)
-            else:
-                self._cached_speeds[duration] = step_speeds
+            # # 3) Append speeds
+            # if duration == len(self._cached_speeds):
+            #     self._cached_speeds.append(step_speeds)
+            # else:
+            #     self._cached_speeds[duration] = step_speeds
+            self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
 
 
     def _update_counts(self, duration, vehs):
         """Step update for counts variable"""
         # 1) Compute count @ duration time step
         if 'count' in self.labels:
-            if duration == len(self._cached_counts):
-                self._cached_counts.append(len(vehs))
-            else:
-                self._cached_counts[duration] = len(vehs)
+            # if duration == len(self._cached_counts):
+            #     self._cached_counts.append(len(vehs))
+            # else:
+            #     self._cached_counts[duration] = len(vehs)
+            self._cached_counts = len(vehs)
 
     def _update_delays(self, duration, vehs):
         """Step update for delays variable"""
@@ -743,8 +755,9 @@ class Lane:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        return [vel for step_speeds in self._cached_speeds
-                for vel in step_speeds]
+        # return [vel for step_speeds in self._cached_speeds
+        #         for vel in step_speeds]
+        return self._cached_speeds
 
     @property
     def count(self):
@@ -754,7 +767,8 @@ class Lane:
             count: list<float>
             Is a duration sized list containing the total number of vehicles
         """
-        return [step_count for step_count in self._cached_counts]
+        # return [step_count for step_count in self._cached_counts]
+        return self._cached_counts
 
     @property
     def delay(self):

@@ -71,6 +71,17 @@ class TrafficLightEnv(Env):
 
         self._reset()
 
+    @property
+    def duration(self):
+        if self.time_counter == 0:
+            return 0.0
+
+        if self._duration_counter != self.time_counter:
+            self._duration = \
+                round(self._duration + self.sim_step, 2) % self.cycle_time
+            self._duration_counter = self.time_counter
+        return self._duration
+
     # overrides GYM's observation space
     @property
     def observation_space(self):
@@ -110,7 +121,7 @@ class TrafficLightEnv(Env):
             for tid, durations in self.network.tls_durations.items()
         }
 
-    def update_observation_space(self):
+    def _update_observation_space(self):
         """
         Updates the observation space.
 
@@ -167,20 +178,24 @@ class TrafficLightEnv(Env):
             change for when there aren't any cars
             the state is equivalent to maximum speed
         """
+        # def delay(t):
+        #     return round(
+        #         t - self.sim_step
+        #         if t >= self.sim_step else
+        #         self.cycle_time - self.sim_step
+        #         if self.step_counter > 1 else 0.0, 2)
+        # prev = delay(self.duration)
+        if self._update_counter != self.time_counter:
+            self._update_observation_space()
 
-        def delay(t):
-            return round(
-                t - self.sim_step
-                if t >= self.sim_step else
-                self.cycle_time - self.sim_step
-                if self.step_counter > 1 else 0.0, 2)
-        prev = delay(self.duration)
+            vehs = {nid: {p: snapshots.get(self.duration, [])
+                          for p, snapshots in data.items()}
+                    for nid, data in self.incoming.items()}
 
-        vehs = {nid: {p: snapshots.get(prev, [])
-                      for p, snapshots in data.items()}
-                for nid, data in self.incoming.items()}
 
-        self.observation_space.update(prev, vehs)
+            print('counter', self.step_counter, 'duration', self.duration)
+            self.observation_space.update(self.duration, vehs)
+            self._update_counter = self.time_counter
 
         return self.observation_space
 
@@ -217,7 +232,7 @@ class TrafficLightEnv(Env):
                 provided to the agent
 
         """
-        if self.duration == 0:
+        if self.duration == 0 or self.time_counter == 1:
             action = self.mas.act(state)
         else:
             action = None
@@ -307,12 +322,12 @@ class TrafficLightEnv(Env):
         """
 
         # Update observation space.
-        self.update_observation_space()
+        print('apply_rl_actions', self.step_counter)
+        # self.update_observation_space()
 
         if self.tls_type != 'actuated':
-            if self.duration == 0:
+            if self.duration == 0 or self.time_counter == 1:
                 # New cycle.
-
                 # Get the number of the current cycle.
                 cycle_number = \
                     int(self.step_counter / self.cycle_time)
@@ -342,9 +357,9 @@ class TrafficLightEnv(Env):
             if self.duration == 0:
                 self.observation_space.reset()
 
-        # Update timer.
-        self.duration = \
-            round(self.duration + self.sim_step, 2) % self.cycle_time
+        # # Update timer.
+        # self.duration = \
+        #     round(self.duration + self.sim_step, 2) % self.cycle_time
 
 
 
@@ -404,7 +419,8 @@ class TrafficLightEnv(Env):
         # The 'duration' variable measures the elapsed time since
         # the beggining of the cycle, i.e. it measures (in seconds)
         # for how long the current configuration has been going on.
-        self.duration = 0.0
+        self._duration_counter = -1
+        self._duration = self.time_counter * self.sim_step
 
         self.incoming = {}
 
@@ -422,4 +438,6 @@ class TrafficLightEnv(Env):
 
 
         self.observation_space.reset()
+        # Controls the number of updates
+        self._update_counter = -1
 
