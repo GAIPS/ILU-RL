@@ -178,13 +178,6 @@ class TrafficLightEnv(Env):
             change for when there aren't any cars
             the state is equivalent to maximum speed
         """
-        # def delay(t):
-        #     return round(
-        #         t - self.sim_step
-        #         if t >= self.sim_step else
-        #         self.cycle_time - self.sim_step
-        #         if self.step_counter > 1 else 0.0, 2)
-        # prev = delay(self.duration)
         if self._update_counter != self.time_counter:
             self._update_observation_space()
 
@@ -192,8 +185,6 @@ class TrafficLightEnv(Env):
                           for p, snapshots in data.items()}
                     for nid, data in self.incoming.items()}
 
-
-            print('counter', self.step_counter, 'duration', self.duration)
             self.observation_space.update(self.duration, vehs)
             self._update_counter = self.time_counter
 
@@ -322,7 +313,6 @@ class TrafficLightEnv(Env):
         """
 
         # Update observation space.
-        print('apply_rl_actions', self.step_counter)
         # self.update_observation_space()
 
         if self.tls_type != 'actuated':

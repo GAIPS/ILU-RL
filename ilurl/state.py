@@ -414,41 +414,41 @@ class Phase:
         self._update_queue(step_queue)
 
         # 4) Update phase's features.
-        if duration == 0:
-            if self.phase_id == '247123161#0':
-                test_speed = np.nanmean([veh.speed / self._max_speed for lane in self.lanes
-                                      for t, vehs_tls in lane._cache.items() for veh in vehs_tls[0]])
+        # if duration == 0:
+        #     # if self.phase_id == '247123161#0':
+        #     #     test_speed = np.nanmean([veh.speed / self._max_speed for lane in self.lanes
+        #     #                           for t, vehs_tls in lane._cache.items() for veh in vehs_tls[0]])
 
-                test_count = sum([len(vehs) for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
+        #     #     test_count = sum([len(vehs) for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
 
 
-                test_delay = sum([len([veh.speed / lane._max_speed < lane._min_speed for veh in vehs])
-                                  for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
+        #     #     test_delay = sum([len([veh.speed / lane._max_speed < lane._min_speed for veh in vehs])
+        #     #                       for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
 
-                lane_1 = self.lanes[0]
-                test_queue_1 = max([len([veh.speed / lane_1._max_speed < lane_1._min_speed for veh in vehs])
-                                  for vehs, _ in lane_1._cache.values()])
+        #     #     lane_1 = self.lanes[0]
+        #     #     test_queue_1 = max([len([veh.speed / lane_1._max_speed < lane_1._min_speed for veh in vehs])
+        #     #                       for vehs, _ in lane_1._cache.values()])
 
-                lane_2 = self.lanes[1]
-                test_queue_2 = max([len([veh.speed / lane_2._max_speed < lane_2._min_speed for veh in vehs])
-                                  for vehs, _ in lane_2._cache.values()])
+        #     #     lane_2 = self.lanes[1]
+        #     #     test_queue_2 = max([len([veh.speed / lane_2._max_speed < lane_2._min_speed for veh in vehs])
+        #     #                       for vehs, _ in lane_2._cache.values()])
 
-                lane_3 = self.lanes[2]
-                test_queue_3 = max([len([veh.speed / lane_2._max_speed < lane_3._min_speed for veh in vehs])
-                                  for vehs, _ in lane_3._cache.values()])
+        #     #     lane_3 = self.lanes[2]
+        #     #     test_queue_3 = max([len([veh.speed / lane_2._max_speed < lane_3._min_speed for veh in vehs])
+        #     #                       for vehs, _ in lane_3._cache.values()])
 
-                lane_4 = self.lanes[3]
-                test_queue_4 = max([len([veh.speed / lane_3._max_speed < lane_4._min_speed for veh in vehs])
-                                  for vehs, _ in lane_4._cache.values()])
-                test_queue = max(test_queue_1, test_queue_2, test_queue_3, test_queue_4)
-                try:
-                    # assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
-                    # assert self.count == round(test_count, 2)
-                    # assert self.delay == round(test_delay, 2)
-                    assert self.queue == round(test_queue, 2)
-                except AssertionError:
-                    import ipdb
-                    ipdb.set_trace()
+        #     #     lane_4 = self.lanes[3]
+        #     #     test_queue_4 = max([len([veh.speed / lane_3._max_speed < lane_4._min_speed for veh in vehs])
+        #     #                       for vehs, _ in lane_4._cache.values()])
+        #     #     test_queue = max(test_queue_1, test_queue_2, test_queue_3, test_queue_4)
+        #     #     try:
+        #     #         # assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
+        #     #         # assert self.count == round(test_count, 2)
+        #     #         # assert self.delay == round(test_delay, 2)
+        #     #         assert self.queue == round(test_queue, 2)
+        #     #     except AssertionError:
+        #     #         import ipdb
+        #     #         ipdb.set_trace()
 
     def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
