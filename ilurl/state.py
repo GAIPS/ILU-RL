@@ -383,6 +383,7 @@ class Phase:
                     derived_label = self._get_derived(label)
                     self._cached_features[derived_label] = \
                                     getattr(self, derived_label)
+                    print(self._cached_features[derived_label])
 
         # 2) Define a helpful filtering function.
         def _in(veh, lane):
@@ -402,14 +403,15 @@ class Phase:
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
 
-            step_speed += lane._cached_speeds if 'speed' in self.labels else 0
-            step_count += lane._cached_counts if 'count' in self.labels else 0
-            step_delay += lane._cached_delays if 'delay' in self.labels else 0
+            step_speed += lane.speed if 'speed' in self.labels else 0
+            step_count += lane.count if 'count' in self.labels else 0
+            step_delay += lane.delay if 'delay' in self.labels else 0
+            step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
 
         self._update_speed(step_speed)
         self._update_count(step_count)
         self._update_delay(step_delay)
-        # self._update_queue(step_queue)
+        self._update_queue(step_queue)
 
         # 4) Update phase's features.
         if duration == 0:
@@ -422,10 +424,28 @@ class Phase:
 
                 test_delay = sum([len([veh.speed / lane._max_speed < lane._min_speed for veh in vehs])
                                   for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
+
+                lane_1 = self.lanes[0]
+                test_queue_1 = max([len([veh.speed / lane_1._max_speed < lane_1._min_speed for veh in vehs])
+                                  for vehs, _ in lane_1._cache.values()])
+
+                lane_2 = self.lanes[1]
+                test_queue_2 = max([len([veh.speed / lane_2._max_speed < lane_2._min_speed for veh in vehs])
+                                  for vehs, _ in lane_2._cache.values()])
+
+                lane_3 = self.lanes[2]
+                test_queue_3 = max([len([veh.speed / lane_2._max_speed < lane_3._min_speed for veh in vehs])
+                                  for vehs, _ in lane_3._cache.values()])
+
+                lane_4 = self.lanes[3]
+                test_queue_4 = max([len([veh.speed / lane_3._max_speed < lane_4._min_speed for veh in vehs])
+                                  for vehs, _ in lane_4._cache.values()])
+                test_queue = max(test_queue_1, test_queue_2, test_queue_3, test_queue_4)
                 try:
                     # assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
                     # assert self.count == round(test_count, 2)
-                    assert self.delay == round(test_delay, 2)
+                    # assert self.delay == round(test_delay, 2)
+                    assert self.queue == round(test_queue, 2)
                 except AssertionError:
                     import ipdb
                     ipdb.set_trace()
@@ -443,7 +463,7 @@ class Phase:
         self._cached_speed = 0
         self._cached_count = 0
         self._cached_delay = 0
-        self._cached_queue = None
+        self._cached_queue = 0
 
         self._cached_weight = 0
 
@@ -564,8 +584,6 @@ class Phase:
             "Reinforcement learning for true adaptive traffic signal
             control."
         """
-        if self._cached_queue is None:
-            return 0.0
         return round(float(self._cached_queue), 2)
 
 
@@ -586,22 +604,21 @@ class Phase:
 
     def _update_delay(self, step_delay):
         if 'delay' in self.labels:
-            # It suffices to get the signal to reset.
-            # self._cached_delay  = sum([lane.delay for lane in self.lanes])
-            # self._cached_delay  = self._cached_delay / (self._num_updates + 1)
             w = self._cached_weight
             self._cached_delay = step_delay + (w > 0) * self._cached_delay
 
-    def _update_queue(self):
+    def _update_queue(self, step_queue):
         if 'queue' in self.labels:
-            self._cached_queue  = max([lane.queue for lane in self.lanes])
+            w = self._cached_weight
+            self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
+            print('queue_t', step_queue, 'queue_cached', self._cached_queue, w)
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
         if 'lag' in label:
             derived_feature = \
                 self._matcher.search(label).groups()[0]
-            return self._cached_features[derived_feature]
+            return self._cached_features.get(derived_feature, 0.0)
         return getattr(self, label)
 
     def _get_derived(self, label):
@@ -615,6 +632,7 @@ class Phase:
     def _digitize(self, value, label):
         _bins = self._bins[self._get_derived(label)]
         return int(np.digitize(value, bins=_bins))
+
 
 class Lane:
     """ Represents a lane within an edge.
@@ -703,11 +721,11 @@ class Lane:
             self._last_duration = duration
 
 
-            self._update_speeds(int(duration), vehs)
-            self._update_counts(int(duration), vehs)
-            self._update_delays(int(duration), vehs)
+            self._update_speeds(vehs)
+            self._update_counts(vehs)
+            self._update_delays(vehs)
 
-    def _update_speeds(self, duration, vehs):
+    def _update_speeds(self, vehs):
         """Step update for speeds variable"""
         if 'speed' in self.labels:
             # 1) Normalization factor
@@ -716,25 +734,16 @@ class Lane:
             # 2) Compute speeds
             step_speeds = [v.speed / cap for v in vehs]
 
-            # # 3) Append speeds
-            # if duration == len(self._cached_speeds):
-            #     self._cached_speeds.append(step_speeds)
-            # else:
-            #     self._cached_speeds[duration] = step_speeds
             self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
 
 
-    def _update_counts(self, duration, vehs):
+    def _update_counts(self, vehs):
         """Step update for counts variable"""
         # 1) Compute count @ duration time step
         if 'count' in self.labels:
-            # if duration == len(self._cached_counts):
-            #     self._cached_counts.append(len(vehs))
-            # else:
-            #     self._cached_counts[duration] = len(vehs)
             self._cached_counts = len(vehs)
 
-    def _update_delays(self, duration, vehs):
+    def _update_delays(self, vehs):
         """Step update for delays variable"""
         if 'delay' in self.labels or 'queue' in self.labels:
             # 1) Normalization factor and threshold
@@ -743,14 +752,7 @@ class Lane:
 
             # 2) Compute delays
             step_delays = [v.speed / cap < vt for v in vehs]
-
-            # 3) Append or assign delays
-            # if duration == len(self._cached_delays):
-            #     self._cached_delays.append(step_delays)
-            # else:
-            #     self._cached_delays[duration] = step_delays
             self._cached_delays = len(step_delays)
-
 
     @property
     def speed(self):
@@ -760,8 +762,6 @@ class Lane:
             speeds: list<float>
             Is a duration sized list containing averages
         """
-        # return [vel for step_speeds in self._cached_speeds
-        #         for vel in step_speeds]
         return self._cached_speeds
 
     @property
@@ -772,7 +772,6 @@ class Lane:
             count: list<float>
             Is a duration sized list containing the total number of vehicles
         """
-        # return [step_count for step_count in self._cached_counts]
         return self._cached_counts
 
     @property
@@ -785,7 +784,6 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        # return sum([_delay for _delays in self._cached_delays for _delay in _delays])
         return self._cached_delays
 
     @property
@@ -798,4 +796,4 @@ class Lane:
             Is a duration sized list containing the total number of slow moving
             vehicles.
         """
-        return max([sum(_delays) for _delays in self._cached_delays])
+        return self._cached_delays
