@@ -331,14 +331,11 @@ class Phase:
         for _component in phase_data['components']:
             edge_id, lane_ids = _component
             for lane_id in lane_ids:
-                components.append((edge_id, lane_id))
                 lanes.append(
                     Lane(mdp_params, edge_id, lane_id, self._max_speed))
 
         self._lanes = lanes
-        self._components = components
         self.cached_features = {}
-        self._first = True
 
     @property
     def phase_id(self):
@@ -347,10 +344,6 @@ class Phase:
     @property
     def labels(self):
         return self._labels
-
-    @property
-    def components(self):
-        return self._components
 
     @property
     def lanes(self):
@@ -383,7 +376,6 @@ class Phase:
                     derived_label = self._get_derived(label)
                     self._cached_features[derived_label] = \
                                     getattr(self, derived_label)
-                    print(self._cached_features[derived_label])
 
         # 2) Define a helpful filtering function.
         def _in(veh, lane):
@@ -412,43 +404,6 @@ class Phase:
         self._update_count(step_count)
         self._update_delay(step_delay)
         self._update_queue(step_queue)
-
-        # 4) Update phase's features.
-        # if duration == 0:
-        #     # if self.phase_id == '247123161#0':
-        #     #     test_speed = np.nanmean([veh.speed / self._max_speed for lane in self.lanes
-        #     #                           for t, vehs_tls in lane._cache.items() for veh in vehs_tls[0]])
-
-        #     #     test_count = sum([len(vehs) for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
-
-
-        #     #     test_delay = sum([len([veh.speed / lane._max_speed < lane._min_speed for veh in vehs])
-        #     #                       for lane in self.lanes for vehs, _ in lane._cache.values()]) / 90
-
-        #     #     lane_1 = self.lanes[0]
-        #     #     test_queue_1 = max([len([veh.speed / lane_1._max_speed < lane_1._min_speed for veh in vehs])
-        #     #                       for vehs, _ in lane_1._cache.values()])
-
-        #     #     lane_2 = self.lanes[1]
-        #     #     test_queue_2 = max([len([veh.speed / lane_2._max_speed < lane_2._min_speed for veh in vehs])
-        #     #                       for vehs, _ in lane_2._cache.values()])
-
-        #     #     lane_3 = self.lanes[2]
-        #     #     test_queue_3 = max([len([veh.speed / lane_2._max_speed < lane_3._min_speed for veh in vehs])
-        #     #                       for vehs, _ in lane_3._cache.values()])
-
-        #     #     lane_4 = self.lanes[3]
-        #     #     test_queue_4 = max([len([veh.speed / lane_3._max_speed < lane_4._min_speed for veh in vehs])
-        #     #                       for vehs, _ in lane_4._cache.values()])
-        #     #     test_queue = max(test_queue_1, test_queue_2, test_queue_3, test_queue_4)
-        #     #     try:
-        #     #         # assert self.speed == 0 if np.isnan(test_speed) else round(test_speed, 2)
-        #     #         # assert self.count == round(test_count, 2)
-        #     #         # assert self.delay == round(test_delay, 2)
-        #     #         assert self.queue == round(test_queue, 2)
-        #     #     except AssertionError:
-        #     #         import ipdb
-        #     #         ipdb.set_trace()
 
     def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
@@ -586,8 +541,6 @@ class Phase:
         """
         return round(float(self._cached_queue), 2)
 
-
-
     def _update_cached_weight(self, duration):
         """ If duration == 0 then history's weight must be zero."""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
@@ -611,7 +564,6 @@ class Phase:
         if 'queue' in self.labels:
             w = self._cached_weight
             self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
-            print('queue_t', step_queue, 'queue_cached', self._cached_queue, w)
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
@@ -685,7 +637,7 @@ class Lane:
     def reset(self):
         """Clears data from previous cycles, define data structures"""
         # Uncomment for validation
-        self._cache = OrderedDict()
+        # self._cache = OrderedDict()
         self._cached_speeds = 0
         self._cached_counts = 0
         self._cached_delays = 0
@@ -717,7 +669,7 @@ class Lane:
         # cross sectional data or intra time_step data.
         if duration != self._last_duration:
             # 1) Uncomment for validation 
-            self._cache[duration] = (vehs, tls)
+            # self._cache[duration] = (vehs, tls)
             self._last_duration = duration
 
 

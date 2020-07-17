@@ -138,7 +138,7 @@ class TrafficLightEnv(Env):
                     TLS phase
 
             3rd order (inner) keys: float
-                    frame_id of observations ranging from 0 to duration 
+                    frame_id of observations ranging from 0 to duration
 
             values: list
                     vehicle ids and speeds for the given TLS, phase and edges
@@ -312,9 +312,6 @@ class TrafficLightEnv(Env):
         rl_actions: list of actions or None
         """
 
-        # Update observation space.
-        # self.update_observation_space()
-
         if self.tls_type != 'actuated':
             if self.duration == 0 or self.time_counter == 1:
                 # New cycle.
@@ -346,11 +343,6 @@ class TrafficLightEnv(Env):
         else:
             if self.duration == 0:
                 self.observation_space.reset()
-
-        # # Update timer.
-        # self.duration = \
-        #     round(self.duration + self.sim_step, 2) % self.cycle_time
-
 
 
     def _apply_cl_actions(self, cl_actions):
