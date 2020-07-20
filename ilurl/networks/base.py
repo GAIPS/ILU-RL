@@ -358,7 +358,6 @@ class Network(flownet.Network):
                 else:
                     # states only `r` and `y`
                     _phases[nid][i-1]['states'].append(state)
-        print(_phases)
         return _phases
 
     @lazy_property
