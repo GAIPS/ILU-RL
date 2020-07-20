@@ -126,8 +126,8 @@ class Experiment:
         vels = []
         vehs = []
 
-        veh_i = []
-        vel_i = []
+        veh_ids = []
+        veh_speeds = []
 
         agent_updates_counter = 0
 
@@ -145,13 +145,11 @@ class Experiment:
 
             state, reward, done, _ = self.env.step(rl_actions(state))
 
-            veh_i.append(len(self.env.k.vehicle.get_ids()))
-            vel_i.append(
-                np.nanmean(self.env.k.vehicle.get_speed(
-                    self.env.k.vehicle.get_ids()
-                    )
-                )
-            )
+            step_ids = self.env.k.vehicle.get_ids()
+            step_speeds = [s for s in self.env.k.vehicle.get_speed(step_ids) if s > 0]
+
+            veh_ids.append(len(step_speeds))
+            veh_speeds.append(np.nanmean(step_speeds))
 
             if self._is_save_step():
 
@@ -160,10 +158,10 @@ class Experiment:
 
                 rewards.append(reward)
 
-                vehs.append(np.nanmean(veh_i).round(4))
-                vels.append(np.nanmean(vel_i).round(4))
-                veh_i = []
-                vel_i = []
+                vehs.append(np.nanmean(veh_ids).round(4))
+                vels.append(np.nanmean(veh_speeds).round(4))
+                veh_ids = []
+                veh_speeds = []
 
                 agent_updates_counter += 1
 
