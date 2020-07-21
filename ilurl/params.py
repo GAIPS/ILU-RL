@@ -650,36 +650,3 @@ class InFlows(flow_params.InFlows,Printable):
         params = sorted(params, key=lambda x: x[1]['begin'])
         for args, kwargs in params:
             self.add(*args, **kwargs)
-
-
-class NetParams(flow_params.NetParams,Printable):
-    """Extends NetParams to work with saved templates."""
-
-    @classmethod
-    def load(cls, network_id, route_path):
-        """Loads parameters from net {network_id} and
-            routes from {route_path}.
-
-        Params:
-        -------
-        *   network_id: string
-            standard {network_id}.net.xml file, ex: `intersection`
-            see data/networks for a list
-        *   route_path: string
-            valid path on disk for a *.rou.xml file
-
-        Returns:
-        -------
-        *   ilurl.core.params.NetParams
-            network parameters SEE parent
-        """
-        net_path = get_path(network_id, 'net')
-        vtype_path = get_vehicle_types()
-
-        return cls(
-            template={
-                'net': net_path,
-                'vtype': vtype_path,
-                'rou': [route_path]
-            }
-        )
