@@ -52,14 +52,13 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    # routing_controller=(GreedyRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
-                        decel=7.5,  # avoid collisions at emergency stops
+                        decel=7.5,  # Avoid collisions at emergency stops.
                     ),
-                    # lane_change_params=SumoLaneChangeParams(
-                    #     lane_change_mode='strategic' # TODO: Check whether this is really needed.
-                    # )
+                    lane_change_params=SumoLaneChangeParams(
+                        lane_change_mode='strategic'
+                    )
                 )
 
             inflows = InFlows(network_id,

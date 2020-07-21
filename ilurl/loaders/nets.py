@@ -83,35 +83,58 @@ def get_routes(network_id):
         ------
         2020-05-06: Before routes were equiprobable.
     """
-    # Parse xml to recover all generated routes
+    # Parse xml to recover all generated routes.
     routes = get_generic_element(network_id, 'vehicle/route',
                                  file_type='rou', key='edges')
 
-   
-    # unique routes as array of arrays
+    # Unique routes as array of arrays.
     routes = [rou.split(' ') for rou in set(routes)]
 
-    # starting edges
+    # Starting edges.
     keys = {rou[0] for rou in routes}
 
-    # match routes to it's starting edges
+    # Match routes to it's starting edges.
     routes = {k: sorted([r for r in routes if k == r[0]])
               for k in sorted(keys)}
 
-    # weight every route by the min. number of lanes.
-    # convert list of edges into dict
+    # Get connections.
+    connections = get_connections(network_id)
+    connections = {(item['from'], item['to']): item for item in connections}
+
+    # Get the number of lanes for each edge. 
     edge_lanes = {e['id']: e['numLanes'] for e in get_edges(network_id)}
+
+    def softmax(x, temp=1):
+        return np.exp(x/temp) / np.sum(np.exp(x/temp))
+
+    # Weight routes.
     weighted_routes = OrderedDict()
     for start, paths in routes.items():
-        weight_paths = []
-        weight_source = 0
-        for path in paths:
-            weight = np.mean([edge_lanes[eid] for eid in path])
-            weight = pow(4, weight)
-            weight_paths.append((path, weight))
-            weight_source += weight
 
-        weighted_routes[start] = [(p, w / weight_source) for p, w in weight_paths]
+        weights = []
+
+        for path in paths:
+
+            # Criteria: Number of turns belonging to the path.
+            counter_turns = 0
+            for orig, dest in zip(path, path[1:]):
+                if connections[(orig, dest)]['dir'] != 's':
+                    counter_turns += 1
+            
+            # Path's weight.
+            weight = 1 / (counter_turns + 1)
+            weights.append(weight)
+
+        weights = list(softmax(np.array(weights), temp=0.25))
+
+        weighted_routes[start] = [(p, w) for p, w in zip(paths, weights)] 
+
+    # print('-'*20)
+    # for start, routes in weighted_routes.items():
+    #     print(f'\nSTART: {start}')
+    #     for route, weight in routes:
+    #         print(f'\tRoute: {route}, Weight: {weight}')
+
     return weighted_routes
 
 
