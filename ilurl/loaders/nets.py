@@ -104,7 +104,7 @@ def get_routes(network_id):
     # Get the number of lanes for each edge. 
     edge_lanes = {e['id']: e['numLanes'] for e in get_edges(network_id)}
 
-    def softmax(x, temp=1):
+    def softmax(x, temp=0.20):
         return np.exp(x/temp) / np.sum(np.exp(x/temp))
 
     # Weight routes.
@@ -125,7 +125,7 @@ def get_routes(network_id):
             weight = 1 / (counter_turns + 1)
             weights.append(weight)
 
-        weights = list(softmax(np.array(weights), temp=0.25))
+        weights = list(softmax(np.array(weights), temp=0.20))
 
         weighted_routes[start] = [(p, w) for p, w in zip(paths, weights)] 
 
