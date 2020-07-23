@@ -125,7 +125,8 @@ def get_routes(network_id):
             weight = 1 / (counter_turns + 1)
             weights.append(weight)
 
-        weights = list(softmax(np.array(weights), temp=0.20))
+        t = -0.005 * (len(weights) - 10) + 0.2
+        weights = list(softmax(np.array(weights), temp=t))
 
         weighted_routes[start] = [(p, w) for p, w in zip(paths, weights)] 
 
