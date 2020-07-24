@@ -1,4 +1,4 @@
-"""Implementation of rewards to be used on state space
+"""Implementation of rewards to be used on features space
     
     TODO: Move from strategy pattern to pure-functional
         implementation
@@ -28,10 +28,10 @@ def get_rewards():
     -----
     > names, objs = get_rewards()
     > names
-    > ('MaxSpeedCountReward', 'MinDelayReward')
+    > ('reward_max_speed_count', reward_min_delay')
     > objs
-    > (<class 'ilurl.core.rewards.MaxSpeedCountReward'>,
-       <class 'ilurl.core.rewards.MinDelayReward'>)
+    > (<function ilurl.rewards.reward_max_speed_count(state, *args)>,
+       <function ilurl.rewards.reward_min_delay(state, *args)>)
     """
     this = modules[__name__]
     names, funcs = [], []
@@ -53,12 +53,12 @@ def build_rewards(mdp_params):
     Params:
     ------
     * mdp_params: ilurl.core.params.MDPParams
-        mdp specify: agent, states, rewards, gamma and learning params
+        mdp specify: agent, state, rewards, gamma and learning params
 
     Returns:
     --------
     * reward: function(state)
-        generates a reward function that receives state as input
+        generates a reward function that receives state input
 
     """
     target = mdp_params.reward
@@ -66,33 +66,22 @@ def build_rewards(mdp_params):
     if target not in names:
         raise ValueError(f'build_rewards: {target} not in {names}')
 
-    if target == 'reward_max_speed_count':
-        # instantiate every scope variable
-        target_velocity = mdp_params.target_velocity
-
-        def r(x, *args):
-            return reward_max_speed_count(target_velocity, x, *args)
-
-    else:
-        idx = names.index(target)
-        fn = funcs[idx]
-
-        def r(x, *args):
-            return fn(x, *args)
+    idx = names.index(target)
+    fn = funcs[idx]
 
     # Rescale rewards.
     def ret(x, *args):
-        return rescale_rewards(r(x, *args), scale_factor=mdp_params.reward_rescale)
+        return rescale_rewards(fn(x, *args), scale_factor=mdp_params.reward_rescale)
 
     return ret
 
 
-def reward_max_speed_count(target_velocity, states, *args):
+def reward_max_speed_count(state, *args):
     """Max. Speed and Count
 
     Params:
     ------
-    * state: ilurl.core.StateCollection
+    * state: ilurl.state.State
         StateCollection containing --
             ilurl.core.SpeedState and
             ilurl.core.CountState
@@ -106,25 +95,16 @@ def reward_max_speed_count(target_velocity, states, *args):
     ----------
 
     """
-    speeds_counts = states.feature_map(
+    # 1) Splits speed & count
+    speeds_counts = state.feature_map(
         filter_by=('speed', 'count'),
         split=True
     )
 
-    ret = {}
-    for k, v in speeds_counts.items():
-        speeds, counts = v
+    # 2) Iterate wrt agents:
+    # Unpacks & performs -<speed, count>.
+    ret = {k:-np.dot(*v) for k, v in speeds_counts.items()}
 
-        if sum(counts) <= 0:
-            reward = 0
-        else:
-            max_cost = \
-                np.array([target_velocity] * len(speeds))
-
-            reward = \
-                -np.maximum(max_cost - speeds, 0).dot(counts)
-
-        ret[k] = reward
     return ret
 
 
@@ -135,7 +115,7 @@ def reward_min_delay(state, *args):
 
     Params:
     ------
-    * state: ilurl.core.DelayState
+    * state: ilurl.state.State
         captures the delay experiened by phases.
 
     Returns:
@@ -177,8 +157,8 @@ def reward_min_queue_squared(state):
 
     Params:
     ------
-    * state: ilurl.core.QueueState
-        queue state has the maximum length lane.
+    * state: ilurl.state.State
+        queue features has the maximum length lane.
 
     Returns:
     --------

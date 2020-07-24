@@ -57,7 +57,6 @@ class MDPParams(Printable):
                  category_times: List[int] = [1, 10],
                 reward: str = 'reward_max_speed_count',
                 reward_rescale: float = 1.0,
-                target_velocity: float = 1.0,
                 time_period: int = None,
                 velocity_threshold = None,
             ):
@@ -92,9 +91,6 @@ class MDPParams(Printable):
 
         * reward_rescale: float
             Reward rescaling factor.
-
-        * target_velocity: float
-            Additional parameter used in the reward computation.
 
         * velocity_threshold: float
             Additional parameter used in the reward computation.
