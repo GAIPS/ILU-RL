@@ -48,7 +48,7 @@ class QL(AgentWorker, AgentInterface):
         self._name = ql_params.name
 
         # Whether learning stopped.
-        self.stop = False
+        self._stop = False
 
         # Learning rate.
         self.learning_rate = PowerSchedule(
@@ -104,7 +104,7 @@ class QL(AgentWorker, AgentInterface):
         self._stop = stop
 
     def act(self, s):
-        if self.stop:
+        if self._stop:
             # Argmax greedy choice.
             actions, values = zip(*self.Q[s].items())
             choosen, _ = choice_eps_greedy(actions, values, 0)
@@ -129,7 +129,7 @@ class QL(AgentWorker, AgentInterface):
         return int(choosen)
 
     def update(self, s, a, r, s1):
-        if not self.stop:
+        if not self._stop:
 
             if self.replay_buffer:
                 self.memory.add(s, a, r, s1, 0.0)
