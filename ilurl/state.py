@@ -681,10 +681,12 @@ class Lane:
         """Step update for speeds variable"""
         if 'speed' in self.labels:
             # 1) Normalization factor
-            cap = self._max_speed if self._normalize else 1
+            max_speed = self._max_speed
+            cap = max_speed if self._normalize else 1
 
-            # 2) Compute speeds
-            step_speeds = [v.speed / cap for v in vehs]
+            # 2) Compute relative speeds:
+            # Max prevents relative performance
+            step_speeds = [max(max_speed - v.speed, 0) / cap for v in vehs]
 
             self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
 

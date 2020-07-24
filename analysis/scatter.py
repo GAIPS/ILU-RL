@@ -75,7 +75,6 @@ if __name__ == '__main__':
 
     phases = defaultdict(list)
     labels = []
-    desired_velocity = None
     category_speeds = None
     category_counts = None
     output_json = glob(f'{exp_dir}*{ext}')[0]
@@ -102,9 +101,6 @@ if __name__ == '__main__':
     labels = ql_params.states_labels
 
     additional_params = env_params.additional_params
-    if 'target_velocity' in additional_params:
-        desired_velocity = \
-            additional_params['target_velocity']
 
     category_speeds = ql_params.category_speeds
 
@@ -123,10 +119,6 @@ if __name__ == '__main__':
         elif i == 1:
             ax.set_ylabel(label)
 
-
-    ax.axvline(x=desired_velocity,
-               markerfacecoloralt='tab:purple',
-               label='target velocity')
 
     ax.vlines(category_speeds, 0, 1,
               transform=ax.get_xaxis_transform(),
