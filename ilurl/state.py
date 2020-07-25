@@ -315,6 +315,7 @@ class Phase:
         self._labels = mdp_params.features
         self._max_speed, self._max_count =  max_capacity
         self._matcher = re.compile('\[(.*?)\]')
+        self._lagged = any('lag' in lbl for lbl in mdp_params.features)
 
         # 2) Get categorization bins.
         # fn: extracts category_<feature_name>s from mdp_params
@@ -349,6 +350,10 @@ class Phase:
     def lanes(self):
         return self._lanes
 
+    @property
+    def lagged(self):
+        return self._lagged
+
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
 
@@ -367,22 +372,12 @@ class Phase:
             * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
                 Container for traffic light program representation
         """
-        # 1) Ignores updates more than 1 update for given duration.
-        # And only updates at the begining of new cycle.
-        # 2) Stores previous cycle for lag labels.
-        if duration == 0:
-            for label in self.labels:
-                if 'lag' in label:
-                    derived_label = self._get_derived(label)
-                    self._cached_features[derived_label] = \
-                                    getattr(self, derived_label)
-
-        # 2) Define a helpful filtering function.
+        # 1) Define a helpful filtering function.
         def _in(veh, lane):
             return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
 
 
-        # 3) Update lanes
+        # 2) Update lanes
         # TODO: investigate generators to solve this feature computation issue.
         step_speed = 0
         step_count = 0
@@ -405,6 +400,9 @@ class Phase:
         self._update_delay(step_delay)
         self._update_queue(step_queue)
 
+        # 3) Stores previous cycle for lag labels.
+        self._update_lag(duration)
+
     def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
         # 1) Communicates update for every lane
@@ -412,7 +410,11 @@ class Phase:
             lane.reset()
 
         # 2) Erases previous cycle's memory
-        self._cached_features = {}
+        # Two memories are necessary:
+        # (i) store values for next cycle.
+        # (ii) preserve values for current cycle.
+        self._cached_store = {}
+        self._cached_apply = {}
 
         # 3) Defines or erases history
         self._cached_speed = 0
@@ -425,6 +427,7 @@ class Phase:
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
 
+            This method must be called in every scyle
         Params:
         -------
             * filter_by: list<str>
@@ -565,12 +568,23 @@ class Phase:
             w = self._cached_weight
             self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
 
+    def _update_lag(self, duration):
+        """`rotates` the cached features
+            (i) previous cycle's stored features go to apply.
+            (ii) current cycle's features go to store.
+        """
+        if duration == 0 and self.lagged:
+            derived_features = [self._get_derived(lbl) for lbl in self.labels if 'lag' in lbl]
+            self._cached_apply.update(self._cached_store)
+            self._cached_store = {f: getattr(self, f) for f in derived_features}
+
+
     def _get_feature_by(self, label):
         """Returns feature by label"""
         if 'lag' in label:
             derived_feature = \
                 self._matcher.search(label).groups()[0]
-            return self._cached_features.get(derived_feature, 0.0)
+            return self._cached_apply.get(derived_feature, 0.0)
         return getattr(self, label)
 
     def _get_derived(self, label):
@@ -584,7 +598,6 @@ class Phase:
     def _digitize(self, value, label):
         _bins = self._bins[self._get_derived(label)]
         return int(np.digitize(value, bins=_bins))
-
 
 class Lane:
     """ Represents a lane within an edge.
