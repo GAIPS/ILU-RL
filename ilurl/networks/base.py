@@ -7,19 +7,18 @@ from itertools import groupby
 from copy import deepcopy
 from collections import defaultdict
 
-# Network related parameters
 from flow.core.params import InitialConfig, TrafficLightParams
 from flow.core.params import (VehicleParams, SumoCarFollowingParams,
                             SumoLaneChangeParams)
-#from ilurl.controllers.routing_controllers import GreedyRouter
-
+from flow.core.params import NetParams
 import flow.networks.base as flownet
 
 from ilurl.utils.properties import lazy_property
-from ilurl.params import InFlows, NetParams
+from ilurl.params import InFlows
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
                                 get_types, get_tls_custom)
+#from ilurl.controllers.routing_controllers import GreedyRouter
 
 
 class Network(flownet.Network):
@@ -53,13 +52,12 @@ class Network(flownet.Network):
                 vehicles = VehicleParams()
                 vehicles.add(
                     veh_id="human",
-                    #routing_controller=(GreedyRouter, {}),
                     car_following_params=SumoCarFollowingParams(
                         min_gap=2.5,
-                        decel=7.5,  # avoid collisions at emergency stops
+                        decel=7.5,  # Avoid collisions at emergency stops.
                     ),
                     lane_change_params=SumoLaneChangeParams(
-                        lane_change_mode='strategic' # TODO: Check whether this is really needed.
+                        lane_change_mode='strategic'
                     )
                 )
 

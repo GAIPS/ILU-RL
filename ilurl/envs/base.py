@@ -5,9 +5,7 @@ from flow.envs.base import Env
 from ilurl.envs.elements import build_vehicles
 from ilurl.state import State
 from ilurl.rewards import build_rewards
-
 from ilurl.utils.properties import lazy_property
-
 # TODO: make this a factory in the future.
 from ilurl.mas.decentralized import DecentralizedMAS
 
@@ -52,7 +50,7 @@ class TrafficLightEnv(Env):
         # Problem formulation params.
         self.mdp_params = mdp_params
 
-        # Object that handles the Multi-Agent RL System logic.
+        # Object that handles the Multi-Agent RL system logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
         self.mas = DecentralizedMAS(mdp_params, exp_path, seed)
@@ -121,84 +119,35 @@ class TrafficLightEnv(Env):
             for tid, durations in self.network.tls_durations.items()
         }
 
-    def _update_observation_space(self):
-        """
-        Updates the observation space.
-
-        Assumes that each traffic light carries a speed sensor.
-        (counts and speeds)
-
-        Updates the following data structures:
-
-        * incoming: nested dict
-            1st order (outer) keys: int
-                    traffic_light_id
-
-            2nd order keys: int
-                    TLS phase
-
-            3rd order (inner) keys: float
-                    frame_id of observations ranging from 0 to duration
-
-            values: list
-                    vehicle ids and speeds for the given TLS, phase and edges
-
-            """
-
-        for node_id in self.tls_ids:
-            for phase, data in self.tls_phases[node_id].items():
-                vehs = build_vehicles(node_id, data['components'],
-                                      self.k.vehicle)
-                self.incoming[node_id][phase][self.duration] = vehs
-
     def get_observation_space(self):
-        """
-        Consolidates the observation space.
-        Aggregates all data belonging to a complete cycle.
+        """ Query kernel to retrieve vehicles' information
+        and send it to ilurl.State object for state computation.
 
-        Update:
-        ------
-        observation space is now a 3 level hierarchial dict:
+        Returns:
+        -------
+        observation_space: ilurl.State object
 
-            *   intersection: dict
-                the top most represents the traffic lights
-                (traffic_light_id)
-
-            *   phases: dict
-                the second layer represents the phases components
-                for each intersection/traffic light
-
-            *   values: list
-                the third and final layer represents the variables
-                being observed by the agent
-
-        WARNING:
-            when all cars are dispatched the
-            state will be encoded with speed zero --
-            change for when there aren't any cars
-            the state is equivalent to maximum speed
         """
         if self._update_counter != self.time_counter:
-            self._update_observation_space()
 
-            vehs = {nid: {p: snapshots.get(self.duration, [])
-                          for p, snapshots in data.items()}
-                    for nid, data in self.incoming.items()}
+            # Query kernel and retrieve vehicles' data.
+            vehs = {nid: {p: build_vehicles(nid, data['components'], self.k.vehicle)
+                        for p, data in self.tls_phases[nid].items()}
+                            for nid in self.tls_ids}
 
             self.observation_space.update(self.duration, vehs)
+
             self._update_counter = self.time_counter
 
         return self.observation_space
 
     def get_state(self):
-        """
-        Return the state of the simulation as perceived by the RL agent.
+        """ Return the state of the simulation as perceived by the RL agent(s).
 
         Returns:
         -------
-        state : array_like
-            information on the state of the vehicles, which is provided to the
-            agent
+        state : dict
+
         """
         obs = self.get_observation_space().feature_map(
             categorize=self.mdp_params.discretize_state_space,
@@ -207,44 +156,38 @@ class TrafficLightEnv(Env):
         return obs
 
     def rl_actions(self, state):
-        """
-        Return the selected action given the state of the environment.
+        """ Return the selected action(s) given the state of the environment.
 
-        Params:
-        ------
-            state : dict
-            information on the state of the vehicles, which is provided to the
+        Parameters:
+        ----------
+        state : dict
+            Information on the state of the vehicles, which is provided to the
             agent
 
         Returns:
         -------
-            action : array_like
-                information on the state of the vehicles, which is
-                provided to the agent
+        actions: dict
 
         """
-        if self.duration == 0 or self.time_counter == 1:
-            action = self.mas.act(state)
-        else:
-            action = None
-
-        return action
+        return self.mas.act(state) # Delegate to Multi-Agent System.
 
     def cl_actions(self, static=False):
-        """Executes the control action according to a program
+        """ Executes the control actions.
 
-        Params:
-        ------
-            * static: boolean
-                If true execute the default program or change states at
-                duration == tls_durations for each tls.
-                Otherwise; (i) fetch the rl_action, (ii) fetch program,
-                (iii) execute control action for program
+        Parameters:
+        ----------
+        static: boolean
+            If true execute the default program or change states at
+            duration == tls_durations for each tls.
+            Otherwise; (i) fetch the rl_action, (ii) fetch program,
+            (iii) execute control action for program
+
         Returns:
         -------
-            * cl_actions: tuple<bool>
-                False;  duration<state_k> < duration < duration<state_k+1>
-                True;  duration == duration<state_k+1>
+        cl_actions: tuple<bool>
+            False;  duration<state_k> < duration < duration<state_k+1>
+            True;  duration == duration<state_k+1>
+
         """
         ret = []
         dur = int(self.duration)
@@ -304,17 +247,19 @@ class TrafficLightEnv(Env):
         return tuple(ret)
 
     def apply_rl_actions(self, rl_actions):
-        """
-        Specify the actions to be performed by the RL agent(s).
+        """ Specify the actions to be performed.
 
         Parameters:
         ----------
-        rl_actions: list of actions or None
-        """
+        rl_actions: dict or None
+            actions to be performed
 
+        """
         if self.tls_type != 'actuated':
+
             if self.duration == 0 or self.time_counter == 1:
                 # New cycle.
+
                 # Get the number of the current cycle.
                 cycle_number = \
                     int(self.step_counter / self.cycle_time)
@@ -331,7 +276,7 @@ class TrafficLightEnv(Env):
                 self.actions_log[cycle_number] = rl_action
                 self.states_log[cycle_number] = state
 
-                if self.step_counter > 1: # and not self.stop:
+                if self.step_counter > 1:
                     # RL-agent update.
                     reward = self.compute_reward(None)
                     prev_state = self.states_log[cycle_number - 1]
@@ -340,19 +285,21 @@ class TrafficLightEnv(Env):
 
             # Update traffic lights' control signals.
             self._apply_cl_actions(self.cl_actions(static=self.static))
+
         else:
             if self.duration == 0:
                 self.observation_space.reset()
 
 
     def _apply_cl_actions(self, cl_actions):
-        """For each tls shift phase or keep phase
+        """ For each TSC shift phase or keep phase.
 
-        Params:
-        -------
-            * cl_actions: list<bool>
-                False; keep state
-                True; switch to next state
+        Parameters:
+        ----------
+        cl_actions: list<bool>
+            False; keep state
+            True; switch to next state
+
         """
         for i, tid in enumerate(self.tls_ids):
             if cl_actions[i]:
@@ -364,7 +311,7 @@ class TrafficLightEnv(Env):
                     node_id=tid, state=next_state)
 
     def _current_rl_action(self):
-        """Returns current rl action"""
+        """ Returns current action. """
         # adjust for duration
         N = (self.cycle_time / self.sim_step)
         actid = \
@@ -373,22 +320,21 @@ class TrafficLightEnv(Env):
         return self.actions_log[actid]
 
     def compute_reward(self, rl_actions, **kwargs):
-        """
-        Reward function for the RL agent(s).
-        Defaults to 0 for non-implemented environments.
+        """ Reward calculation.
         
-        Parameters
+        Parameters:
         ----------
         rl_actions : array_like
-            actions performed by rl vehicles or None
+            Actions performed by each TSC.
 
         kwargs : dict
-            other parameters of interest. Contains a "fail" element, which
-            is True if a vehicle crashed, and False otherwise
+            Other parameters of interest.
 
-        Returns
+        Returns:
         -------
-        reward : float or list of float
+        reward : dict<float>
+            Reward at each TSC.
+
         """
         return self.reward(self.get_observation_space())
 
@@ -404,10 +350,7 @@ class TrafficLightEnv(Env):
         self._duration_counter = -1
         self._duration = self.time_counter * self.sim_step
 
-        self.incoming = {}
-
-        # stores the state index
-        # used for opt iterations that did not us this variable
+        # Stores the state index.
         self.state_indicator = {}
         for node_id in self.tls_ids:
             num_phases = len(self.tls_phases[node_id])
@@ -416,10 +359,8 @@ class TrafficLightEnv(Env):
                 s0 = self.tls_states[node_id][0]
                 self.k.traffic_light.set_state(node_id=node_id, state=s0)
 
-            self.incoming[node_id] = {p: {} for p in range(num_phases)}
-
-
+        # Observation space.
         self.observation_space.reset()
+
         # Controls the number of updates
         self._update_counter = -1
-

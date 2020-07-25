@@ -61,7 +61,7 @@ class DQN(AgentWorker,AgentInterface):
         self._name = params.name
 
         # Whether learning stopped.
-        self.stop = False
+        self._stop = False
 
         # Define specs. Everything needs to be single precision by default.
         observation_spec = specs.Array(shape=(params.states.rank,),
@@ -133,7 +133,7 @@ class DQN(AgentWorker,AgentInterface):
             self.agent.observe_first(t_1)
 
         # Select action.
-        if self.stop:
+        if self._stop:
             action = self.agent.deterministic_action(s)
         else:
             action = self.agent.select_action(s)
@@ -144,7 +144,7 @@ class DQN(AgentWorker,AgentInterface):
 
     def update(self, _, a, r, s1):
 
-        if not self.stop:
+        if not self._stop:
 
             a = double_to_single_precision(a)
             r = double_to_single_precision(r)
@@ -158,13 +158,13 @@ class DQN(AgentWorker,AgentInterface):
             self.agent.observe(a, timestep)
             self.agent.update()
 
-            # Log values.
-            values = {
-                'step': self._obs_counter,
-                'action': a,
-                'reward': r,
-            }
-            self._logger.write(values)
+        # Log values.
+        values = {
+            'step': self._obs_counter,
+            'action': a,
+            'reward': r,
+        }
+        self._logger.write(values)
 
     def terminate(self):
         # Fake a final transition.

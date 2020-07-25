@@ -48,7 +48,7 @@ class QL(AgentWorker, AgentInterface):
         self._name = ql_params.name
 
         # Whether learning stopped.
-        self.stop = False
+        self._stop = False
 
         # Learning rate.
         self.learning_rate = PowerSchedule(
@@ -93,6 +93,7 @@ class QL(AgentWorker, AgentInterface):
         # Logger.
         dir_path = f'{ql_params.exp_path}/logs/{self._name}'
         self._logger = make_default_logger(directory=dir_path, label=self._name)
+        self._learning_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
 
         # Observations counter.
         self._obs_counter = 0
@@ -104,7 +105,7 @@ class QL(AgentWorker, AgentInterface):
         self._stop = stop
 
     def act(self, s):
-        if self.stop:
+        if self._stop:
             # Argmax greedy choice.
             actions, values = zip(*self.Q[s].items())
             choosen, _ = choice_eps_greedy(actions, values, 0)
@@ -129,7 +130,8 @@ class QL(AgentWorker, AgentInterface):
         return int(choosen)
 
     def update(self, s, a, r, s1):
-        if not self.stop:
+
+        if not self._stop:
 
             if self.replay_buffer:
                 self.memory.add(s, a, r, s1, 0.0)
@@ -164,15 +166,21 @@ class QL(AgentWorker, AgentInterface):
 
             # Log values.
             values = {
-                "action": a,
-                "reward": r,
                 "step": self._obs_counter,
                 "lr": lr,
                 "expl_eps": self.exploration.value(sum(
                         self.state_action_counter[s].values())-1),
                 "q_dist": dist,
             }
-            self._logger.write(values)
+            self._learning_logger.write(values)
+
+        # Log values.
+        values = {
+            "step": self._obs_counter,
+            "action": a,
+            "reward": r,
+        }
+        self._logger.write(values)
 
     def terminate(self):
         # Nothing to do here.
@@ -184,8 +192,7 @@ class QL(AgentWorker, AgentInterface):
         checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
             path, self._obs_counter, self._name)
 
-        print('SAVED')
-        print(checkpoint_file)
+        print(f'Saved chkpt: {checkpoint_file}')
 
         with open(checkpoint_file, 'wb') as f:
             t = Thread(target=pickle.dump(self.Q, f))
@@ -196,8 +203,7 @@ class QL(AgentWorker, AgentInterface):
                                                     chkpt_num,
                                                     self._name)
 
-        print('LOADED')
-        print(chkpt_path)
+        print(f'Loaded chkpt: {chkpt_path}')
 
         with open(chkpt_path, 'rb') as f:
             self.Q =  dill.load(f)
