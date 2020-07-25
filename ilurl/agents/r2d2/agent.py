@@ -176,13 +176,13 @@ class R2D2(AgentWorker,AgentInterface):
             self.agent.observe(a, timestep)
             self.agent.update()
 
-            # Log values.
-            values = {
-                'step': self._obs_counter,
-                'action': a,
-                'reward': r,
-            }
-            self._logger.write(values)
+        # Log values.
+        values = {
+            'step': self._obs_counter,
+            'action': a,
+            'reward': r,
+        }
+        self._logger.write(values)
 
     def terminate(self):
         # Fake a final transition.
