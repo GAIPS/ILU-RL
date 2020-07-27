@@ -257,7 +257,8 @@ class TrafficLightEnv(Env):
         """
         if self.tls_type != 'actuated':
 
-            if self.duration == 0 or self.time_counter == 1:
+            if self.tls_type == 'controlled' and \
+                (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 
                 # Get the number of the current cycle.
