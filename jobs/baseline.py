@@ -24,8 +24,16 @@ from models.train import main as baseline
 from ilurl.utils.decorators import processable, benchmarked
 from ilurl.utils import str2bool
 
-ILURL_PATH = Path(environ['ILURL_HOME'])
+# Pipeline components.
+from ilurl.loaders.xml2csv import main as xml2csv
+from analysis.test_plots import main as test_plots
+from ilurl.utils.decorators import safe_run
+_ERROR_MESSAGE_TEST = ("ERROR: Caught an exception while "
+                    "executing analysis/test_plots.py script.")
+test_plots = safe_run(test_plots, error_message=_ERROR_MESSAGE_TEST)
 
+
+ILURL_PATH = Path(environ['ILURL_HOME'])
 CONFIG_PATH = ILURL_PATH / 'config'
 
 mp = multiprocessing.get_context('spawn')
@@ -191,6 +199,23 @@ def baseline_job():
     return baseline_batch()
 
 if __name__ == '__main__':
-    # baseline_job()
-    baseline_batch() # Use this line for textual output.
 
+    # 1) Run baseline.
+    # exp_path =  baseline_job() # Use this line to suppress textual output.
+    experiment_root_path = baseline_batch() 
+
+    # 2) Convert .xml files to .csv files.
+    print('Converting .xml files to .csv ...')
+    for xml_path in Path(experiment_root_path).rglob('*.xml'):
+        csv_path = str(xml_path).replace('xml', 'csv')
+        args = [str(xml_path), '-o', csv_path]
+        try:
+            xml2csv(args)
+            Path(xml_path).unlink()
+        except Exception:
+            raise
+
+    # 3) Create plots with metrics plots for final agent.
+    test_plots(experiment_root_path)
+
+    print('Experiment folder: {0}'.format(experiment_root_path))

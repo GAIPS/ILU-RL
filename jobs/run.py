@@ -66,6 +66,7 @@ if __name__ == '__main__':
     rollouts(test=True, experiment_dir=experiment_root_path)
 
     # 7) Convert .xml files to .csv files.
+    print('Converting .xml files to .csv ...')
     for xml_path in Path(experiment_root_path).rglob('*.xml'):
         csv_path = str(xml_path).replace('xml', 'csv')
         args = [str(xml_path), '-o', csv_path]

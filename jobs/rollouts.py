@@ -17,6 +17,7 @@ from collections import defaultdict
 
 from ilurl.utils.decorators import processable
 from models.rollout import main as roll
+from ilurl.utils import str2bool
 
 ILURL_HOME = environ['ILURL_HOME']
 CONFIG_PATH = \
@@ -41,17 +42,6 @@ class NonDaemonicPool(multiprocessing.pool.Pool):
     def __init__(self, *args, **kwargs):
         kwargs['context'] = NoDaemonContext()
         super(NonDaemonicPool, self).__init__(*args, **kwargs)
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def get_arguments():
     parser = argparse.ArgumentParser(
