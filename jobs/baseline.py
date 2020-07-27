@@ -205,7 +205,7 @@ if __name__ == '__main__':
     experiment_root_path = baseline_batch() 
 
     # 2) Convert .xml files to .csv files.
-    print('Converting .xml files to .csv ...')
+    print('\nConverting .xml files to .csv ...\n')
     for xml_path in Path(experiment_root_path).rglob('*.xml'):
         csv_path = str(xml_path).replace('xml', 'csv')
         args = [str(xml_path), '-o', csv_path]

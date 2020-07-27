@@ -110,5 +110,271 @@
 				"6": [64, 70, 84, 90]
 			}
 	},
-	"actuated": {}
+	"actuated": {
+		"cycle_time": 90,
+		"gneJ0": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGgrrrGGg"
+				}, {
+				"duration": "6",
+				"state": "rryyyrrryyy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrrGGgrrr"
+				}, {
+				"duration": "6",
+				"state": "yyrrryyyrrr"
+			}]
+		},
+		"gneJ1": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGGgrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rryyyyrryyy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrrrGGrrr"
+				}, {
+				"duration": "6",
+				"state": "yyrrrryyrrr"
+			}]
+        },
+		"gneJ2": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrrrrrGGgGGGrrrrrrrrrGGgGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrrrrrryyyyyyrrrrrrrrryyyyyy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGggggrrrrrrGGGGGggggrrrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyyyyyrrrrrryyyyyyyyyrrrrrr"
+			}]
+		},
+		"gneJ3": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGrrGG"
+				}, {
+				"duration": "6",
+				"state": "rryyrryy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrGGrr"
+				}, {
+				"duration": "6",
+				"state": "yyrryyrr"
+			}]
+		},
+		"gneJ4": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrGGgrrGG"
+				}, {
+				"duration": "6",
+				"state": "rrryyyrryy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGgrrrGGrr"
+				}, {
+				"duration": "6",
+				"state": "yyyrrryyrr"
+			}]
+		},
+		"gneJ5": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrGGGrrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rryyyrrryyy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGrrrGGgrrr"
+				}, {
+				"duration": "6",
+				"state": "yyrrryyyrrr"
+			}]
+		},
+		"gneJ6": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rG"
+				}, {
+				"duration": "6",
+				"state": "ry"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "Gr"
+				}, {
+				"duration": "6",
+				"state": "yr"
+			}]
+		},
+		"gneJ7": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrGgGG"
+				}, {
+				"duration": "6",
+				"state": "rrryyyy"
+				}, {
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyrrrr"
+			}]
+		},
+		"gneJ8": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrGGGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrryyyyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGrrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyrrrrr"
+			}]
+		},
+		"gneJ9": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrrrGGGGGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrrrryyyyyyy"
+				}, {
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGGGrrrrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyyyrrrrrrr"
+			}]
+		},
+		"gneJ10": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrrrrrrrGGGGGGGGgggGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrrrrrrrryyyyyyyyyyyyyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGGGGGGGrrrrrrrrrrrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyyyyyyyrrrrrrrrrrrrrr"
+			}]
+		},
+		"gneJ11": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "rrrrrGgGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrryyyy"
+				}, {
+				"duration": "31",
+				"minDur": "24",
+				"maxDur": "54",
+				"state": "GGGGGrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyrrrr"
+			}]
+		}
+	}
 }
