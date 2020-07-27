@@ -32,8 +32,8 @@ Bounds = namedtuple('Bounds', 'rank depth')
 # State space features.
 STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
-# Traffic light system types ('controlled' = RL control).
-TLS_TYPES = ('controlled', 'actuated', 'static', 'random')
+# Traffic light system types.
+TLS_TYPES = ('rl', 'actuated', 'static', 'random')
 
 # Traffic demand types (flows).
 DEMAND_TYPES = ('constant', 'variable') # TODO: Add 'switch' demand type.
@@ -461,7 +461,7 @@ class TrainParams(Printable):
             experiment_seed=None,
             sumo_render: bool = False,
             sumo_emission: bool = False,
-            tls_type: str = 'controlled',
+            tls_type: str = 'rl',
             demand_type: str = 'constant',
         ):
         """Instantiate train parameters.
@@ -493,8 +493,8 @@ class TrainParams(Printable):
         * sumo_emission: bool
             If True saves emission data from simulation on /data/emissions.
 
-        * tls_type: ('controlled', 'static', 'random' or 'actuated')
-            SUMO traffic light type: \'controlled\', \'actuated'\',
+        * tls_type: ('rl', 'static', 'random' or 'actuated')
+            SUMO traffic light type: \'rl\', \'actuated'\',
                     \'static\' or \'random\'.
 
         * demand_type: ('constant' or 'variable')
@@ -514,7 +514,7 @@ class TrainParams(Printable):
                     Got experiment_save_agent_interval = {}.'''.format(experiment_save_agent_interval))
 
         if tls_type not in TLS_TYPES:
-            raise ValueError('''The tls_type must be in ('controlled', 'static', 'random', 'actuated').
+            raise ValueError('''The tls_type must be in ('rl', 'static', 'random', 'actuated').
                     Got tls_type = {}.'''.format(tls_type))
 
         if demand_type not in DEMAND_TYPES:

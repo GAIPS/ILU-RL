@@ -30,10 +30,10 @@ class TrafficLightEnv(Env):
 
 
         # TODO: Allow for mixed networks with actuated,
-        # controlled and static traffic light configurations.
+        # RL and static traffic light configurations.
         self.tls_type = env_params.additional_params.get('tls_type')
 
-        # Whether TLS timings are static or controlled by agent.
+        # Whether TLS timings are static.
         self.static = (self.tls_type == 'static')
 
         # Cycle time.
@@ -194,7 +194,7 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if dur == 0 and self.tls_type == 'controlled' and \
+            if dur == 0 and self.tls_type == 'rl' and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
@@ -257,7 +257,7 @@ class TrafficLightEnv(Env):
         """
         if self.tls_type != 'actuated':
 
-            if self.tls_type == 'controlled' and \
+            if self.tls_type == 'rl' and \
                 (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 

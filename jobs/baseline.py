@@ -128,8 +128,10 @@ def baseline_batch():
     test_config.read(test_path.as_posix())
 
     horizon = int(test_config.get('test_args', 'rollout-time'))
-
     baseline_config.set('train_args', 'experiment_time', str(horizon))
+
+    # Write .xml files for test plots creation.
+    baseline_config.set('train_args', 'sumo_emission', str(True))
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
     print(f'Experiment timestamp: {timestamp}')

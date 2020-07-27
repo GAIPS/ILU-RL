@@ -104,7 +104,7 @@ def main(train_config_path=None):
     )
 
     # Override possible inconsistent params.
-    if train_args.tls_type not in ('controlled',):
+    if train_args.tls_type not in ('rl',):
         env.stop = True
         train_args.save_agent = False
 
