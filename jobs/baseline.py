@@ -13,7 +13,8 @@ import sys
 from os import environ
 import json
 import tempfile
-import multiprocessing as mp
+import multiprocessing
+import multiprocessing.pool
 import time
 import argparse
 
@@ -27,29 +28,43 @@ ILURL_PATH = Path(environ['ILURL_HOME'])
 
 CONFIG_PATH = ILURL_PATH / 'config'
 
-LOCK = mp.Lock()
+mp = multiprocessing.get_context('spawn')
 
 
-def delay_baseline(*args, **kwargs):
-    """delays execution by 1 sec.
+class NoDaemonProcess(mp.Process):
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, val):
+        pass
+
+class NoDaemonContext(type(multiprocessing.get_context('spawn'))):
+    Process = NoDaemonProcess
+
+class NonDaemonicPool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(NonDaemonicPool, self).__init__(*args, **kwargs)
+
+
+def delay_baseline(args):
+    """Delays execution.
 
         Parameters:
         -----------
-        * fnc: function
-            An anonymous function decorated by the user
+        * args: tuple
+            Position 0: execution delay of the process.
+            Position 1: store the train config file.
 
         Returns:
         -------
         * fnc : function
-            An anonymous function to be executed 1 sec. after
-            calling
+            An anonymous function to be executed with a given delay
     """
-    LOCK.acquire()
-    try:
-        time.sleep(1)
-    finally:
-        LOCK.release()
-    return baseline(*args, **kwargs)
+    time.sleep(args[0])
+    return baseline(args[1])
 
 
 def get_arguments():
@@ -61,7 +76,7 @@ def get_arguments():
 
     parser.add_argument('tls_type', type=str, nargs='?',
                         choices=('actuated', 'static', 'random'),  
-                         help='Deterministic control type')
+                         help='Control type.')
     flags = parser.parse_args()
     sys.argv = [sys.argv[0]]
     return flags
@@ -137,17 +152,17 @@ def baseline_batch():
             with cfg_path.open('w') as ft:
                 baseline_config.write(ft)
 
-        # Run.
-        # TODO: option without pooling not working. why?
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = mp.Pool(num_processors)
-            rvs = pool.map(delay_baseline, [cfg for cfg in baseline_configs])
+            pool = NonDaemonicPool(num_processors)
+            rvs = pool.map(delay_baseline, [(delay, cfg)
+                            for (delay, cfg) in zip(range(len(baseline_configs)), baseline_configs)])
             pool.close()
+            pool.join()
         else:
             rvs = []
             for cfg in baseline_configs:
-                rvs.append(delay_baseline(cfg))
+                rvs.append(delay_baseline((0.0, cfg)))
 
         # Create a directory and move newly created files
         paths = [Path(f) for f in rvs]
@@ -170,9 +185,10 @@ def baseline_batch():
 
 @processable
 def baseline_job():
+    # Suppress textual output.
     return baseline_batch()
 
 if __name__ == '__main__':
-    baseline_batch() # textual output.
     # baseline_job()
+    baseline_batch() # Use this line for textual output.
 
