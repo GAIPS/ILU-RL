@@ -1,3 +1,17 @@
+"""
+    Custom environment class.
+    (extends flow.envs.base.Env class)
+
+    flow.envs.base.Env.step() methods' calling order:
+
+        1) apply_rl_actions()
+        2) Advance simulator by one step.
+        3) get_state()
+        4) compute_reward()
+
+    For more info see flow.envs.base.Env class.
+
+"""
 import numpy as np
 
 from flow.envs.base import Env
@@ -151,7 +165,7 @@ class TrafficLightEnv(Env):
         )
         return obs
 
-    def rl_actions(self, state):
+    def _rl_actions(self, state):
         """ Return the selected action(s) given the state of the environment.
 
         Parameters:
@@ -167,7 +181,7 @@ class TrafficLightEnv(Env):
         """
         return self.mas.act(state) # Delegate to Multi-Agent System.
 
-    def cl_actions(self):
+    def _cl_actions(self):
         """ Executes the control actions.
 
         Returns:
@@ -258,7 +272,7 @@ class TrafficLightEnv(Env):
 
                 # Select new action.
                 if rl_actions is None:
-                    rl_action = self.rl_actions(state)
+                    rl_action = self._rl_actions(state)
                 else:
                     rl_action = rl_actions
 
@@ -273,7 +287,7 @@ class TrafficLightEnv(Env):
                     self.mas.update(prev_state, prev_action, reward, state)
 
             # Update traffic lights' control signals.
-            self._apply_cl_actions(self.cl_actions())
+            self._apply_cl_actions(self._cl_actions())
 
         else:
             if self.duration == 0:
@@ -301,7 +315,6 @@ class TrafficLightEnv(Env):
 
     def _current_rl_action(self):
         """ Returns current action. """
-        # adjust for duration
         N = (self.cycle_time / self.sim_step)
         actid = \
             int(max(0, self.step_counter - 1) / N)
@@ -351,5 +364,5 @@ class TrafficLightEnv(Env):
         # Observation space.
         self.observation_space.reset()
 
-        # Controls the number of updates
+        # Controls the number of updates.
         self._update_counter = -1
