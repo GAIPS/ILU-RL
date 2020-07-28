@@ -109,7 +109,7 @@ def reward_max_speed_count(state, *args):
 
 
 def reward_min_delay(state, *args):
-    """Minimizing the delta of queue length squared
+    """Minimizing the delay
 
     Reward definition 1: Minimizing the delay
 
@@ -149,6 +149,48 @@ def reward_min_delay(state, *args):
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
     return ret
 
+def reward_max_delay_reduction(state, *args):
+    """Max. the reduction on successive delays
+
+    Reward definition 2: Max. the reduction in delay
+
+    OBS: The article uses total delay, which implies
+    that the agents are privy to the delays experiencied
+    by vehicles wrt other agents. Here we use delay and
+    lagged delay only.
+
+    Params:
+    ------
+    * state: ilurl.state.State
+        captures the delay experiened by phases.
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    Reference:
+    ----------
+    * El-Tantawy, et al. 2014
+        "Design for Reinforcement Learning Parameters for Seamless"
+
+    * Arel, I., Liu, C., Urbanik, T., & Kohls, A. G. 2010.
+        "Reinforcement learning-based multi-agent system for network traffic signal control"
+
+    """
+    import ipdb
+    def diff(x, y):
+        return np.array(x) - np.array(y)
+
+    delay_lagdelay = state.feature_map(
+        filter_by=('delay','lag[delay]'),
+        split=True
+    )
+    ret = {tls_id: np.sum(diff(*del_ldel))
+           for tls_id, del_ldel in delay_lagdelay.items()}
+
+    ipdb.set_trace()
+    return ret
 
 def reward_min_queue_squared(state):
     """Minimizing the delta of queue length squared
@@ -193,4 +235,4 @@ def reward_min_queue_squared(state):
 
 
 def rescale_rewards(rewards, scale_factor):
-    return {key: r*scale_factor for (key, r) in rewards.items()}
+    return {key: r * scale_factor for (key, r) in rewards.items()}
