@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Qua 22 Jul 2020 17:16:08 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
+<!-- generated on Ter 28 Jul 2020 00:49:35 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/pedro/ILU/scenarios/grid_21/grid_21.net.xml"/>
+        <sumo-net-file value="/home/pedro/ILU/ILU-RL/data/networks/grid_21/grid_21.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/pedro/ILU/scenarios/grid_21/grid_21.net.xml"/>
+        <output-file value="/home/pedro/ILU/ILU-RL/data/networks/grid_21/grid_21.net.xml"/>
         <output.street-names value="true"/>
     </output>
 
@@ -1169,10 +1169,10 @@
         <phase duration="6"  state="yyrrryyyrrr"/>
     </tlLogic>
     <tlLogic id="gneJ1" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrrGGGgrrrGGGg"/>
-        <phase duration="6"  state="rrryyyyrrryyyy"/>
-        <phase duration="39" state="GGgrrrrGGgrrrr"/>
-        <phase duration="6"  state="yyyrrrryyyrrrr"/>
+        <phase duration="39" state="rrGGGgrrGGG"/>
+        <phase duration="6"  state="rryyyyrryyy"/>
+        <phase duration="39" state="GGrrrrGGrrr"/>
+        <phase duration="6"  state="yyrrrryyrrr"/>
     </tlLogic>
     <tlLogic id="gneJ10" type="static" programID="0" offset="0">
         <phase duration="39" state="rrrrrrrrrrrGGGGGGGGgggGGG"/>
@@ -1707,8 +1707,8 @@
     <connection from="23695625#0" to="392160372#1" fromLane="0" toLane="0" via=":gneJ0_5_0" tl="gneJ0" linkIndex="5" dir="r" state="o"/>
     <connection from="23695625#0" to="23695625#2" fromLane="0" toLane="0" via=":gneJ0_6_0" tl="gneJ0" linkIndex="6" dir="s" state="o"/>
     <connection from="23695625#0" to="392160369#3" fromLane="0" toLane="0" via=":gneJ0_7_0" tl="gneJ0" linkIndex="7" dir="l" state="o"/>
-    <connection from="23695625#2" to="391593636" fromLane="0" toLane="0" via=":gneJ1_6_0" tl="gneJ1" linkIndex="7" dir="r" state="o"/>
-    <connection from="23695625#2" to="gneE12" fromLane="0" toLane="0" via=":gneJ1_7_0" tl="gneJ1" linkIndex="8" dir="s" state="o"/>
+    <connection from="23695625#2" to="391593636" fromLane="0" toLane="0" via=":gneJ1_6_0" tl="gneJ1" linkIndex="6" dir="r" state="o"/>
+    <connection from="23695625#2" to="gneE12" fromLane="0" toLane="0" via=":gneJ1_7_0" tl="gneJ1" linkIndex="7" dir="s" state="o"/>
     <connection from="23738909#0" to="391593978#0" fromLane="0" toLane="0" via=":gneJ9_0_0" tl="gneJ9" linkIndex="0" dir="r" state="O"/>
     <connection from="23738909#0" to="391593978#0" fromLane="0" toLane="1" via=":gneJ9_1_0" tl="gneJ9" linkIndex="1" dir="r" state="O"/>
     <connection from="23738909#0" to="23738909#2" fromLane="0" toLane="0" via=":gneJ9_2_0" tl="gneJ9" linkIndex="2" dir="s" state="O"/>
@@ -1808,16 +1808,16 @@
     <connection from="391261426#0" to="391261426#1" fromLane="0" toLane="0" via=":gneJ6_1_0" tl="gneJ6" linkIndex="1" dir="s" state="o"/>
     <connection from="391261426#1" to="391115697#0" fromLane="0" toLane="0" via=":gneJ2_9_0" tl="gneJ2" linkIndex="9" dir="r" state="o"/>
     <connection from="391261426#1" to="391115730" fromLane="0" toLane="0" via=":gneJ2_10_0" tl="gneJ2" linkIndex="10" dir="s" state="o"/>
-    <connection from="391590523" to="392160368#0" fromLane="0" toLane="0" via=":gneJ1_8_0" tl="gneJ1" linkIndex="10" dir="r" state="O"/>
-    <connection from="391590523" to="391593636" fromLane="0" toLane="0" via=":gneJ1_9_0" tl="gneJ1" linkIndex="11" dir="s" state="O"/>
-    <connection from="391590523" to="391593636" fromLane="1" toLane="1" via=":gneJ1_9_1" tl="gneJ1" linkIndex="12" dir="s" state="O"/>
+    <connection from="391590523" to="392160368#0" fromLane="0" toLane="0" via=":gneJ1_8_0" tl="gneJ1" linkIndex="8" dir="r" state="O"/>
+    <connection from="391590523" to="391593636" fromLane="0" toLane="0" via=":gneJ1_9_0" tl="gneJ1" linkIndex="9" dir="s" state="O"/>
+    <connection from="391590523" to="391593636" fromLane="1" toLane="1" via=":gneJ1_9_1" tl="gneJ1" linkIndex="10" dir="s" state="O"/>
     <connection from="391593636" to="97704804#0" fromLane="0" toLane="0" via=":gneJ5_8_0" tl="gneJ5" linkIndex="8" dir="r" state="O"/>
     <connection from="391593636" to="391594304#0" fromLane="0" toLane="0" via=":gneJ5_9_0" tl="gneJ5" linkIndex="9" dir="s" state="O"/>
     <connection from="391593636" to="391594304#0" fromLane="1" toLane="1" via=":gneJ5_9_1" tl="gneJ5" linkIndex="10" dir="s" state="O"/>
-    <connection from="391593637" to="gneE12" fromLane="0" toLane="0" via=":gneJ1_2_0" tl="gneJ1" linkIndex="3" dir="r" state="O"/>
-    <connection from="391593637" to="391590526#1" fromLane="0" toLane="0" via=":gneJ1_3_0" tl="gneJ1" linkIndex="4" dir="s" state="O"/>
-    <connection from="391593637" to="391590526#1" fromLane="1" toLane="1" via=":gneJ1_3_1" tl="gneJ1" linkIndex="5" dir="s" state="O"/>
-    <connection from="391593637" to="392160368#0" fromLane="1" toLane="0" via=":gneJ1_5_0" tl="gneJ1" linkIndex="6" dir="l" state="o"/>
+    <connection from="391593637" to="gneE12" fromLane="0" toLane="0" via=":gneJ1_2_0" tl="gneJ1" linkIndex="2" dir="r" state="O"/>
+    <connection from="391593637" to="391590526#1" fromLane="0" toLane="0" via=":gneJ1_3_0" tl="gneJ1" linkIndex="3" dir="s" state="O"/>
+    <connection from="391593637" to="391590526#1" fromLane="1" toLane="1" via=":gneJ1_3_1" tl="gneJ1" linkIndex="4" dir="s" state="O"/>
+    <connection from="391593637" to="392160368#0" fromLane="1" toLane="0" via=":gneJ1_5_0" tl="gneJ1" linkIndex="5" dir="l" state="o"/>
     <connection from="391593639#0" to="391593639#1" fromLane="0" toLane="0" via=":1127780330_0_0" dir="s" state="M"/>
     <connection from="391593639#1" to="391593637" fromLane="0" toLane="0" via=":gneJ5_0_0" tl="gneJ5" linkIndex="0" dir="r" state="o"/>
     <connection from="391593639#1" to="97704804#0" fromLane="0" toLane="0" via=":gneJ5_1_0" tl="gneJ5" linkIndex="1" dir="s" state="o"/>

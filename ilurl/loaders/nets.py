@@ -225,13 +225,16 @@ def get_logic(network_id):
 def get_tls_custom(network_id, baseline=False):
     """ Loads TLS settings (cycle time and programs) from tls_config.json file.
 
-        Parameters
+        Parameters:
         ----------
-        network_name : string
-        network id
+        network_name: string
+            network id
+        
+        tls_type: string
+            ('rl', 'uniform', 'static', 'random', 'actuated' or 'actuated_delay')
 
-        Return
-        ----------
+        Return:
+        -------
         cycle_time: int
         the cycle time for the TLS system
 
