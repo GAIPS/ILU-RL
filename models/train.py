@@ -65,7 +65,7 @@ def main(train_config_path=None):
     sumo_args = {
         'render': train_args.sumo_render,
         'print_warnings': False,
-        'sim_step': 1,
+        'sim_step': 1, # Do not change.
         'restart_instance': True,
         'teleport_time': 180
     }

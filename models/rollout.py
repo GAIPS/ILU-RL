@@ -122,7 +122,7 @@ def main(config_file_path=None):
     sumo_args = {
         'render': args.sumo_render,
         'print_warnings': False,
-        'sim_step': 1,
+        'sim_step': 1, # Do not change.
         'restart_instance': True,
         'teleport_time': 180
     }

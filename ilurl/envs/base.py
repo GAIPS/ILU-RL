@@ -29,7 +29,7 @@ class TrafficLightEnv(Env):
                                               simulator=simulator)
 
         # Traffic light system type.
-        # ('rl', 'static', 'uniform', 'actuated' or 'actuated_time').
+        # ('rl', 'static', 'uniform', 'actuated', 'actuated_delay' or 'random).
         self.tls_type = env_params.additional_params.get('tls_type')
 
         # Cycle time.
@@ -245,7 +245,7 @@ class TrafficLightEnv(Env):
         """
         if self.tls_type != 'actuated':
 
-            if self.tls_type == 'rl' and \
+            if (self.tls_type == 'rl' or self.tls_type == 'random') and \
                 (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 
