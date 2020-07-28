@@ -65,7 +65,7 @@ def main(train_config_path=None):
     sumo_args = {
         'render': train_args.sumo_render,
         'print_warnings': False,
-        'sim_step': 1,
+        'sim_step': 1, # Do not change.
         'restart_instance': True,
         'teleport_time': 180
     }
@@ -104,7 +104,7 @@ def main(train_config_path=None):
     )
 
     # Override possible inconsistent params.
-    if train_args.tls_type not in ('controlled',):
+    if train_args.tls_type not in ('rl',):
         env.stop = True
         train_args.save_agent = False
 

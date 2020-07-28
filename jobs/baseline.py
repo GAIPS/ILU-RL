@@ -13,7 +13,8 @@ import sys
 from os import environ
 import json
 import tempfile
-import multiprocessing as mp
+import multiprocessing
+import multiprocessing.pool
 import time
 import argparse
 
@@ -23,33 +24,55 @@ from models.train import main as baseline
 from ilurl.utils.decorators import processable, benchmarked
 from ilurl.utils import str2bool
 
-ILURL_PATH = Path(environ['ILURL_HOME'])
+# Pipeline components.
+from ilurl.loaders.xml2csv import main as xml2csv
+from analysis.test_plots import main as test_plots
+from ilurl.utils.decorators import safe_run
+_ERROR_MESSAGE_TEST = ("ERROR: Caught an exception while "
+                    "executing analysis/test_plots.py script.")
+test_plots = safe_run(test_plots, error_message=_ERROR_MESSAGE_TEST)
 
+
+ILURL_PATH = Path(environ['ILURL_HOME'])
 CONFIG_PATH = ILURL_PATH / 'config'
 
-LOCK = mp.Lock()
+mp = multiprocessing.get_context('spawn')
 
 
-def delay_baseline(*args, **kwargs):
-    """delays execution by 1 sec.
+class NoDaemonProcess(mp.Process):
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, val):
+        pass
+
+class NoDaemonContext(type(multiprocessing.get_context('spawn'))):
+    Process = NoDaemonProcess
+
+class NonDaemonicPool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(NonDaemonicPool, self).__init__(*args, **kwargs)
+
+
+def delay_baseline(args):
+    """Delays execution.
 
         Parameters:
         -----------
-        * fnc: function
-            An anonymous function decorated by the user
+        * args: tuple
+            Position 0: execution delay of the process.
+            Position 1: store the train config file.
 
         Returns:
         -------
         * fnc : function
-            An anonymous function to be executed 1 sec. after
-            calling
+            An anonymous function to be executed with a given delay
     """
-    LOCK.acquire()
-    try:
-        time.sleep(1)
-    finally:
-        LOCK.release()
-    return baseline(*args, **kwargs)
+    time.sleep(args[0])
+    return baseline(args[1])
 
 
 def get_arguments():
@@ -61,7 +84,7 @@ def get_arguments():
 
     parser.add_argument('tls_type', type=str, nargs='?',
                         choices=('actuated', 'static', 'random'),  
-                         help='Deterministic control type')
+                         help='Control type.')
     flags = parser.parse_args()
     sys.argv = [sys.argv[0]]
     return flags
@@ -113,8 +136,10 @@ def baseline_batch():
     test_config.read(test_path.as_posix())
 
     horizon = int(test_config.get('test_args', 'rollout-time'))
-
     baseline_config.set('train_args', 'experiment_time', str(horizon))
+
+    # Write .xml files for test plots creation.
+    baseline_config.set('train_args', 'sumo_emission', str(True))
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
     print(f'Experiment timestamp: {timestamp}')
@@ -137,17 +162,17 @@ def baseline_batch():
             with cfg_path.open('w') as ft:
                 baseline_config.write(ft)
 
-        # Run.
-        # TODO: option without pooling not working. why?
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = mp.Pool(num_processors)
-            rvs = pool.map(delay_baseline, [cfg for cfg in baseline_configs])
+            pool = NonDaemonicPool(num_processors)
+            rvs = pool.map(delay_baseline, [(delay, cfg)
+                            for (delay, cfg) in zip(range(len(baseline_configs)), baseline_configs)])
             pool.close()
+            pool.join()
         else:
             rvs = []
             for cfg in baseline_configs:
-                rvs.append(delay_baseline(cfg))
+                rvs.append(delay_baseline((0.0, cfg)))
 
         # Create a directory and move newly created files
         paths = [Path(f) for f in rvs]
@@ -170,9 +195,27 @@ def baseline_batch():
 
 @processable
 def baseline_job():
+    # Suppress textual output.
     return baseline_batch()
 
 if __name__ == '__main__':
-    baseline_batch() # textual output.
-    # baseline_job()
 
+    # 1) Run baseline.
+    # exp_path =  baseline_job() # Use this line to suppress textual output.
+    experiment_root_path = baseline_batch() 
+
+    # 2) Convert .xml files to .csv files.
+    print('\nConverting .xml files to .csv ...\n')
+    for xml_path in Path(experiment_root_path).rglob('*.xml'):
+        csv_path = str(xml_path).replace('xml', 'csv')
+        args = [str(xml_path), '-o', csv_path]
+        try:
+            xml2csv(args)
+            Path(xml_path).unlink()
+        except Exception:
+            raise
+
+    # 3) Create plots with metrics plots for final agent.
+    test_plots(experiment_root_path)
+
+    print('Experiment folder: {0}'.format(experiment_root_path))

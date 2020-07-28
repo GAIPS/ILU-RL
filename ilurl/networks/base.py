@@ -31,7 +31,7 @@ class Network(flownet.Network):
                  vehicles=None,
                  demand_type='constant',
                  initial_config=None,
-                 tls_type='controlled'):
+                 tls_type='rl'):
 
         """Builds a new network from inflows -- the resulting
         vehicle trips will be stochastic use it for training"""

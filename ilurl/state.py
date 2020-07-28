@@ -18,7 +18,7 @@ class State:
     """
 
     def __init__(self, network, mdp_params):
-        """Instanciate State object
+        """Instantiate State object
 
             * Singleton object that produces features for all the network.
 
@@ -46,11 +46,7 @@ class State:
             self._last_time = -1
             self._time_period = mdp_params.time_period
 
-
         # Local features.
-        self._intersections = []
-
-        # Local feature
         self._intersections = {
             tls_id: Intersection(mdp_params,
                                  tls_id,
@@ -149,24 +145,22 @@ class State:
 
     def _add_time(self, filter_by, categorize, split, features):
         """Add time as feature to intersections"""
-        if self._has_time:
-            period = self._time_period
-            # 1) Verify time conditions.
-            if filter_by is None or ('time' in filter_by):
-                # 2) Number of periods (e.g hours) % Rolling update.
-                ret  = (self._time // period) % int(24 * 3600 / period)
+        period = self._time_period
+        # 1) Verify time conditions.
+        if filter_by is None or ('time' in filter_by):
+            # 2) Number of periods (e.g hours) % Rolling update.
+            ret  = (self._time // period) % int(24 * 3600 / period)
 
-                # 3) Convert into category.
-                if categorize:
-                    ret = int(np.digitize(ret, self._bins))
+            # 3) Convert into category.
+            if categorize:
+                ret = int(np.digitize(ret, self._bins))
 
-                # 4) Add to features.
-                if split:
-                    ret = tuple([ret] + list(features))
-                else:
-                    ret = [ret] + list(features)
-                return ret
-            return features
+            # 4) Add to features.
+            if split:
+                ret = tuple([ret] + list(features))
+            else:
+                ret = [ret] + list(features)
+            return ret
         return features
 
 class Intersection:
@@ -179,7 +173,7 @@ class Intersection:
     """
 
     def __init__(self, mdp_params, tls_id, phases, phase_capacity):
-        """Instanciate intersection object
+        """Instantiate intersection object
 
         Params:
         ------
@@ -326,7 +320,7 @@ class Phase:
         self._bins = {_feat: fn(_feat) for _feat in mdp_params.features}
 
 
-        # 3) Instanciate lanes
+        # 3) Instantiate lanes
         lanes = []
         components = []
         for _component in phase_data['components']:

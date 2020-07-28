@@ -28,13 +28,9 @@ class TrafficLightEnv(Env):
                                               network,
                                               simulator=simulator)
 
-
-        # TODO: Allow for mixed networks with actuated,
-        # controlled and static traffic light configurations.
+        # Traffic light system type.
+        # ('rl', 'static', 'uniform', 'actuated', 'actuated_delay' or 'random).
         self.tls_type = env_params.additional_params.get('tls_type')
-
-        # Whether TLS timings are static or controlled by agent.
-        self.static = (self.tls_type == 'static')
 
         # Cycle time.
         self.cycle_time = network.cycle_time
@@ -171,16 +167,8 @@ class TrafficLightEnv(Env):
         """
         return self.mas.act(state) # Delegate to Multi-Agent System.
 
-    def cl_actions(self, static=False):
+    def cl_actions(self):
         """ Executes the control actions.
-
-        Parameters:
-        ----------
-        static: boolean
-            If true execute the default program or change states at
-            duration == tls_durations for each tls.
-            Otherwise; (i) fetch the rl_action, (ii) fetch program,
-            (iii) execute control action for program
 
         Returns:
         -------
@@ -194,7 +182,7 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if dur == 0 and self.tls_type == 'controlled' and \
+            if (dur == 0 or self.time_counter == 1) and self.tls_type == 'rl' and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
@@ -208,7 +196,7 @@ class TrafficLightEnv(Env):
 
                 # Allocate time for each of the phases.
                 # By default 20% of the cycle length will be equally distributed for 
-                # all the phases in order to ensure a minium green time for all phases.
+                # all the phases in order to ensure a minimum green time for all phases.
                 # The remainder 80% are allocated by the agent.
                 phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
                                     current_action * 0.8 * available_time, decimals=0)
@@ -231,7 +219,7 @@ class TrafficLightEnv(Env):
             if (dur == 0 and self.step_counter > 1):
                 return True
 
-            if static:
+            if self.tls_type == 'static':
                 return dur in self.tls_durations[tid]
             else:
                 if self.mdp_params.action_space == 'discrete':
@@ -257,7 +245,8 @@ class TrafficLightEnv(Env):
         """
         if self.tls_type != 'actuated':
 
-            if self.duration == 0 or self.time_counter == 1:
+            if (self.tls_type == 'rl' or self.tls_type == 'random') and \
+                (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 
                 # Get the number of the current cycle.
@@ -284,7 +273,7 @@ class TrafficLightEnv(Env):
                     self.mas.update(prev_state, prev_action, reward, state)
 
             # Update traffic lights' control signals.
-            self._apply_cl_actions(self.cl_actions(static=self.static))
+            self._apply_cl_actions(self.cl_actions())
 
         else:
             if self.duration == 0:
