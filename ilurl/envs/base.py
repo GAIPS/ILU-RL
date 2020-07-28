@@ -182,7 +182,7 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if dur == 0 and self.tls_type == 'rl' and \
+            if (dur == 0 or self.time_counter == 1) and self.tls_type == 'rl' and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
@@ -196,7 +196,7 @@ class TrafficLightEnv(Env):
 
                 # Allocate time for each of the phases.
                 # By default 20% of the cycle length will be equally distributed for 
-                # all the phases in order to ensure a minium green time for all phases.
+                # all the phases in order to ensure a minimum green time for all phases.
                 # The remainder 80% are allocated by the agent.
                 phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
                                     current_action * 0.8 * available_time, decimals=0)
