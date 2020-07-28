@@ -178,18 +178,16 @@ def reward_max_delay_reduction(state, *args):
         "Reinforcement learning-based multi-agent system for network traffic signal control"
 
     """
-    import ipdb
     def diff(x, y):
         return np.array(x) - np.array(y)
 
     delay_lagdelay = state.feature_map(
-        filter_by=('delay','lag[delay]'),
+        filter_by=('lag[delay]', 'delay'),
         split=True
     )
-    ret = {tls_id: np.sum(diff(*del_ldel))
+    ret = {tls_id: np.sum(diff(*del_ldel)).round(4)
            for tls_id, del_ldel in delay_lagdelay.items()}
 
-    ipdb.set_trace()
     return ret
 
 def reward_min_queue_squared(state):
