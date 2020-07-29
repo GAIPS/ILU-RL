@@ -18,6 +18,7 @@ from ilurl.params import InFlows
 from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
                                 get_types, get_tls_custom)
+
 #from ilurl.controllers.routing_controllers import GreedyRouter
 
 
@@ -196,25 +197,25 @@ class Network(flownet.Network):
         nodes = self.nodes
         sinks = self.routes2.keys()
         neighbours = {}
-            
+
         for sink in sinks:
             sink_node = edges[sink]['from']
 
             # those neightbours share the same junction
             neighbours[sink] = [eid for eid, data in edges.items()
-                                 if data['from'] == sink_node and 
-                                    eid != sink and eid in sinks] 
+                                 if data['from'] == sink_node and
+                                    eid != sink and eid in sinks]
 
             # those neighbours are on adjacent junctions
             adjacent_nodes = [node['id'] for node in nodes for data in edges.values()
-                              if data['from'] == node['id'] and data['to'] == sink_node] 
-    
+                              if data['from'] == node['id'] and data['to'] == sink_node]
+
             neighbours[sink] += [eid for eid in sinks
-                                     if edges[eid]['from'] in adjacent_nodes] 
+                                     if edges[eid]['from'] in adjacent_nodes]
         return neighbours
 
     @lazy_property
-    def tls_approaches(self):
+    def tls_incoming(self):
         """Returns the incoming approaches for a traffic light junction
 
         Params:
@@ -226,10 +227,10 @@ class Network(flownet.Network):
         ------
         * approaches: dict<string, list<string>>
             list of mappings from node_id -> incoming edge ids
-        
+
         Usage:
         -----
-         > network.tls_approaches
+         > network.tls_incoming
          > {'247123161': ['-238059324', '-238059328', '309265401', '383432312']}
 
         DEF:
@@ -237,6 +238,7 @@ class Network(flownet.Network):
         A roadway meeting at an intersection is referred to as an approach.
         At any general intersection, there are two kinds of approaches:
         incoming approaches and outgoing approaches.
+
         An incoming approach is one on which cars can enter the intersection.
 
         REF:
@@ -248,17 +250,51 @@ class Network(flownet.Network):
                 for nid in self.tls_ids}
 
     @lazy_property
+    def tls_outgoing(self):
+        """Returns the outgoing approaches for a traffic light junction
+
+        Params:
+        ------
+        * nodeid: string
+            a valid nodeid in self.nodes
+
+        Returns:
+        ------
+        * approaches: dict<string, list<string>>
+            list of mappings from node_id -> outgoing edge ids
+
+        Usage:
+        -----
+         > network.tls_outgoing
+         > {'247123161': ['-238059324', '-238059328', '309265401', '383432312']}
+
+        DEF:
+        ---
+        A roadway meeting at an intersection is referred to as an approach.
+        At any general intersection, there are two kinds of approaches:
+        incoming approaches and outgoing approaches.
+
+        An outgoing approach is one on which cars can exit the intersection.
+
+        REF:
+        ---
+            * Wei et al., 2019
+            http://arxiv.org/abs/1904.08117
+        """
+        return {nid: [e['id'] for e in self.edges if e['from'] == nid]
+                for nid in self.tls_ids}
+
+    @lazy_property
     def tls_phases(self):
         """Returns a nodeid x sets of non conflicting movement patterns.
             The sets are index by integers and the moviment patterns are
             expressed as lists of approaches. We consider only incoming
             approaches to be controlled by phases.
-            
+
         Returns:
         ------
         * phases: dict<string,dict<int, dict<string, obj>>>
             keys: nodeid, phase_id, 'states', 'components'
-            
 
         Usage:
         -----
@@ -284,7 +320,7 @@ class Network(flownet.Network):
                  'states': ['rrrrGGGgrrrrGGGg']
                  },
              3: {'components':
-                     [('gneE7', [2]), ('-gneE10', [2])], 
+                     [('gneE7', [2]), ('-gneE10', [2])],
                  'states': ['rrrryyygrrrryyyg', 'rrrrrrrGrrrrrrrG',
                             'rrrrrrryrrrrrrry']
                 }
@@ -294,7 +330,7 @@ class Network(flownet.Network):
         ---
         A phase is a combination of movement signals which are
         non-conflicting. The relation from states to phases is
-        such that phases "disregards" yellow configurations 
+        such that phases "disregards" yellow configurations
         usually num_phases = num_states / 2
 
         REF:
@@ -303,60 +339,114 @@ class Network(flownet.Network):
         http://arxiv.org/abs/1904.08117
         """
 
-        _phases = {}
+        ret = defaultdict(dict)
         def fn(x, n):
             return x.get('tl') == n and 'linkIndex' in x
 
         for nid in self.tls_ids:
             # green and yellow are considered to be one phase
-            _phases[nid] = {}
             connections = [c for c in self.connections if fn(c, nid)]
             states = self.tls_states[nid]
-            links = {
-                int(cn['linkIndex']):
-                    (cn['from'], int(cn['fromLane']))
+            incoming_links = {
+                int(cn['linkIndex']): (cn['from'], int(cn['fromLane']))
+                for cn in connections if 'linkIndex' in cn
+            }
+
+            outgoing_links = {
+                int(cn['linkIndex']): (cn['to'], int(cn['toLane']))
                 for cn in connections if 'linkIndex' in cn
             }
             i = 0
             components = {}
             for state in states:
-                # components: linkIndex, 0-1, edge_id, lane
-                components = {
-                    (lnk,) + edge_lane
-                    for lnk, edge_lane in links.items()
-                    if state[lnk] in ('G','g')
-                }
-                # adds components if they don't exist
-                if components:
-                    found = False
-                    # sort by link, edge_id
-                    components = \
-                        sorted(components, key=op.itemgetter(0, 1))
+                # # components: (linkIndex, phase_num, edge_id, lane)
+                # # states are indexed by linkIndex
+                # # 'G', 'g' states are grouped together.
+                # components = {
+                #     (lnk,) + edge_lane
+                #     for lnk, edge_lane in links.items()
+                #     if state[lnk] in ('G','g')
+                # }
 
-                    # groups lanes by edge_ids and states
-                    components = \
-                        [(k, list({l[-1] for l in g}))
-                         for k, g in groupby(components, key=op.itemgetter(1))]
+                # # adds components if they don't exist
+                # if components:
+                #     found = False
+                #     # sort by link, edge_id
+                #     components = \
+                #         sorted(components, key=op.itemgetter(0, 1))
+
+                #     # groups lanes by edge_ids and states
+                #     components = \
+                #         [(k, list({l[-1] for l in g}))
+                #          for k, g in groupby(components, key=op.itemgetter(1))]
+                incoming = self._group_links(incoming_links, state)
+                outgoing = self._group_links(outgoing_links, state)
+
+                # Match states
+                # The state related to this phase might already have been added.
+                found = False
+                if any(incoming) or any(outgoing):
                     for j in range(0, i + 1):
-                        if j in _phases[nid]:
+
+                        if j in ret[nid]:
                             # same edge_id and lanes
-                            _component =  \
-                                _phases[nid][j]['components']
-                            found = \
-                                components == _component
+                            found = ret[nid][j]['incoming'] == incoming and \
+                                        ret[nid][j]['outgoing'] == outgoing
 
                             if found:
-                                _phases[nid][j]['states'].append(state)
+                                ret[nid][j]['states'].append(state)
+                                break
+
                     if not found:
-                        _phases[nid][i] = {
-                            'components': components,
+                        ret[nid][i] = {
+                            'incoming': incoming,
+                            'outgoing': outgoing,
                             'states': [state]
                         }
                         i += 1
                 else:
+                    # add to the last phase
                     # states only `r` and `y`
-                    _phases[nid][i-1]['states'].append(state)
-        return _phases
+                    ret[nid][i - 1]['states'].append(state)
+        return ret
+
+    def _group_links(self, links, state):
+        """Transforms links into components
+
+        Parameters:
+        ----------
+        * links: dict<int, tuple<str, int>
+              links: linkIndex --> (edge_id, lane)
+              ex: {7: ('-309265400', 0), 8: ('-309265400', 0), ..., 6:('309265402', 1)}
+
+        * state: str
+           ex: 'rrrrrGGGGG'
+
+        Returns:
+        --------
+            component: list<tuple<str,list<int>>>
+                    component --> [(edge_a, [lane_0, lane_1]), ...]
+                    ex: [('309265401', [0, 1]), ('-238059328', [0, 1])]
+        """
+        # components: (linkIndex, phase_num, edge_id, lane)
+        # states are indexed by linkIndex
+        # 'G', 'g' states are grouped together.
+        components = {
+            (lnk,) + edge_lane
+            for lnk, edge_lane in links.items()
+            if state[lnk] in ('G','g')
+        }
+        # adds components if they don't exist
+        if components:
+            # sort by link, edge_id
+            components = \
+                sorted(components, key=op.itemgetter(0, 1))
+
+            # groups lanes by edge_ids and states
+            components = \
+                [(k, list({l[-1] for l in g}))
+                 for k, g in groupby(components, key=op.itemgetter(1))]
+        return components
 
     @lazy_property
     def tls_max_capacity(self):
