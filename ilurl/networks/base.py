@@ -164,6 +164,42 @@ class Network(flownet.Network):
         return {conn.pop('via'): conn for conn in conns if 'via' in conn} 
 
     @lazy_property
+    def next_edges(self):
+        """Uses links which map current edge, lane to a list
+            of all next possible edge, lane pairs.
+
+        Returns:
+        -------
+        * next_edges: dict<tuple<str,int>, list<tuple<str, int>>>
+            keys --> (edge_id, lane_num)
+            values --> [(edge_id, lane_num), (edge_id, lane_num), ...]
+
+        Usage:
+        ------
+        > network.next_edges[('-238059324', 0)]
+        > [('-309265401', 0), ('-309265401', 1), ('-383432312', 0)]
+
+        """
+        links = deepcopy(self.links)
+
+        # 1) Converts into list of tuples
+        # As some edges might have more than one outlet.
+        # [(('-238059324', 0), {...}), (('-238059328', 1), {...}), ...]
+        data =  [((data.pop('from'), int(data.pop('fromLane'))), data)
+                 for data in links.values()]
+
+        # 2) Unique keys: edges & lanes
+        # keys --> set of tuples {('-238059324', 0), ('-238059328', 1), ...}
+        keys = {el for el, _ in data}
+
+        # 3) Generates a dictionary
+        # key --> tuple, val --> list of edges
+        ret = {k: [(keyval[1].pop('to'), int(keyval[1].pop('toLane')))
+                    for keyval in data if keyval[0] == k]
+               for k in keys}
+        return ret
+
+    @lazy_property
     def edges2(self):
         """Edges as dictionary instead of a list"""
         return {data['id']: {k:v for k, v in data.items() if k != 'id'}
@@ -326,6 +362,7 @@ class Network(flownet.Network):
                 }
              }
            }
+
         DEF:
         ---
         A phase is a combination of movement signals which are
@@ -347,15 +384,15 @@ class Network(flownet.Network):
             # green and yellow are considered to be one phase
             connections = [c for c in self.connections if fn(c, nid)]
             states = self.tls_states[nid]
-            incoming_links = {
+            links = {
                 int(cn['linkIndex']): (cn['from'], int(cn['fromLane']))
                 for cn in connections if 'linkIndex' in cn
             }
 
-            outgoing_links = {
-                int(cn['linkIndex']): (cn['to'], int(cn['toLane']))
-                for cn in connections if 'linkIndex' in cn
-            }
+            # outgoing_links = {
+            #     int(cn['linkIndex']): (cn['to'], int(cn['toLane']))
+            #     for cn in connections if 'linkIndex' in cn
+            # }
             i = 0
             components = {}
             for state in states:
@@ -379,19 +416,19 @@ class Network(flownet.Network):
                 #     components = \
                 #         [(k, list({l[-1] for l in g}))
                 #          for k, g in groupby(components, key=op.itemgetter(1))]
-                incoming = self._group_links(incoming_links, state)
-                outgoing = self._group_links(outgoing_links, state)
+                incoming = self._group_links(links, state)
+                # outgoing = self._group_links(outgoing_links, state)
 
                 # Match states
                 # The state related to this phase might already have been added.
                 found = False
-                if any(incoming) or any(outgoing):
+                if any(incoming):
                     for j in range(0, i + 1):
 
                         if j in ret[nid]:
                             # same edge_id and lanes
-                            found = ret[nid][j]['incoming'] == incoming and \
-                                        ret[nid][j]['outgoing'] == outgoing
+                            found = ret[nid][j]['components'] == incoming # and \
+                                        # ret[nid][j]['outgoing'] == outgoing
 
                             if found:
                                 ret[nid][j]['states'].append(state)
@@ -399,8 +436,8 @@ class Network(flownet.Network):
 
                     if not found:
                         ret[nid][i] = {
-                            'incoming': incoming,
-                            'outgoing': outgoing,
+                            'components': incoming,
+                            # 'outgoing': outgoing,
                             'states': [state]
                         }
                         i += 1
@@ -448,6 +485,7 @@ class Network(flownet.Network):
                  for k, g in groupby(components, key=op.itemgetter(1))]
         return components
 
+    
     @lazy_property
     def tls_max_capacity(self):
         """Max speeds and counts that an intersection can handle
