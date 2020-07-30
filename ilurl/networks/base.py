@@ -384,15 +384,15 @@ class Network(flownet.Network):
             # green and yellow are considered to be one phase
             connections = [c for c in self.connections if fn(c, nid)]
             states = self.tls_states[nid]
-            links = {
+            incoming_links = {
                 int(cn['linkIndex']): (cn['from'], int(cn['fromLane']))
                 for cn in connections if 'linkIndex' in cn
             }
 
-            # outgoing_links = {
-            #     int(cn['linkIndex']): (cn['to'], int(cn['toLane']))
-            #     for cn in connections if 'linkIndex' in cn
-            # }
+            outgoing_links = {
+                int(cn['linkIndex']): (cn['to'], int(cn['toLane']))
+                for cn in connections if 'linkIndex' in cn
+            }
             i = 0
             components = {}
             for state in states:
@@ -416,19 +416,19 @@ class Network(flownet.Network):
                 #     components = \
                 #         [(k, list({l[-1] for l in g}))
                 #          for k, g in groupby(components, key=op.itemgetter(1))]
-                incoming = self._group_links(links, state)
-                # outgoing = self._group_links(outgoing_links, state)
+                incoming = self._group_links(incoming_links, state)
+                outgoing = self._group_links(outgoing_links, state)
 
                 # Match states
                 # The state related to this phase might already have been added.
                 found = False
-                if any(incoming):
+                if any(incoming) or any(outgoing):
                     for j in range(0, i + 1):
 
                         if j in ret[nid]:
                             # same edge_id and lanes
-                            found = ret[nid][j]['components'] == incoming # and \
-                                        # ret[nid][j]['outgoing'] == outgoing
+                            found = ret[nid][j]['incoming'] == incoming and \
+                                        ret[nid][j]['outgoing'] == outgoing
 
                             if found:
                                 ret[nid][j]['states'].append(state)
@@ -436,8 +436,8 @@ class Network(flownet.Network):
 
                     if not found:
                         ret[nid][i] = {
-                            'components': incoming,
-                            # 'outgoing': outgoing,
+                            'incoming': incoming,
+                            'outgoing': outgoing,
                             'states': [state]
                         }
                         i += 1
@@ -485,7 +485,6 @@ class Network(flownet.Network):
                  for k, g in groupby(components, key=op.itemgetter(1))]
         return components
 
-    
     @lazy_property
     def tls_max_capacity(self):
         """Max speeds and counts that an intersection can handle
@@ -506,7 +505,7 @@ class Network(flownet.Network):
             _max_capacity = {}
             for phase, data in self.tls_phases[tls_id].items():
                 max_count, max_speed = 0, 0
-                for edge_id, lanes in data['components']:
+                for edge_id, lanes in data['incoming']:
                     edge = [e for e in self.edges if e['id'] == edge_id][0]
                     k = len(lanes) / edge['numLanes']
                     max_count += edge['max_capacity'] * k

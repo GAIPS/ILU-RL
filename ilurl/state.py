@@ -322,9 +322,8 @@ class Phase:
 
         # 3) Instantiate lanes
         lanes = []
-        components = []
-        for _component in phase_data['components']:
-            edge_id, lane_ids = _component
+        for incoming in phase_data['incoming']:
+            edge_id, lane_ids = incoming
             for lane_id in lane_ids:
                 lanes.append(
                     Lane(mdp_params, edge_id, lane_id, self._max_speed))

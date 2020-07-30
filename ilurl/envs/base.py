@@ -141,7 +141,7 @@ class TrafficLightEnv(Env):
         if self._update_counter != self.time_counter:
 
             # Query kernel and retrieve vehicles' data.
-            vehs = {nid: {p: build_vehicles(nid, data['components'], self.k.vehicle)
+            vehs = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
                         for p, data in self.tls_phases[nid].items()}
                             for nid in self.tls_ids}
 
