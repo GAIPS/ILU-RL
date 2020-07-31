@@ -19,13 +19,19 @@ class GaussianNoiseExploration(snt.Module):
     """ Sonnet module for adding gaussian noise (exploration). """
 
     def __init__(self,
-                 stddev_init: float,
-                 stddev_final: float,
-                 stddev_schedule_timesteps: int):
+                 eval_mode: bool,
+                 stddev_init: float = 0.4,
+                 stddev_final: float = 0.01,
+                 stddev_schedule_timesteps: int = 25000,
+                 ):
         """ Initialise GaussianNoise class.
 
             Parameters:
             ----------
+            * eval_mode: bool
+                If eval_mode is True then this module does not affect
+                input values.
+
             * stddev_init: int
                 Initial stddev value.
 
@@ -43,6 +49,7 @@ class GaussianNoiseExploration(snt.Module):
         self._stddev_init = stddev_init
         self._stddev_final = stddev_final
         self._stddev_schedule_timesteps = stddev_schedule_timesteps
+        self._eval_mode = tf.Variable(eval_mode)
 
         # Internal counter.
         self._counter = tf.Variable(0.0)
@@ -54,11 +61,14 @@ class GaussianNoiseExploration(snt.Module):
         fraction = tf.math.minimum(self._counter / self._stddev_schedule_timesteps, 1.0)
         stddev = self._stddev_init + fraction * (self._stddev_final - self._stddev_init)
 
-        # Noise distribution.
-        noise = tfp.distributions.Normal(loc=0., scale=stddev)
+        # Add noise. If eval_mode is True then no noise is added. If
+        # eval_mode is False (training mode) then gaussian noise is added to the inputs.
+        noise = tf.where(self._eval_mode,
+                        tf.zeros_like(inputs),
+                        tfp.distributions.Normal(loc=0., scale=stddev).sample(inputs.shape))
 
         # Add noise to inputs.
-        output = inputs + noise.sample(inputs.shape)
+        output = inputs + noise
 
         return output
 

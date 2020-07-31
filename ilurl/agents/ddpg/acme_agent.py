@@ -140,7 +140,8 @@ class DDPG(agent.Agent):
             policy_network,
             tf2_layers.GaussianNoiseExploration(stddev_init=sigma_init,
                                                 stddev_final=sigma_final,
-                                                stddev_schedule_timesteps=sigma_schedule_timesteps),
+                                                stddev_schedule_timesteps=sigma_schedule_timesteps,
+                                                eval_mode=False),
             lambda x: tf.nn.softmax(x)
         ])
 
@@ -183,6 +184,8 @@ class DDPG(agent.Agent):
         deterministic_network = snt.Sequential([
             observation_network,
             policy_network,
+            tf2_layers.GaussianNoiseExploration(eval_mode=True),
+            lambda x: tf.nn.softmax(x)
         ])
         self._deterministic_actor = actors.FeedForwardActor(deterministic_network)
 
