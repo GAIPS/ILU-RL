@@ -161,7 +161,7 @@ class Network(flownet.Network):
     def links(self):
         """Dict version from connections"""
         conns = deepcopy(self.connections)
-        return {conn.pop('via'): conn for conn in conns if 'via' in conn} 
+        return {conn.pop('via'): conn for conn in conns if 'via' in conn}
 
     @lazy_property
     def next_edges(self):
@@ -342,20 +342,20 @@ class Network(flownet.Network):
 
         > network.tls_phases
         > {'gneJ2':
-            {0: {'components':
+            {0: {'incoming':
                     [('-gneE8', [0, 1, 2]), ('gneE12', [0, 1, 2])],
                     'states': ['GGGgrrrrGGGgrrrr']
                 },
-             1: {'components':
+             1: {'incoming':
                      [('-gneE8', [2]), ('gneE12', [2])],
                   'states': ['yyygrrrryyygrrrr', 'rrrGrrrrrrrGrrrr',
                              'rrryrrrrrrryrrrr']
                 },
-             2: {'components':
+             2: {'incoming':
                      [('gneE7', [0, 1, 2]), ('-gneE10', [0, 1, 2])],
                  'states': ['rrrrGGGgrrrrGGGg']
                  },
-             3: {'components':
+             3: {'incoming':
                      [('gneE7', [2]), ('-gneE10', [2])],
                  'states': ['rrrryyygrrrryyyg', 'rrrrrrrGrrrrrrrG',
                             'rrrrrrryrrrrrrry']
@@ -578,11 +578,12 @@ class Network(flownet.Network):
         Returns
         -------
             * nodeids: list<string>
+
         Usage:
         -----
         # intersection
         > network.tls_ids
-        ['247123161']
+        > ['247123161']
 
         """
         return [n['id'] for n in self.nodes if n['type'] == 'traffic_light']
@@ -651,5 +652,5 @@ class Network(flownet.Network):
             edge['max_capacity'] = int(edge['length'] / xs) * edge['numLanes']
             # max of mean speeds (max_speed is too conservative)
             edge['max_speed'] = 0.5 * edge.get('speed', vs)
-            
+
         return edges

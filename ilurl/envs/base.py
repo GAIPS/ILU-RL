@@ -73,6 +73,8 @@ class TrafficLightEnv(Env):
 
         # overrides GYM's observation space
         self.observation_space = State(network, mdp_params)
+        import ipdb
+        ipdb.set_trace()
 
         # Continuous action space signal plans.
         self.signal_plans_continous = {}

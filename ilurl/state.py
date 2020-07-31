@@ -4,9 +4,65 @@ from collections import OrderedDict
 import numpy as np
 
 from ilurl.utils.aux import flatten as flat
+from ilurl.utils.properties import lazy_property
+
+def get_instance_name(x):
+    """Gets the name of the instance"""
+    return x.__class__.__name__.lower()
+
+def is_unique(xs):
+    """Tests if all x in xs belong to the same instance"""
+    fn = get_instance_name
+    xs_set = {x for x in map(fn, xs)}
+    if len(xs_set) == 1:
+        return list(xs_set)[0]
+    return False
+
+class Node:
+    """Node into the state tree hierarchy
+
+      * Provides a means for bi-direction communication
+        between parent and children.
+      * Provides bfs function.
+      * Implements sequence protocol.
+      * Thin-wrapper around domain functionality.
+    """
+    def __init__(self, parent, node_id, children):
+        self.parent = parent
+        self.node_id = node_id
+        self.children = children
+        # Creates an alias
+        if children is not None and any(children):
+            alias = is_unique(children.values())
+            if alias:
+                setattr(self, f'{alias}s', children)
+
+    # Sequence protocol
+    def __len__(self):
+        return len(self.children)
+
+    def __getitem__(self, index):
+        return self.children[index]
+
+    # BFS for paths
+    def search_path(node_id, path):
+        """Returns a path ending on node_ID"""
+        if node_id == self.node_id:
+            path.append(node_id)
+            return True
+        else:
+            # look into the children
+            for ch in self.children:
+                path.append(ch.node_id)
+                found = ch.search(node_id, path)
+                if found:
+                    break
+                del path[-1]
+            return found
 
 
-class State:
+
+class State(Node):
     """Describes the state space
 
         * Forest: composed of root nodes of trees (intersections).
@@ -47,12 +103,21 @@ class State:
             self._time_period = mdp_params.time_period
 
         # Local features.
-        self._intersections = {
-            tls_id: Intersection(mdp_params,
+        intersections = {
+            tls_id: Intersection(self,
+                                 mdp_params,
                                  tls_id,
                                  network.tls_phases[tls_id],
                                  network.tls_max_capacity[tls_id])
             for tls_id in network.tls_ids}
+
+        super(State, self).__init__(None, 'state', intersections)
+    # # sequence protocol
+    # def __len__(self):
+    #     return len(self._intersections)
+
+    # def __getitem__(self, tls_id):
+    #     return self._intersections[tls_id]
 
     @property
     def tls_ids(self):
@@ -172,7 +237,7 @@ class Intersection:
         * Splits outputs.
     """
 
-    def __init__(self, mdp_params, tls_id, phases, phase_capacity):
+    def __init__(self, state, mdp_params, tls_id, phases, phase_capacity):
         """Instantiate intersection object
 
         Params:
@@ -203,14 +268,24 @@ class Intersection:
         * state
             A state is an aggregate of features indexed by intersections' ids.
         """
+        self.parent = state
         self._tls_id = tls_id
 
         # 2) Define children nodes: Phase
-        self._phases = [Phase(mdp_params,
+        self._phases = [Phase(self,
+                              mdp_params,
                               f'{tls_id}#{phase_id}',
                               phase_comp,
                               phase_capacity[phase_id])
                         for phase_id, phase_comp in phases.items()]
+
+
+    # sequence protocol
+    def __len__(self):
+        return len(self._phases)
+
+    def __getitem__(self, phase_id):
+        return self._phases[phase_id]
 
     @property
     def tls_id(self):
@@ -282,7 +357,7 @@ class Phase:
         * Aggregates wrt time.
     """
 
-    def __init__(self, mdp_params, phase_id, phase_data, max_capacity):
+    def __init__(self, intersection, mdp_params, phase_id, phase_data, max_capacity):
         """Builds phase
 
         Params:
@@ -305,6 +380,7 @@ class Phase:
 
         """
         # 1) Define base attributes
+        self.parent = intersection
         self._phase_id = phase_id
         self._labels = mdp_params.features
         self._max_speed, self._max_count =  max_capacity
@@ -326,10 +402,19 @@ class Phase:
             edge_id, lane_ids = incoming
             for lane_id in lane_ids:
                 lanes.append(
-                    Lane(mdp_params, edge_id, lane_id, self._max_speed))
+                    Lane(self, mdp_params, edge_id, lane_id, self._max_speed))
 
+        self._outgoing_ids = phase_data['outgoing']
         self._lanes = lanes
         self.cached_features = {}
+
+
+    # sequence protocol
+    def __len__(self):
+        return len(self._lanes)
+
+    def __getitem__(self, lane_id):
+        return self._lanes[lane_id]
 
     @property
     def phase_id(self):
@@ -346,6 +431,17 @@ class Phase:
     @property
     def lagged(self):
         return self._lagged
+
+    @lazy_property
+    def outgoing(self):
+        """Defines outgoing lanes"""
+        # 1) Search for outgoing lanes
+        # virgin using the plain old approaches dict
+        # chad using a three and making it acessible
+
+        state = self.parent.parent
+        # 1) Iterate
+        pass
 
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
@@ -601,7 +697,7 @@ class Lane:
         * Computes feature per time step.
         * Aggregates wrt vehicles.
     """
-    def __init__(self, mdp_params, edge_id, lane_id, max_speed):
+    def __init__(self, phase, mdp_params, edge_id, lane_id, max_speed):
         """Builds lane
 
         Params:
@@ -616,6 +712,7 @@ class Lane:
         * max_speed: float
             max velocity a car can travel.
         """
+        self.parent = phase
         self._edge_id = edge_id
         self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
