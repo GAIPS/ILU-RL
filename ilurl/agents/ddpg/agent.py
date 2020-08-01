@@ -33,6 +33,7 @@ def _make_networks(
     policy_network = snt.Sequential([
         networks.LayerNormMLP(policy_layers, activate_final=True),
         networks.NearZeroInitializedLinear(actions_dim),
+        lambda x: tf.nn.softmax(x)
     ])
 
     # Create the critic network.
