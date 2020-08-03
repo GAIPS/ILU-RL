@@ -35,7 +35,11 @@ class Node:
         if children is not None and any(children):
             alias = is_unique(children.values())
             if alias:
-                setattr(self, f'{alias}s', children)
+                try:
+                    setattr(self, f'{alias}s', children)
+                except AttributeError:
+                    import ipdb
+                    ipdb.set_trace()
 
     # Sequence protocol
     def __len__(self):
@@ -44,17 +48,23 @@ class Node:
     def __getitem__(self, index):
         return self.children[index]
 
-    # BFS for paths
-    def search_path(node_id, path):
+    # DFS for paths
+    def search_path(self, node_id, path, seek_root=True):
         """Returns a path ending on node_ID"""
+        # 1) Base case: this is the element
         if node_id == self.node_id:
-            path.append(node_id)
             return True
         else:
-            # look into the children
-            for ch in self.children:
-                path.append(ch.node_id)
-                found = ch.search(node_id, path)
+            # 2) Seek root node first.
+            if seek_root:
+                if self.parent is not None:
+                    self.parent.search_path(node_id, path)
+
+            found = False
+            # 3) Search down strem
+            for chid, ch in self.children.items():
+                path.append(chid)
+                found = ch.search_path(node_id, path, seek_root=False)
                 if found:
                     break
                 del path[-1]
@@ -112,12 +122,6 @@ class State(Node):
             for tls_id in network.tls_ids}
 
         super(State, self).__init__(None, 'state', intersections)
-    # # sequence protocol
-    # def __len__(self):
-    #     return len(self._intersections)
-
-    # def __getitem__(self, tls_id):
-    #     return self._intersections[tls_id]
 
     @property
     def tls_ids(self):
@@ -145,14 +149,14 @@ class State(Node):
         self._update_time(duration)
 
         # 2) Broadcast update to intersections.
-        for tls_id, i in self._intersections.items():
-            i.update(duration, vehs[tls_id], tls)
+        for tls_id, tls in self.intersections.items():
+            tls.update(duration, vehs[tls_id], tls)
 
     def reset(self):
         """Clears data from previous cycles, broadcasts method to phases"""
         self._last_time = -1
         self._time = -1
-        for intersection in self._intersections.values():
+        for intersection in self.intersections.values():
             intersection.reset()
 
     def feature_map(self, filter_by=None, categorize=False,
@@ -189,7 +193,7 @@ class State(Node):
         ret = {k:v.feature_map(filter_by=filter_by,
                                categorize=categorize,
                                split=split)
-               for k, v in self._intersections.items()}
+               for k, v in self.intersections.items()}
 
 
         # 2) Add network features.
@@ -228,7 +232,8 @@ class State(Node):
             return ret
         return features
 
-class Intersection:
+
+class Intersection(Node):
     """Represents an intersection.
 
         * Nodes on a transportation network.
@@ -268,32 +273,20 @@ class Intersection:
         * state
             A state is an aggregate of features indexed by intersections' ids.
         """
-        self.parent = state
-        self._tls_id = tls_id
+        # 1) Define children nodes: Phase
+        phases = {f'{tls_id}#{phase_id}': Phase(self,
+                                                mdp_params,
+                                                f'{tls_id}#{phase_id}',
+                                                phase_comp,
+                                                phase_capacity[phase_id])
+                    for phase_id, phase_comp in phases.items()}
 
-        # 2) Define children nodes: Phase
-        self._phases = [Phase(self,
-                              mdp_params,
-                              f'{tls_id}#{phase_id}',
-                              phase_comp,
-                              phase_capacity[phase_id])
-                        for phase_id, phase_comp in phases.items()]
+        super(Intersection, self).__init__(state, tls_id, phases)
 
-
-    # sequence protocol
-    def __len__(self):
-        return len(self._phases)
-
-    def __getitem__(self, phase_id):
-        return self._phases[phase_id]
 
     @property
     def tls_id(self):
-        return self._tls_id
-
-    @property
-    def phases(self):
-        return self._phases
+        return self.node_id
 
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
@@ -313,12 +306,15 @@ class Intersection:
             * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
                 Container for traffic light program representation
         """
-        for p, phase in enumerate(self.phases):
-            phase.update(duration, vehs[p], tls)
+        for pid, phase in self.phases.items():
+            # Match last `#'
+            # `#' is special character
+            *tls_ids, num = pid.split('#')
+            phase.update(duration, vehs[int(num)], tls)
 
     def reset(self):
         """Clears data from previous cycles, broadcasts method to phases"""
-        for phase in self.phases:
+        for phase in self.phases.values():
             phase.reset()
 
     def feature_map(self, filter_by=None, categorize=True, split=False):
@@ -341,14 +337,14 @@ class Intersection:
                 Each nested list represents the phases's features.
         """
         ret = [phase.feature_map(filter_by, categorize)
-              for phase in self.phases]
+              for phase in self.phases.values()]
 
         if split:
            return tuple(zip(*ret))
         return ret
 
 
-class Phase:
+class Phase(Node):
     """Represents a phase.
 
         * Composed of many lanes.
@@ -380,8 +376,6 @@ class Phase:
 
         """
         # 1) Define base attributes
-        self.parent = intersection
-        self._phase_id = phase_id
         self._labels = mdp_params.features
         self._max_speed, self._max_count =  max_capacity
         self._matcher = re.compile('\[(.*?)\]')
@@ -397,51 +391,65 @@ class Phase:
 
 
         # 3) Instantiate lanes
-        lanes = []
+        lanes = {}
         for incoming in phase_data['incoming']:
-            edge_id, lane_ids = incoming
-            for lane_id in lane_ids:
-                lanes.append(
-                    Lane(self, mdp_params, edge_id, lane_id, self._max_speed))
+            edge_id, lane_nums = incoming
+            for lane_num in lane_nums:
+                lane_id = (edge_id, lane_num)
+                lanes[lane_id] = Lane(self, mdp_params, lane_id, self._max_speed)
 
-        self._outgoing_ids = phase_data['outgoing']
-        self._lanes = lanes
+        # 4) Save outgoing lane ids.
+        outgoing_ids = []
+        for outgoing in phase_data['outgoing']:
+            edge_id, lane_nums = outgoing
+            for lane_num in lane_nums:
+               outgoing_ids.append((edge_id, lane_num))
+        self._outgoing_ids = outgoing_ids
+
         self.cached_features = {}
 
+        super(Phase, self).__init__(intersection, phase_id, lanes)
 
-    # sequence protocol
-    def __len__(self):
-        return len(self._lanes)
-
-    def __getitem__(self, lane_id):
-        return self._lanes[lane_id]
 
     @property
     def phase_id(self):
-        return self._phase_id
+        return self.node_id
 
     @property
     def labels(self):
         return self._labels
 
     @property
-    def lanes(self):
-        return self._lanes
-
-    @property
     def lagged(self):
         return self._lagged
 
+    @property
+    def incoming(self):
+        """Alias to lanes or incoming approaches."""
+        return self.lanes
+
     @lazy_property
     def outgoing(self):
-        """Defines outgoing lanes"""
-        # 1) Search for outgoing lanes
-        # virgin using the plain old approaches dict
-        # chad using a three and making it acessible
+        """Defines outgoing lanes as incoming lanes from other agents."""
+        # 1) Search for outgoing lanes.
+        # edge_ids from outgoing lanes which are 
+        paths = []
+        outgoing_ids = self._outgoing_ids
+        for outgoing_id in outgoing_ids:
+            path = []
+            self.search_path(outgoing_id, path)
+            paths.append(path)
 
+        # 2) Get a reference for the edge
+        ret = {}
         state = self.parent.parent
-        # 1) Iterate
-        pass
+        for path in paths:
+            if any(path):
+               tls_id, phase_id, lane_id = path
+               ret[lane_id] = state[tls_id][phase_id][lane_id]
+
+        return ret
+
 
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
@@ -463,7 +471,7 @@ class Phase:
         """
         # 1) Define a helpful filtering function.
         def _in(veh, lane):
-            return veh.edge_id == lane.edge_id and veh.lane == lane.lane_id
+            return (veh.edge_id, veh.lane) == lane.lane_id
 
 
         # 2) Update lanes
@@ -475,7 +483,7 @@ class Phase:
         self._update_cached_weight(duration)
 
 
-        for lane in self.lanes:
+        for lane in self.lanes.values():
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
 
@@ -495,7 +503,7 @@ class Phase:
     def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
         # 1) Communicates update for every lane
-        for lane in self.lanes:
+        for lane in self.lanes.values():
             lane.reset()
 
         # 2) Erases previous cycle's memory
@@ -633,6 +641,32 @@ class Phase:
         """
         return round(float(self._cached_queue), 2)
 
+    @property
+    def pressure(self):
+        """Pressure controller
+
+        Difference of number of vehicles in incoming or outgoing lanes.
+
+        Reference:
+        ---------
+        * Wade Genders and Saiedeh Razavi, 2019
+            An Open Source Framework for Adaptive Traffic Light Signal Control.
+
+        See also:
+        --------
+        * Wei, et al, 2018
+            PressLight: Learning Max Pressure Control to Coordinate Traffic
+                        Signals in Arterial Network.
+
+        * Pravin Varaiya, 2013
+            Max pressure control of a network of signalized intersections
+
+        """
+        cin = np.sum([inc._cached_count for inc in self.incoming]).round(4)
+        cout = np.sum([out._cached_count for out in self.outgoing]).round(4)
+        return cin - cout
+
+
     def _update_cached_weight(self, duration):
         """ If duration == 0 then history's weight must be zero."""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
@@ -688,7 +722,7 @@ class Phase:
         _bins = self._bins[self._get_derived(label)]
         return int(np.digitize(value, bins=_bins))
 
-class Lane:
+class Lane(Node):
     """ Represents a lane within an edge.
 
         * Leaf nodes.
@@ -697,7 +731,7 @@ class Lane:
         * Computes feature per time step.
         * Aggregates wrt vehicles.
     """
-    def __init__(self, phase, mdp_params, edge_id, lane_id, max_speed):
+    def __init__(self, phase, mdp_params, lane_id, max_speed):
         """Builds lane
 
         Params:
@@ -712,22 +746,23 @@ class Lane:
         * max_speed: float
             max velocity a car can travel.
         """
-        self.parent = phase
-        self._edge_id = edge_id
-        self._lane_id = lane_id
+        # self.parent = phase
+        # self._edge_id = edge_id
+        # self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
         self._max_speed = max_speed
         self._normalize = mdp_params.normalize_state_space
         self._labels = mdp_params.features
         self.reset()
+        super(Lane, self).__init__(phase, lane_id, {})
 
     @property
     def lane_id(self):
-        return self._lane_id
+        return self.node_id
 
-    @property
-    def edge_id(self):
-        return self._edge_id
+    # @property
+    # def edge_id(self):
+    #     return self._edge_id
 
     @property
     def cache(self):
@@ -797,7 +832,7 @@ class Lane:
     def _update_counts(self, vehs):
         """Step update for counts variable"""
         # 1) Compute count @ duration time step
-        if 'count' in self.labels:
+        if 'count' in self.labels or 'pressure' in self.labels:
             self._cached_counts = len(vehs)
 
     def _update_delays(self, vehs):
