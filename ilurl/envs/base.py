@@ -70,7 +70,7 @@ class TrafficLightEnv(Env):
         if self.ts_type in ('rl', 'random'):
             self.tsc = DecentralizedMAS(mdp_params, exp_path, seed)
         elif self.ts_type in ('max_pressure',):
-            self.tsc = get_ts_controller(self.ts_type, network.tls_ids)
+            self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls)
 
         # Reward function.
         self.reward = build_rewards(mdp_params)
@@ -299,7 +299,7 @@ class TrafficLightEnv(Env):
 
         else:
             if self.ts_type == 'max_pressure':
-                controller_actions = self.tsc.act(self.get_observation_space())
+                controller_actions = self.tsc.act(self.get_observation_space(), self.time_counter)
 
                 # Update traffic lights' control signals.
                 self._apply_tsc_actions(controller_actions)
