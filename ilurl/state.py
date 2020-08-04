@@ -662,8 +662,8 @@ class Phase(Node):
             Max pressure control of a network of signalized intersections
 
         """
-        cin = np.sum([inc._cached_count for inc in self.incoming]).round(4)
-        cout = np.sum([out._cached_count for out in self.outgoing]).round(4)
+        cin = np.sum([inc._cached_counts for inc in self.incoming.values()]).round(4)
+        cout = np.sum([out._cached_counts for out in self.outgoing.values()]).round(4)
         return cin - cout
 
 

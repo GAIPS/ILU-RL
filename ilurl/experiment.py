@@ -168,7 +168,7 @@ class Experiment:
             if done and stop_on_teleports:
                 break
 
-            if self.save_agent and self._is_save_agent_step(agent_updates_counter):
+            if self.save_agent and self._is_save_agent_step(agent_updates_counter)and hasattr(self.env,'mas'):
                 self.env.mas.save_checkpoint(self.exp_path)
 
         # Save train log (data is aggregated per traffic signal).

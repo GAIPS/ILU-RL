@@ -1,8 +1,4 @@
-"""Implementation of rewards to be used on features space
-    
-    TODO: Move from strategy pattern to pure-functional
-        implementation
-"""
+"""Implementation of rewards to be used on features space"""
 import inspect
 from sys import modules
 
@@ -178,15 +174,34 @@ def reward_max_delay_reduction(state, *args):
         "Reinforcement learning-based multi-agent system for network traffic signal control"
 
     """
-    def diff(x, y):
-        return np.array(x) - np.array(y)
-
     delay_lagdelay = state.feature_map(
         filter_by=('lag[delay]', 'delay'),
         split=True
     )
     ret = {tls_id: np.sum(diff(*del_ldel)).round(4)
            for tls_id, del_ldel in delay_lagdelay.items()}
+
+    return ret
+
+def reward_max_outflow(state, *args):
+    """Max. throughput
+
+    Params:
+    ------
+    * state: ilurl.state.State
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    """
+    count_lagcount = state.feature_map(
+        filter_by=('count', 'lag[count]'),
+        split=True
+    )
+    ret = {tls_id: np.sum(diff(*c_lc)).round(4)
+           for tls_id, c_lc in count_lagcount.items()}
 
     return ret
 
@@ -234,3 +249,8 @@ def reward_min_queue_squared(state):
 
 def rescale_rewards(rewards, scale_factor):
     return {key: r * scale_factor for (key, r) in rewards.items()}
+
+
+def diff(x, y):
+    return np.array(x) - np.array(y)
+

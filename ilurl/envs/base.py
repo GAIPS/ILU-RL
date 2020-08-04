@@ -20,6 +20,9 @@ from ilurl.envs.elements import build_vehicles
 from ilurl.state import State
 from ilurl.rewards import build_rewards
 from ilurl.utils.properties import lazy_property
+
+from ilurl.envs.controllers import get_ts_controller, is_controller_periodic
+
 # TODO: make this a factory in the future.
 from ilurl.mas.decentralized import DecentralizedMAS
 
@@ -44,7 +47,7 @@ class TrafficLightEnv(Env):
 
         # Traffic light system type.
         # ('rl', 'static', 'uniform', 'actuated', 'actuated_delay' or 'random).
-        self.tls_type = env_params.additional_params.get('tls_type')
+        self.ts_type = env_params.additional_params.get('tls_type')
 
         # Cycle time.
         self.cycle_time = network.cycle_time
@@ -63,7 +66,11 @@ class TrafficLightEnv(Env):
         # Object that handles the Multi-Agent RL system logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
-        self.mas = DecentralizedMAS(mdp_params, exp_path, seed)
+        # self.mas = DecentralizedMAS(mdp_params, exp_path, seed)
+        if self.ts_type in ('rl', 'random'):
+            self.tsc = DecentralizedMAS(mdp_params, exp_path, seed)
+        elif self.ts_type in ('max_pressure',):
+            self.tsc = get_ts_controller(self.ts_type, network.tls_ids)
 
         # Reward function.
         self.reward = build_rewards(mdp_params)
@@ -102,11 +109,11 @@ class TrafficLightEnv(Env):
     # TODO: create a delegate class
     @property
     def stop(self):
-        return self.mas.stop
+        return self.tsc.stop
 
     @stop.setter
     def stop(self, stop):
-        self.mas.stop = stop
+        self.tsc.stop = stop
 
     # TODO: restrict delegate property to an
     # instance of class
@@ -179,14 +186,16 @@ class TrafficLightEnv(Env):
         actions: dict
 
         """
-        return self.mas.act(state) # Delegate to Multi-Agent System.
+        return self.tsc.act(state) # Delegate to Multi-Agent System.
 
-    def _cl_actions(self):
-        """ Executes the control actions.
+    def _periodic_control_actions(self):
+        """ Executes pre-timed periodic control actions.
+
+        * Actions generate a plan for one period ahead e.g cycle time.
 
         Returns:
         -------
-        cl_actions: tuple<bool>
+        controller_actions: tuple<bool>
             False;  duration<state_k> < duration < duration<state_k+1>
             True;  duration == duration<state_k+1>
 
@@ -196,7 +205,7 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if (dur == 0 or self.time_counter == 1) and self.tls_type == 'rl' and \
+            if (dur == 0 or self.time_counter == 1) and self.ts_type == 'rl' and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
@@ -233,7 +242,7 @@ class TrafficLightEnv(Env):
             if (dur == 0 and self.step_counter > 1):
                 return True
 
-            if self.tls_type == 'static':
+            if self.ts_type == 'static':
                 return dur in self.tls_durations[tid]
             else:
                 if self.mdp_params.action_space == 'discrete':
@@ -257,9 +266,9 @@ class TrafficLightEnv(Env):
             actions to be performed
 
         """
-        if self.tls_type != 'actuated':
+        if is_controller_periodic(self.ts_type):
 
-            if (self.tls_type == 'rl' or self.tls_type == 'random') and \
+            if (self.ts_type == 'rl' or self.ts_type == 'random') and \
                 (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 
@@ -284,28 +293,29 @@ class TrafficLightEnv(Env):
                     reward = self.compute_reward(None)
                     prev_state = self.states_log[cycle_number - 1]
                     prev_action = self.actions_log[cycle_number - 1]
-                    self.mas.update(prev_state, prev_action, reward, state)
+                    self.tsc.update(prev_state, prev_action, reward, state)
 
-            # Update traffic lights' control signals.
-            self._apply_cl_actions(self._cl_actions())
+            self._apply_tsc_actions(self._periodic_control_actions())
 
         else:
-            if self.duration == 0:
-                self.observation_space.reset()
+            if self.ts_type == 'max_pressure':
+                controller_actions = self.tsc.act(self.get_observation_space())
 
+                # Update traffic lights' control signals.
+                self._apply_tsc_actions(controller_actions)
 
-    def _apply_cl_actions(self, cl_actions):
+    def _apply_tsc_actions(self, controller_actions):
         """ For each TSC shift phase or keep phase.
 
         Parameters:
         ----------
-        cl_actions: list<bool>
+        controller_actions: list<bool>
             False; keep state
             True; switch to next state
 
         """
         for i, tid in enumerate(self.tls_ids):
-            if cl_actions[i]:
+            if controller_actions[i]:
                 states = self.tls_states[tid]
                 self._tls_phase_indicator[tid] = \
                         (self._tls_phase_indicator[tid] + 1) % len(states)
@@ -354,7 +364,7 @@ class TrafficLightEnv(Env):
         # Stores the state index.
         self._tls_phase_indicator = {}
         for node_id in self.tls_ids:
-            if self.tls_type != 'actuated':
+            if self.ts_type != 'actuated':
                 self._tls_phase_indicator[node_id] = 0
                 s0 = self.tls_states[node_id][0]
                 self.k.traffic_light.set_state(node_id=node_id, state=s0)
