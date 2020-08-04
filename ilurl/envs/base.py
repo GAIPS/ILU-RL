@@ -73,9 +73,6 @@ class TrafficLightEnv(Env):
 
         # overrides GYM's observation space
         self.observation_space = State(network, mdp_params)
-        print(self.observation_space.intersections['247123464']['247123464#0'].outgoing)
-        # import ipdb
-        # ipdb.set_trace()
 
         # Continuous action space signal plans.
         self.signal_plans_continous = {}
@@ -310,9 +307,9 @@ class TrafficLightEnv(Env):
         for i, tid in enumerate(self.tls_ids):
             if cl_actions[i]:
                 states = self.tls_states[tid]
-                self.state_indicator[tid] = \
-                        (self.state_indicator[tid] + 1) % len(states)
-                next_state = states[self.state_indicator[tid]]
+                self._tls_phase_indicator[tid] = \
+                        (self._tls_phase_indicator[tid] + 1) % len(states)
+                next_state = states[self._tls_phase_indicator[tid]]
                 self.k.traffic_light.set_state(
                     node_id=tid, state=next_state)
 
@@ -326,7 +323,7 @@ class TrafficLightEnv(Env):
 
     def compute_reward(self, rl_actions, **kwargs):
         """ Reward calculation.
-        
+
         Parameters:
         ----------
         rl_actions : array_like
@@ -348,7 +345,6 @@ class TrafficLightEnv(Env):
         self._reset()
 
     def _reset(self):
-
         # The 'duration' variable measures the elapsed time since
         # the beggining of the cycle, i.e. it measures (in seconds)
         # for how long the current configuration has been going on.
@@ -356,13 +352,14 @@ class TrafficLightEnv(Env):
         self._duration = self.time_counter * self.sim_step
 
         # Stores the state index.
-        self.state_indicator = {}
+        self._tls_phase_indicator = {}
         for node_id in self.tls_ids:
-            num_phases = len(self.tls_phases[node_id])
             if self.tls_type != 'actuated':
-                self.state_indicator[node_id] = 0
+                self._tls_phase_indicator[node_id] = 0
                 s0 = self.tls_states[node_id][0]
                 self.k.traffic_light.set_state(node_id=node_id, state=s0)
+
+                # Notify controller.
 
         # Observation space.
         self.observation_space.reset()
