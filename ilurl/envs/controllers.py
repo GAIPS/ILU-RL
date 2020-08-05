@@ -1,6 +1,10 @@
 """Implementation of classic adaptive controllers and methods"""
 import numpy as np
 
+from collections import namedtuple
+
+PressurePhase = namedtuple('PressurePhase', 'id time yellow')
+
 def is_controller_periodic(ts_type):
     if ts_type in ('rl', 'static', 'uniform', 'random'):
         return True
@@ -50,7 +54,7 @@ class MaxPressure:
         # controller + network parameters
         # current phase and current timer
         ts_ids = list(ts_num_phases.keys())
-        self._ts_cptp = {ts_id: (0, 0) for ts_id in ts_ids}
+        self._ts_pp = {ts_id: PressurePhase(0, 0, -1) for ts_id in ts_ids}
         self._ts_ids = ts_ids
 
 
@@ -69,33 +73,35 @@ class MaxPressure:
         ret = [False] * len(self._ts_ids)
         ind = 0
 
-        for ts_id, cptp in self._ts_cptp.items():
-            cp, tp = cptp
+        for ts_id, pp in self._ts_pp.items():
             press = pressure[ts_id]
-            ret[ind], next_phase = self._test_pressure(cp, tp, tc, press)
-
-            # 3) if current p is different than last change
-            # otherwise do nothing, extend.
-            if ret[ind]:
-                self._ts_cptp[ts_id] = (next_phase, tc)
-            else:
-                ret[ind] = (tc - tp) == self._yellow
+            ret[ind], *data = self._switch_pressure(press, pp, tc)
+            self._ts_pp[ts_id] = PressurePhase(*data)
             ind += 1
         return ret
 
-    def _test_pressure(self, current_phase, last_time_change, time_counter, press_phase):
+    def _switch_pressure(self, pressure, pressure_phase, tc):
+        pid, pt, py = pressure_phase
+        # 1) Yellow expired.
+        if tc == py:
+            return True, pid, pt, tc
+
         # 1) Hard change: too much time has gone by without change
-        if time_counter > self._max_green + last_time_change:
+        if tc > self._max_green + pt:
             # Circular update to the next phase 
-            return True, (current_phase + 1) % 2
+            return True, (pid + 1) % 2, tc, tc + self._yellow
 
         # 2) Adaptive change: evaluate pressure
-        if time_counter > self._min_green + last_time_change:
-            next_phase = np.argmax(press_phase)
-            return next_phase != current_phase, next_phase
+        if tc > self._min_green + pt:
+            next_phase = np.argmax(pressure)
+            
+            switch = next_phase != pid
+            pt = switch * tc + (not switch) * pt
+            py = switch * (pt + self._yellow) + (not switch) * py
+            return switch, next_phase, pt, py 
 
         # 3) Do nothing
-        return False, current_phase
+        return False, pid, pt, py
 
     def reset(self):
         self._ts_phase = {ts_id: 0 for ts_id in ts_ids}
