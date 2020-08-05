@@ -33,7 +33,8 @@ Bounds = namedtuple('Bounds', 'rank depth')
 STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
 
 # Traffic light system types.
-TLS_TYPES = ('rl', 'static', 'uniform', 'actuated', 'actuated_delay', 'random')
+TLS_TYPES = ('rl', 'static', 'uniform',
+             'actuated', 'actuated_delay', 'random', 'max_pressure')
 
 # Traffic demand types (flows).
 DEMAND_TYPES = ('constant', 'variable') # TODO: Add 'switch' demand type.
@@ -54,7 +55,8 @@ class MDPParams(Printable):
                 category_speeds: List[float] = [2.28, 5.50],
                 category_delays: List[float] = [5, 30],
                 category_queues: List[float] = [1, 10],
-                 category_times: List[int] = [1, 10],
+                category_times: List[int] = [1, 10],
+                category_pressures: List[int] = [1, 10],
                 reward: str = 'reward_max_speed_count',
                 reward_rescale: float = 1.0,
                 time_period: int = None,

@@ -31,7 +31,6 @@ from ilurl.networks.base import Network
 from ilurl.loaders.parser import config_parser
 
 
-
 ILURL_PATH = Path(os.environ['ILURL_HOME'])
 EMISSION_PATH = ILURL_PATH / 'data/emissions/'
 NETWORKS_PATH = ILURL_PATH / 'data/networks/'
@@ -56,7 +55,6 @@ def main(train_config_path=None):
     }
 
     network = Network(**network_args)
-
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
     os.makedirs(experiment_path, exist_ok=True)
