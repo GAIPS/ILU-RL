@@ -35,11 +35,7 @@ class Node:
         if children is not None and any(children):
             alias = is_unique(children.values())
             if alias:
-                try:
-                    setattr(self, f'{alias}s', children)
-                except AttributeError:
-                    import ipdb
-                    ipdb.set_trace()
+                setattr(self, f'{alias}s', children)
 
     # Sequence protocol
     def __len__(self):
