@@ -664,7 +664,7 @@ class Phase(Node):
         """
         cin = np.sum([inc._cached_counts for inc in self.incoming.values()]).round(4)
         cout = np.sum([out._cached_counts for out in self.outgoing.values()]).round(4)
-        return cin - cout
+        return int(cin - cout)
 
 
     def _update_cached_weight(self, duration):

@@ -252,5 +252,5 @@ def rescale_rewards(rewards, scale_factor):
 
 
 def diff(x, y):
-    return np.array(x) - np.array(y)
+    return (np.array(x) - np.array(y)).astype(np.float32)
 
