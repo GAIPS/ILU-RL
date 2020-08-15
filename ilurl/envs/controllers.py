@@ -1,5 +1,6 @@
 """Implementation of classic adaptive controllers and methods"""
 import numpy as np
+import ipdb
 
 from collections import namedtuple
 
@@ -54,9 +55,7 @@ class MaxPressure:
         # controller + network parameters
         # current phase and current timer
         ts_ids = list(ts_num_phases.keys())
-        self._ts_pp = {ts_id: PressurePhase(0, 0, -1) for ts_id in ts_ids}
-        self._ts_ids = ts_ids
-
+        self._ts_phase = {ts_id: PressurePhase(0, 0, -1) for ts_id in ts_ids}
 
     @property
     def ts_type(self):
@@ -70,14 +69,15 @@ class MaxPressure:
 
         # 2) Evaluate max pressure signal.
         # Filter for last change.
-        ret = [False] * len(self._ts_ids)
+        ret = [False] * len(self._ts_phase)
         ind = 0
 
-        for ts_id, pp in self._ts_pp.items():
+        for ts_id, pp in self._ts_phase.items():
             press = pressure[ts_id]
             ret[ind], *data = self._switch_pressure(press, pp, tc)
-            self._ts_pp[ts_id] = PressurePhase(*data)
+            self._ts_phase[ts_id] = PressurePhase(*data)
             ind += 1
+
         return ret
 
     def _switch_pressure(self, pressure, pressure_phase, tc):
@@ -87,12 +87,12 @@ class MaxPressure:
             return True, pid, pt, tc
 
         # 1) Hard change: too much time has gone by without change
-        if tc > self._max_green + pt:
+        if tc > self._max_green + self._yellow + pt:
             # Circular update to the next phase 
             return True, (pid + 1) % 2, tc, tc + self._yellow
 
         # 2) Adaptive change: evaluate pressure
-        if tc > self._min_green + pt:
+        if tc > self._min_green + self._yellow + pt:
             next_phase = np.argmax(pressure)
             
             switch = next_phase != pid
