@@ -162,7 +162,7 @@ def main(config_file_path=None):
 
     # Setup checkpoints.
     checkpoints_dir_path = Path(args.run_path) / 'checkpoints'
-    env.mas.load_checkpoint(checkpoints_dir_path, args.chkpt_number)
+    env.tsc.load_checkpoint(checkpoints_dir_path, args.chkpt_number)
 
     # Stop training.
     env.stop = True

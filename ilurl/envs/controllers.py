@@ -1,6 +1,5 @@
 """Implementation of classic adaptive controllers and methods"""
 import numpy as np
-import ipdb
 
 from collections import namedtuple
 
