@@ -21,6 +21,8 @@ if __name__ == '__main__':
 
     print('\nConverting .xml files to .csv ...\n')
 
+    counter = 0
+
     # Convert all .xml files to .csv format.
     for xml_path in Path(experiment_root_path).rglob('*.xml'):
         csv_path = str(xml_path).replace('xml', 'csv')
@@ -30,3 +32,5 @@ if __name__ == '__main__':
             Path(xml_path).unlink()
         except Exception:
             raise
+
+        print(f'Converted {counter} files.')
