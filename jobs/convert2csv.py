@@ -1,7 +1,17 @@
 import sys
 import argparse
+from os import environ
+import multiprocessing as mp
+import configparser
+
 from pathlib import Path
-from ilurl.loaders.xml2csv import main as xml2csv
+
+from ilurl.loaders.xml2csv import main as _xml2csv
+
+ILURL_HOME = environ['ILURL_HOME']
+CONFIG_PATH = \
+    Path(f'{ILURL_HOME}/config/')
+
 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -13,24 +23,41 @@ def get_arguments():
 
     return parsed
 
-if __name__ == '__main__':
 
-    # Parse command line.
-    args = get_arguments()
-    experiment_root_path = args.experiment_dir
+def convert(file_path):
+    csv_path = str(file_path).replace('xml', 'csv')
+    args = [str(file_path), '-o', csv_path]
+    try:
+        _xml2csv(args)
+        Path(file_path).unlink()
+    except Exception:
+        raise
+
+def xml2csv(experiment_root_path=None):
+
+    if not experiment_root_path:
+        # Parse command line.
+        args = get_arguments()
+        experiment_root_path = args.experiment_dir
+        num_processors = mp.cpu_count()
+    else:
+        run_config = configparser.ConfigParser()
+        run_config.read(str(CONFIG_PATH / 'run.config'))
+        num_processors = int(run_config.get('run_args', 'num_processors'))
 
     print('\nConverting .xml files to .csv ...\n')
 
-    counter = 0
+    # Get all .xml files recursively.
+    xml_paths = list(Path(experiment_root_path).rglob('*.xml'))
+    xml_paths = [str(p) for p in xml_paths]
 
-    # Convert all .xml files to .csv format.
-    for xml_path in Path(experiment_root_path).rglob('*.xml'):
-        csv_path = str(xml_path).replace('xml', 'csv')
-        args = [str(xml_path), '-o', csv_path]
-        try:
-            xml2csv(args)
-            Path(xml_path).unlink()
-        except Exception:
-            raise
+    # Convert files.
+    if num_processors > 1:
+        pool = mp.Pool(num_processors)
+        pool.map(convert, xml_paths)
+    else:
+        for xml_path in xml_paths:
+            convert(xml_path)
 
-        print(f'Converted {counter} files.')
+if __name__ == '__main__':
+    xml2csv()

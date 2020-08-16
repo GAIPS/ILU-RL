@@ -27,12 +27,13 @@ from pathlib import Path
 
 from jobs.train import train_batch as train
 from jobs.rollouts import rollout_batch as rollouts
+from jobs.convert2csv import xml2csv
 
 from analysis.train_plots import main as train_plots
 from analysis.rollouts import main as rollouts_plots
 from analysis.test_plots import main as test_plots
 
-from ilurl.loaders.xml2csv import main as xml2csv
+# from ilurl.loaders.xml2csv import main as xml2csv
 
 from ilurl.utils.decorators import safe_run
 
@@ -66,15 +67,16 @@ if __name__ == '__main__':
     rollouts(test=True, experiment_dir=experiment_root_path)
 
     # 7) Convert .xml files to .csv files.
-    print('\nConverting .xml files to .csv ...\n')
-    for xml_path in Path(experiment_root_path).rglob('*.xml'):
-        csv_path = str(xml_path).replace('xml', 'csv')
-        args = [str(xml_path), '-o', csv_path]
-        try:
-            xml2csv(args)
-            Path(xml_path).unlink()
-        except Exception:
-            raise
+    xml2csv(experiment_root_path=experiment_root_path)
+    # print('\nConverting .xml files to .csv ...\n')
+    # for xml_path in Path(experiment_root_path).rglob('*.xml'):
+    #     csv_path = str(xml_path).replace('xml', 'csv')
+    #     args = [str(xml_path), '-o', csv_path]
+    #     try:
+    #         xml2csv(args)
+    #         Path(xml_path).unlink()
+    #     except Exception:
+    #         raise
 
     # 8) Create plots with metrics plots for final agent.
     test_plots(experiment_root_path)
