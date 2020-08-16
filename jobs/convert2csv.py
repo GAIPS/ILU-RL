@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 from ilurl.loaders.xml2csv import main as xml2csv
 
