@@ -179,8 +179,8 @@ class Experiment:
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
-        if self.save_agent:
-            self.env.tsc.terminate()
+        # TODO: if self.save_agent:
+        self.env.tsc.terminate()
         self.env.terminate()
 
         return info_dict
