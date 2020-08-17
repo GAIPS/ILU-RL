@@ -69,6 +69,7 @@ Locally install the ILU-RL package.
 	pip install -e acme/
 	pip install dm-acme[reverb]
 	pip install dm-acme[tf]
+	pip install dm-acme[jax]
 	```
 4. Export root ILU-RL directory enviroment variable (configure .bashrc file)
 	```bash
