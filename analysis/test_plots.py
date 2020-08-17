@@ -196,6 +196,8 @@ def main(experiment_root_folder=None):
     vehicles_appended = []
     throughputs = []
 
+    mean_values_per_eval = []
+
     for csv_file in csv_files:
 
         print('Processing CSV file: {0}'.format(csv_file))
@@ -204,6 +206,12 @@ def main(experiment_root_folder=None):
         df_csv = get_emissions(csv_file)
 
         df_per_vehicle = get_vehicles(df_csv)
+
+        df_per_vehicle_mean = df_per_vehicle.mean()
+        mean_values_per_eval.append({'speed': df_per_vehicle_mean['speed'],
+                                     'delay': df_per_vehicle_mean['waiting'],
+                                     'travel_time': df_per_vehicle_mean['total']})
+
         vehicles_appended.append(df_per_vehicle)
 
         df_throughput = get_throughput(df_csv)
@@ -215,6 +223,11 @@ def main(experiment_root_folder=None):
     
     print(df_vehicles_appended.shape)
     print(df_throughputs_appended.shape)
+
+    # Write mean values per eval into a csv file.
+    df_mean_metrics_per_eval = pd.DataFrame(mean_values_per_eval)
+    df_mean_metrics_per_eval.to_csv('{0}/mean_metrics_per_eval.csv'.format(output_folder_path),
+                                    float_format='%.3f')
 
     """
         Waiting time & travel time.
