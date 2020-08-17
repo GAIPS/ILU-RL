@@ -25,10 +25,17 @@ import reverb
 import tensorflow as tf
 import tree
 
+# pylint: disable=g-import-not-at-top
+try:
+  from acme.adders.reverb.deprecated import base as deprecated_base  # pytype: disable=import-error
+except ImportError:
+  deprecated_base = None
+# pylint: enable=g-import-not-at-top
+
 
 def make_reverb_dataset(
-    client: reverb.TFClient,
-    environment_spec: specs.EnvironmentSpec,
+    server_address: str,
+    environment_spec: Optional[specs.EnvironmentSpec] = None,
     batch_size: Optional[int] = None,
     prefetch_size: Optional[int] = None,
     sequence_length: Optional[int] = None,
@@ -37,6 +44,7 @@ def make_reverb_dataset(
     table: str = adders.DEFAULT_PRIORITY_TABLE,
     parallel_batch_optimization: bool = True,
     convert_zero_size_to_none: bool = False,
+    using_deprecated_adder: bool = False,
 ) -> tf.data.Dataset:
   """Makes a TensorFlow dataset.
 
@@ -49,7 +57,7 @@ def make_reverb_dataset(
   which specifies "extra data".
 
   Args:
-    client: A TFClient (or list of TFClients) for talking to a replay server.
+    server_address: The Reverb server's address.
     environment_spec: The environment's spec.
     batch_size: Optional. If specified the dataset returned will combine
       consecutive elements into batches. This argument is also used to determine
@@ -72,23 +80,120 @@ def make_reverb_dataset(
       shapes for example `GraphsTuple` from the graph_net library. For example,
       `specs.Array((0, 5), tf.float32)` will correspond to a examples with shape
       `tf.TensorShape([None, 5])`.
+    using_deprecated_adder: True if the adder used to generate the data is
+      from acme/adders/reverb/deprecated.
 
   Returns:
     A tf.data.Dataset that streams data from the replay server.
   """
 
-  assert isinstance(client, reverb.TFClient)
+  # This is the default that used to be set by reverb.TFClient.dataset().
+  max_in_flight_samples_per_worker = 2 * batch_size if batch_size else 100
 
-  # Use the environment spec but convert it to a plain tuple.
-  adder_spec = tuple(environment_spec)
+  def _make_dataset(unused_idx: tf.Tensor) -> tf.data.Dataset:
+    if environment_spec is not None:
+      shapes, dtypes = _spec_to_shapes_and_dtypes(
+          transition_adder,
+          environment_spec,
+          extra_spec=extra_spec,
+          sequence_length=sequence_length,
+          convert_zero_size_to_none=convert_zero_size_to_none,
+          using_deprecated_adder=using_deprecated_adder)
+      dataset = reverb.ReplayDataset(
+          server_address=server_address,
+          table=table,
+          dtypes=dtypes,
+          shapes=shapes,
+          max_in_flight_samples_per_worker=max_in_flight_samples_per_worker,
+          num_workers_per_iterator=1, # TWEAKED.
+          sequence_length=sequence_length,
+          emit_timesteps=sequence_length is None)
+    else:
+      dataset = reverb.ReplayDataset.from_table_signature(
+          server_address=server_address,
+          table=table,
+          max_in_flight_samples_per_worker=max_in_flight_samples_per_worker,
+          num_workers_per_iterator=1, # TWEAKED.
+          sequence_length=sequence_length,
+          emit_timesteps=sequence_length is None)
+    return dataset
 
+  # Create the dataset.
+  dataset = tf.data.Dataset.range(1).repeat()
+  dataset = dataset.interleave(
+      map_func=_make_dataset,
+      cycle_length=1, # TWEAKED.
+      num_parallel_calls=None) # TWEAKED.
+
+  # Optimization options.
+  options = tf.data.Options()
+  options.experimental_deterministic = False
+  options.experimental_optimization.parallel_batch = False # TWEAKED.
+  options.experimental_threading.max_intra_op_parallelism = 2 # TWEAKED.
+  options.experimental_threading.private_threadpool_size = 2 # TWEAKED.
+  dataset = dataset.with_options(options)
+
+  # Finish the pipeline: batch and prefetch.
+  if batch_size:
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+
+  if prefetch_size:
+    dataset = dataset.prefetch(prefetch_size)
+
+  return dataset
+
+
+def _spec_to_shapes_and_dtypes(transition_adder: bool,
+                               environment_spec: specs.EnvironmentSpec,
+                               extra_spec: Optional[types.NestedSpec],
+                               sequence_length: Optional[int],
+                               convert_zero_size_to_none: bool,
+                               using_deprecated_adder: bool):
+  """Creates the shapes and dtypes needed to describe the Reverb dataset.
+
+  This takes a `environment_spec`, `extra_spec`, and additional information and
+  returns a tuple (shapes, dtypes) that describe the data contained in Reverb.
+
+  Args:
+    transition_adder: A boolean, describing if a `TransitionAdder` was used to
+      add data.
+    environment_spec: A `specs.EnvironmentSpec`, describing the shapes and
+      dtypes of the data produced by the environment (and the action).
+    extra_spec: A nested structure of objects with a `.shape` and `.dtype`
+      property. This describes any additional data the Actor adds into Reverb.
+    sequence_length: An optional integer for how long the added sequences are,
+      only used with `SequenceAdder`.
+    convert_zero_size_to_none: If True, then all shape dimensions that are 0 are
+      converted to None. A None dimension is only set at runtime.
+    using_deprecated_adder: True if the adder used to generate the data is
+      from acme/adders/reverb/deprecated.
+
+  Returns:
+    A tuple (dtypes, shapes) that describes the data that has been added into
+    Reverb.
+  """
   # The *transition* adder is special in that it also adds an arrival state.
   if transition_adder:
-    adder_spec += (environment_spec.observations,)
-
-  # Any 'extra' data that is passed to the adder is put on the end.
-  if extra_spec:
-    adder_spec += (extra_spec,)
+    # Use the environment spec but convert it to a plain tuple.
+    adder_spec = tuple(environment_spec) + (environment_spec.observations,)
+    # Any 'extra' data that is passed to the adder is put on the end.
+    if extra_spec:
+      adder_spec += (extra_spec,)
+  elif using_deprecated_adder and deprecated_base is not None:
+    adder_spec = deprecated_base.Step(
+        observation=environment_spec.observations,
+        action=environment_spec.actions,
+        reward=environment_spec.rewards,
+        discount=environment_spec.discounts,
+        extras=() if not extra_spec else extra_spec)
+  else:
+    adder_spec = adders.Step(
+        observation=environment_spec.observations,
+        action=environment_spec.actions,
+        reward=environment_spec.rewards,
+        discount=environment_spec.discounts,
+        start_of_episode=specs.Array(shape=(), dtype=bool),
+        extras=() if not extra_spec else extra_spec)
 
   # Extract the shapes and dtypes from these specs.
   get_dtype = lambda x: tf.as_dtype(x.dtype)
@@ -101,41 +206,7 @@ def make_reverb_dataset(
     get_shape = lambda x: tf.TensorShape([s if s else None for s in x.shape])
   shapes = tree.map_structure(get_shape, adder_spec)
   dtypes = tree.map_structure(get_dtype, adder_spec)
-
-  def _make_dataset(unused_idx: tf.Tensor) -> tf.data.Dataset:
-    dataset = client.dataset(
-        table=table,
-        dtypes=dtypes,
-        num_workers_per_iterator=1,
-        shapes=shapes,
-        capacity=batch_size if batch_size else 100,
-        sequence_length=sequence_length,
-        emit_timesteps=sequence_length is None,
-    )
-    return dataset
-
-  # Create the dataset.
-  dataset = tf.data.Dataset.range(1).repeat()
-  dataset = dataset.interleave(
-      map_func=_make_dataset,
-      cycle_length=1,
-      num_parallel_calls=None)
-
-  # Optimization options.
-  options = tf.data.Options()
-  options.experimental_deterministic = False
-  options.experimental_optimization.parallel_batch = False
-  options.experimental_threading.max_intra_op_parallelism = 1
-  options.experimental_threading.private_threadpool_size = 1
-  dataset = dataset.with_options(options)
-
-  # Finish the pipeline: batch and prefetch.
-  if batch_size:
-    dataset = dataset.batch(batch_size, drop_remainder=True)
-  if prefetch_size:
-    dataset = dataset.prefetch(prefetch_size)
-
-  return dataset
+  return shapes, dtypes
 
 
 # TODO(b/152732834): remove this and prefer datasets.make_reverb_dataset.

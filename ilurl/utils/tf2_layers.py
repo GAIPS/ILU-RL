@@ -3,18 +3,6 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class GaussianNoise(snt.Module):
-    """ Sonnet module for adding Gaussian noise to each output. """
-
-    def __init__(self, stddev: float):
-        super().__init__(name='gaussian_noise')
-        self._noise = tfp.distributions.Normal(loc=0., scale=stddev)
-
-    def __call__(self, inputs: tf.Tensor) -> tf.Tensor:
-        output = inputs + self._noise.sample(inputs.shape)
-        return output
-
-
 class GaussianNoiseExploration(snt.Module):
     """ Sonnet module for adding gaussian noise (exploration). """
 

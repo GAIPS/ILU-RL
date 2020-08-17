@@ -100,7 +100,8 @@ class DDPG(agent.Agent):
             sampler=reverb.selectors.Uniform(),
             remover=reverb.selectors.Fifo(),
             max_size=max_replay_size,
-            rate_limiter=reverb.rate_limiters.MinSize(1))
+            rate_limiter=reverb.rate_limiters.MinSize(1),
+            signature=adders.NStepTransitionAdder.signature(environment_spec))
         self._server = reverb.Server([replay_table], port=None)
 
         # The adder is used to insert observations into replay.
@@ -115,16 +116,14 @@ class DDPG(agent.Agent):
         # The dataset provides an interface to sample from replay.
         dataset = make_reverb_dataset(
             table=replay_table_name,
-            client=reverb.TFClient(address),
-            environment_spec=environment_spec,
+            server_address=address,
             batch_size=batch_size,
-            prefetch_size=prefetch_size,
-            transition_adder=True)
+            prefetch_size=prefetch_size)
 
         # Get observation and action specs.
         act_spec = environment_spec.actions
         obs_spec = environment_spec.observations
-        emb_spec = tf2_utils.create_variables(observation_network, [obs_spec])
+        emb_spec = tf2_utils.create_variables(observation_network, [obs_spec]) # pytype: disable=wrong-arg-types
 
         # Make sure observation network is a Sonnet Module.
         observation_network = tf2_utils.to_sonnet_module(observation_network)

@@ -72,13 +72,19 @@ class R2D2(agent.Agent):
         max_priority_weight: float = 0.9,
         checkpoint: bool = True,
     ):
-
+        extra_spec = {
+            'core_state': network.initial_state(1),
+        }
+        # Remove batch dimensions.
+        extra_spec = tf2_utils.squeeze_batch_dim(extra_spec)
         replay_table = reverb.Table(
             name=adders.DEFAULT_PRIORITY_TABLE,
             sampler=reverb.selectors.Prioritized(priority_exponent),
             remover=reverb.selectors.Fifo(),
             max_size=max_replay_size,
-            rate_limiter=reverb.rate_limiters.MinSize(min_size_to_sample=1))
+            rate_limiter=reverb.rate_limiters.MinSize(min_size_to_sample=1),
+            signature=adders.SequenceAdder.signature(environment_spec,
+                                                    extra_spec))
         self._server = reverb.Server([replay_table], port=None)
         address = f'localhost:{self._server.port}'
 
@@ -91,18 +97,10 @@ class R2D2(agent.Agent):
         )
 
         # The dataset object to learn from.
-        reverb_client = reverb.TFClient(address)
-        extra_spec = {
-            'core_state': network.initial_state(1),
-        }
-        # Remove batch dimensions.
-        extra_spec = tf2_utils.squeeze_batch_dim(extra_spec)
         dataset = make_reverb_dataset(
-            client=reverb_client,
-            environment_spec=environment_spec,
+            server_address=address,
             batch_size=batch_size,
             prefetch_size=prefetch_size,
-            extra_spec=extra_spec,
             sequence_length=sequence_length)
 
         target_network = copy.deepcopy(network)
@@ -116,7 +114,7 @@ class R2D2(agent.Agent):
             burn_in_length=burn_in_length,
             sequence_length=sequence_length,
             dataset=dataset,
-            reverb_client=reverb_client,
+            reverb_client=reverb.TFClient(address),
             counter=counter,
             logger=logger,
             discount=discount,
@@ -147,7 +145,7 @@ class R2D2(agent.Agent):
         observations_per_step = (
             float(replay_period * batch_size) / samples_per_insert)
 
-        print(observations_per_step)
+        print('Obs per step: ', observations_per_step)
         super().__init__(
             actor=actor,
             learner=learner,
