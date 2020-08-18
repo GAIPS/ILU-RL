@@ -86,6 +86,11 @@ class TrafficLightEnv(Env):
 
         self._reset()
 
+    #ABCMeta
+    def action_space(self):
+        return self.mdp_params.action_space
+
+
     @property
     def duration(self):
         if self.time_counter == 0:
@@ -257,7 +262,7 @@ class TrafficLightEnv(Env):
 
         return tuple(ret)
 
-    def apply_rl_actions(self, rl_actions):
+    def _apply_rl_actions(self, rl_actions):
         """ Specify the actions to be performed.
 
         Parameters:
