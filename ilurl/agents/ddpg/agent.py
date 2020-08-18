@@ -186,7 +186,7 @@ class DDPG(AgentWorker,AgentInterface):
 
     def terminate(self):
         # Fake a final transition.
-        a = double_to_single_precision(0)
+        a = double_to_single_precision(np.zeros((self._params.num_phases,)))
         s = double_to_single_precision(np.zeros((self._params.states.rank,)))
         r = double_to_single_precision(0.0)
         d = double_to_single_precision(0.0)

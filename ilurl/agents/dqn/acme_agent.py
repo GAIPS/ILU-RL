@@ -112,7 +112,6 @@ class DQN(agent.Agent):
             client=reverb.Client(address),
             n_step=n_step,
             discount=discount)
-        adder.reset()
 
         # The dataset provides an interface to sample from replay.
         replay_client = reverb.TFClient(address)
