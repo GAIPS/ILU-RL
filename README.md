@@ -35,7 +35,7 @@ Locally install the flow package. An installation guide can be found [here](http
 	which sumo
 	sumo --version
 	sumo-gui
-	python examples/simulate.py ring
+	python flow/examples/simulate.py ring
 	```
 	Note that, if the above commands did not work, you may need to run `source  ~/.bashrc` or open a 		new terminal to update your $PATH variable.
 5. Exit virtual env	
