@@ -106,12 +106,11 @@ class DDPG(agent.Agent):
 
         # The adder is used to insert observations into replay.
         address = f'localhost:{self._server.port}'
-        adder = adders.NStepTransitionAdder(
+        self._adder = adders.NStepTransitionAdder(
             priority_fns={replay_table_name: lambda x: 1.},
             client=reverb.Client(address),
             n_step=n_step,
             discount=discount)
-        adder.reset()
 
         # The dataset provides an interface to sample from replay.
         dataset = make_reverb_dataset(
@@ -152,7 +151,7 @@ class DDPG(agent.Agent):
         tf2_utils.create_variables(target_observation_network, [obs_spec])
 
         # Create the actor which defines how we take actions.
-        actor = actors.FeedForwardActor(behavior_network, adder=adder)
+        actor = actors.FeedForwardActor(behavior_network, adder=self._adder)
 
         # Create optimizers.
         policy_optimizer = snt.optimizers.Adam(learning_rate=1e-4)
@@ -205,3 +204,7 @@ class DDPG(agent.Agent):
 
     def load(self, p):
         self._saver.load(p)
+
+    def tear_down(self):
+        self._adder.reset()
+        self._server.stop()

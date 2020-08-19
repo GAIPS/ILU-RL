@@ -185,15 +185,8 @@ class DDPG(AgentWorker,AgentInterface):
         self._logger.write(values)
 
     def terminate(self):
-        # Fake a final transition.
-        a = double_to_single_precision(np.zeros((self._params.num_phases,)))
-        s = double_to_single_precision(np.zeros((self._params.states.rank,)))
-        r = double_to_single_precision(0.0)
-        d = double_to_single_precision(0.0)
-
-        end = dm_env.TimeStep(dm_env.StepType.LAST, r, d, s)
-
-        self.agent.observe(a, end)
+        #self.agent.tear_down()
+        pass
 
     def save_checkpoint(self, path):
         checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(

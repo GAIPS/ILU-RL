@@ -90,7 +90,7 @@ class R2D2(agent.Agent):
 
         sequence_length = burn_in_length + trace_length + 1
         # Component to add things into replay.
-        adder = adders.SequenceAdder(
+        self._adder = adders.SequenceAdder(
             client=reverb.Client(address),
             period=replay_period,
             sequence_length=sequence_length,
@@ -134,13 +134,13 @@ class R2D2(agent.Agent):
                                      epsilon_final=epsilon_final,
                                      epsilon_schedule_timesteps=epsilon_schedule_timesteps)
         ])
-        actor = actors.RecurrentActor(policy_network, adder)
+        actor = actors.RecurrentActor(policy_network, self._adder)
 
         max_Q_network = snt.DeepRNN([
             network,
             lambda qs: trfl.epsilon_greedy(qs, epsilon=0.0).sample(),
         ])
-        self._deterministic_actor = actors.RecurrentActor(max_Q_network, adder)
+        self._deterministic_actor = actors.RecurrentActor(max_Q_network, self._adder)
 
         observations_per_step = (
             float(replay_period * batch_size) / samples_per_insert)
@@ -163,3 +163,7 @@ class R2D2(agent.Agent):
 
     def load(self, p):
         self._saver.load(p)
+
+    def tear_down(self):
+        self._adder.reset()
+        self._server.stop()
