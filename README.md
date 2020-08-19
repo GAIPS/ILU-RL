@@ -41,7 +41,6 @@ Locally install the flow package. An installation guide can be found [here](http
 5. Exit virtual env	
 	```bash
 	deactivate
-	cd ..
 	```
  [Troubleshooting](https://flow.readthedocs.io/en/latest/flow_setup.html)
 	
