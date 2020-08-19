@@ -18,31 +18,29 @@ Locally install the flow package. An installation guide can be found [here](http
 	```
  3. Install FLOW
 	```bash
-	cd flow
-	pip install -e
+	pip install -e flow/
 	```
 	Depending on the operating system run:
 	- For Ubuntu 14.04:
-		```scripts/setup_sumo_ubuntu1404.sh```
+		```flow/scripts/setup_sumo_ubuntu1404.sh```
 	- For Ubuntu 16.04:
-		```scripts/setup_sumo_ubuntu1604.sh```
+		```flow/scripts/setup_sumo_ubuntu1604.sh```
 	- For Ubuntu 18.04:
-		```scripts/setup_sumo_ubuntu1804.sh```
+		```flow/scripts/setup_sumo_ubuntu1804.sh```
 	- For Mac:
-		```scripts/setup_sumo_osx.sh```
+		```flow/scripts/setup_sumo_osx.sh```
 
 4. Test installation		
 	```bash
 	which sumo
 	sumo --version
 	sumo-gui
-	python examples/simulate.py ring
+	python flow/examples/simulate.py ring
 	```
 	Note that, if the above commands did not work, you may need to run `source  ~/.bashrc` or open a 		new terminal to update your $PATH variable.
 5. Exit virtual env	
 	```bash
 	deactivate
-	cd ..
 	```
  [Troubleshooting](https://flow.readthedocs.io/en/latest/flow_setup.html)
 	
@@ -77,5 +75,5 @@ Locally install the ILU-RL package.
 	```
 5. Test installation
 	```bash
-	python models/train.py 
+	python ILU-RL/models/train.py 
 	```
