@@ -22,13 +22,13 @@ Locally install the flow package. An installation guide can be found [here](http
 	```
 	Depending on the operating system run:
 	- For Ubuntu 14.04:
-		```scripts/setup_sumo_ubuntu1404.sh```
+		```flow/scripts/setup_sumo_ubuntu1404.sh```
 	- For Ubuntu 16.04:
-		```scripts/setup_sumo_ubuntu1604.sh```
+		```flow/scripts/setup_sumo_ubuntu1604.sh```
 	- For Ubuntu 18.04:
-		```scripts/setup_sumo_ubuntu1804.sh```
+		```flow/scripts/setup_sumo_ubuntu1804.sh```
 	- For Mac:
-		```scripts/setup_sumo_osx.sh```
+		```flow/scripts/setup_sumo_osx.sh```
 
 4. Test installation		
 	```bash
