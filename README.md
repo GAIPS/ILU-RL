@@ -18,8 +18,7 @@ Locally install the flow package. An installation guide can be found [here](http
 	```
  3. Install FLOW
 	```bash
-	cd flow
-	pip install -e
+	pip install -e flow/
 	```
 	Depending on the operating system run:
 	- For Ubuntu 14.04:
