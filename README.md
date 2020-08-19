@@ -75,5 +75,5 @@ Locally install the ILU-RL package.
 	```
 5. Test installation
 	```bash
-	python models/train.py 
+	python ILU-RL/models/train.py 
 	```
