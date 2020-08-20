@@ -564,6 +564,20 @@ class Phase(Node):
         else:
             return 0.0
 
+    @property
+    def speed_score(self):
+        """Aggregates speed wrt time and lane
+
+        Returns:
+        -------
+        * speed: float
+            The average speed of all cars in the phase
+        """
+        if self._cached_count > 0:
+            ret = float(self._cached_speed / self._cached_count)
+            return round(ret, 2)
+        else:
+            return 0.0
 
     @property
     def count(self):
@@ -742,9 +756,6 @@ class Lane(Node):
         * max_speed: float
             max velocity a car can travel.
         """
-        # self.parent = phase
-        # self._edge_id = edge_id
-        # self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
         self._max_speed = max_speed
         self._normalize = mdp_params.normalize_state_space
@@ -755,10 +766,6 @@ class Lane(Node):
     @property
     def lane_id(self):
         return self.node_id
-
-    # @property
-    # def edge_id(self):
-    #     return self._edge_id
 
     @property
     def cache(self):
@@ -824,10 +831,15 @@ class Lane(Node):
 
             self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
 
+    def _update_speed_scores(self, vehs):
+        """Step update for speed_scores variable"""
+        if 'speed_score' in self.labels:
+            # 1) Compute speed average
+            self._cached_speed_scores = round(sum([v.speed for v in vehs]), 4)
+
 
     def _update_counts(self, vehs):
         """Step update for counts variable"""
-        # 1) Compute count @ duration time step
         if 'count' in self.labels or 'pressure' in self.labels:
             self._cached_counts = len(vehs)
 
@@ -842,46 +854,53 @@ class Lane(Node):
             step_delays = [v.speed / cap < vt for v in vehs]
             self._cached_delays = len(step_delays)
 
+
     @property
     def speed(self):
-        """Vehicles' speeds per time step (per lane).
+        """Relative vehicles' speeds per time step and lane.
+
+        * difference between max_speed and observed speed.
 
         Returns:
-            speeds: list<float>
-            Is a duration sized list containing averages
+            speed: float
         """
         return self._cached_speeds
 
     @property
-    def count(self):
-        """Average number of vehicles during cycle (per lane)
+    def speed_score(self):
+        """Sum of raw vehicles' speeds per time step and lane.
 
         Returns:
-            count: list<float>
-            Is a duration sized list containing the total number of vehicles
+            speed_score: float
+        """
+        return self._cached_speed_scores
+
+    @property
+    def count(self):
+        """Average number of vehicles per time step and lane.
+
+        Returns:
+            count: float
         """
         return self._cached_counts
 
     @property
     def delay(self):
-        """Total of vehicles circulating under a velocity threshold (per lane)
+        """Total of vehicles circulating under a velocity threshold per time step and lane.
 
         Returns:
         -------
-            * delay: list<int>
-            Is a duration sized list containing the total number of slow moving
-            vehicles.
+            * delay: int
         """
         return self._cached_delays
 
     @property
     def queue(self):
-        """Max. vehicles circulating under a velocity threshold (per lane).
+        """Total of vehicles circulating under a velocity threshold per time step and lane.
 
         Returns:
         -------
-            * queue: list<int>
-            Is a duration sized list containing the total number of slow moving
-            vehicles.
+            * queue: int
         """
         return self._cached_delays
+
