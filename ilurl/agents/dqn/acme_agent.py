@@ -108,7 +108,7 @@ class DQN(agent.Agent):
 
         # The adder is used to insert observations into replay.
         address = f'localhost:{self._server.port}'
-        adder = adders.NStepTransitionAdder(
+        self._adder = adders.NStepTransitionAdder(
             client=reverb.Client(address),
             n_step=n_step,
             discount=discount)
@@ -135,7 +135,7 @@ class DQN(agent.Agent):
         tf2_utils.create_variables(target_network, [environment_spec.observations])
 
         # Create the actor which defines how we take actions.
-        actor = actors_tf2.FeedForwardActor(policy_network, adder)
+        actor = actors_tf2.FeedForwardActor(policy_network, self._adder)
 
         # The learner updates the parameters (and initializes them).
         learner = learning.DQNLearner(
@@ -176,3 +176,7 @@ class DQN(agent.Agent):
 
     def load(self, p):
         self._saver.load(p)
+
+    def tear_down(self):
+        self._adder.reset()
+        self._server.stop()

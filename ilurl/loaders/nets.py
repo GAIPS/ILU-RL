@@ -102,7 +102,7 @@ def get_routes(network_id):
     connections = {(item['from'], item['to']): item for item in connections}
 
     # Get the number of lanes for each edge. 
-    edge_lanes = {e['id']: e['numLanes'] for e in get_edges(network_id)}
+    edge_lanes = {e['id']: len(e['lanes']) for e in get_edges(network_id)}
 
     def softmax(x, temp=0.20):
         return np.exp(x/temp) / np.sum(np.exp(x/temp))
@@ -120,7 +120,7 @@ def get_routes(network_id):
             for orig, dest in zip(path, path[1:]):
                 if connections[(orig, dest)]['dir'] != 's':
                     counter_turns += 1
-            
+
             # Path's weight.
             weight = 1 / (counter_turns + 1)
             weights.append(weight)
@@ -128,13 +128,8 @@ def get_routes(network_id):
         t = -0.005 * (len(weights) - 10) + 0.2
         weights = list(softmax(np.array(weights), temp=t))
 
-        weighted_routes[start] = [(p, w) for p, w in zip(paths, weights)] 
+        weighted_routes[start] = [(p, w) for p, w in zip(paths, weights)]
 
-    # print('-'*20)
-    # for start, routes in weighted_routes.items():
-    #     print(f'\nSTART: {start}')
-    #     for route, weight in routes:
-    #         print(f'\tRoute: {route}, Weight: {weight}')
 
     return weighted_routes
 
@@ -162,48 +157,41 @@ def get_edges(network_id):
         Returns:
         -------
             * edges: list of dictionaries
-            as specified at flow.scenarios.py
 
         Specs:
         ------
-        edges : list of dict or None
-        edges that are assigned to the scenario via the `specify_edges` method.
-        This include the shape, position, and properties of all edges in the
-        network. These properties include the following mandatory properties:
+            edges : list of dict or None
+            edges that are assigned to the scenario via the `specify_edges` method.
+            This include the shape, position, and properties of all edges in the
+            network. These properties include the following mandatory properties:
 
-        * **id**: name of the edge
-        * **from**: name of the node the edge starts from
-        * **to**: the name of the node the edges ends at
-        * **length**: length of the edge
+            * **id**: name of the edge
+            * **from**: name of the node the edge starts from
+            * **to**: the name of the node the edges ends at
+            * **length**: length of the edge
 
-        In addition, either the following properties need to be specifically
-        defined or a **type** variable property must be defined with equivalent
-        attributes in `.types`:
+            In addition, either the following properties need to be specifically
+            defined or a **type** variable property must be defined with equivalent
+            attributes in `.types`:
 
-        * **numLanes**: the number of lanes on the edge
-        * **speed**: the speed limit for vehicles on the edge
+            * **numLanes**: the number of lanes on the edge
+            * **speed**: the speed limit for vehicles on the edge
 
-        Moreover, the following attributes may optionally be available:
+            Moreover, the following attributes may optionally be available:
 
-        * **shape**: the positions of intermediary nodes used to define the
-          shape of an edge. If no shape is specified, then the edge will appear
-          as a straight line.
+            * **shape**: the positions of intermediary nodes used to define the
+              shape of an edge. If no shape is specified, then the edge will appear
+              as a straight line.
 
-        Note that, if the scenario is meant to generate the network from an
-        OpenStreetMap or template file, this variable is set to None
+            Note that, if the scenario is meant to generate the network from an
+            OpenStreetMap or template file, this variable is set to None
 
         Reference:
         ----------
-        flow.networks.base
+            flow.networks.base
     """
     edges = get_generic_element(
         network_id, 'edge', ignore='function', child_key='lane')
-
-    for e in sorted(edges, key=itemgetter('id')):
-        e['speed'] = max([float(lane['speed']) for lane in e['lanes']])
-        e['length'] = max([float(lane['length']) for lane in e['lanes']])
-        e['numLanes'] = len(e['lanes'])
-        del e['lanes']
     return edges
 
 
@@ -229,7 +217,7 @@ def get_tls_custom(network_id, baseline=False):
         ----------
         network_name: string
             network id
-        
+
         tls_type: string
             ('rl', 'uniform', 'static', 'random', 'actuated' or 'actuated_delay')
 
