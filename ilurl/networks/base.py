@@ -19,8 +19,6 @@ from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_logic, get_connections, get_nodes,
                                 get_types, get_tls_custom)
 
-#from ilurl.controllers.routing_controllers import GreedyRouter
-
 
 class Network(flownet.Network):
     """This class leverages on specs created by SUMO."""
@@ -103,14 +101,12 @@ class Network(flownet.Network):
 
 
     def specify_edges(self, net_params):
-        return self._add_edges_capacity(
-            get_edges(self.network_id)
-        )
+        return get_edges(self.network_id)
 
 
     def specify_connections(self, net_params):
         """Connections bind edges' lanes to one another at junctions
-         
+
             DEF:
             ----
             definitions follow the standard
@@ -155,7 +151,9 @@ class Network(flownet.Network):
 
     def specify_edge_starts(self):
         "see parent class"
-        return [(e['id'], e['length']) for e in get_edges(self.network_id)]
+        ret = [(e['id'], max([float(ln['length']) for ln in e['lanes']]))
+                for e in get_edges(self.network_id)]
+        return ret
 
     @lazy_property
     def links(self):
@@ -396,26 +394,6 @@ class Network(flownet.Network):
             i = 0
             components = {}
             for state in states:
-                # # components: (linkIndex, phase_num, edge_id, lane)
-                # # states are indexed by linkIndex
-                # # 'G', 'g' states are grouped together.
-                # components = {
-                #     (lnk,) + edge_lane
-                #     for lnk, edge_lane in links.items()
-                #     if state[lnk] in ('G','g')
-                # }
-
-                # # adds components if they don't exist
-                # if components:
-                #     found = False
-                #     # sort by link, edge_id
-                #     components = \
-                #         sorted(components, key=op.itemgetter(0, 1))
-
-                #     # groups lanes by edge_ids and states
-                #     components = \
-                #         [(k, list({l[-1] for l in g}))
-                #          for k, g in groupby(components, key=op.itemgetter(1))]
                 incoming = self._group_links(incoming_links, state)
                 outgoing = self._group_links(outgoing_links, state)
 
@@ -491,28 +469,31 @@ class Network(flownet.Network):
 
         Returns:
         -------
-            * max_capacity: dict<string, tuple<float, float>>
-                keys: tls_id
-                float: max. speeds (m/s) or counts (vehs)
+            * max_capacity: dict<string, dict<int, dict<int, tuple<float, int>>>
+                keys: string tls_id keys: int phase_id keys: int lane
+                tuple<float, int>: max. speeds (m/s), counts (vehs)
 
         Usage:
         > network.tls_max_capacity
-        > {'247123161': {0:{(22.25, 40), 1: (7.96, 12)}
+        > {'gneJ0': {0: {0:(22.25, 40), 1: (7.96, 12)}, 1:{0:(8.33, 6)}}, ...
 
         """
-        max_capacity = {}
+        tlcap = {}
         for tls_id in self.tls_ids:
-            _max_capacity = {}
+            phase_cap = {}
             for phase, data in self.tls_phases[tls_id].items():
-                max_count, max_speed = 0, 0
-                for edge_id, lanes in data['incoming']:
+                edge_cap = {}
+                for edge_id, lane_ids in data['incoming']:
                     edge = [e for e in self.edges if e['id'] == edge_id][0]
-                    k = len(lanes) / edge['numLanes']
-                    max_count += edge['max_capacity'] * k
-                    max_speed = max(edge['max_speed'], max_speed)
-                _max_capacity[phase] = (max_speed, max_count)
-            max_capacity[tls_id] = _max_capacity
-        return max_capacity
+                    for lane_id in lane_ids:
+                        lane = [_lane for _lane in edge['lanes']
+                                if _lane['index'] == repr(lane_id)][0]
+
+                        ls, ll = float(lane['speed']), float(lane['length'])
+                        edge_cap[lane_id] = (ls, int(ll / self.veh_length))
+                    phase_cap[phase] = edge_cap
+            tlcap[tls_id] = phase_cap
+        return tlcap
 
     @lazy_property
     def tls_states(self):
@@ -597,8 +578,7 @@ class Network(flownet.Network):
             * phases_per_tls: dict
 
         """
-        return {tid: len(self.tls_phases[tid])
-                    for tid in self.tls_ids}
+        return {tid: len(self.tls_phases[tid]) for tid in self.tls_ids}
 
     @lazy_property
     def num_signal_plans_per_tls(self):
@@ -610,47 +590,31 @@ class Network(flownet.Network):
             * num_signal_plans_per_tls: dict
 
         """
-        return {tid: len(self.programs[tid]) 
-                    for tid in self.tls_ids}
+        return {tid: len(self.programs[tid]) for tid in self.tls_ids}
 
-    def _add_edges_capacity(self, edges):
-        """Updates edges by providing capacity as the max density number of cars
-            per edge
-        
+    @lazy_property
+    def veh_length(self):
+        """mean veh length
+
         Limitations:
         -----------
-        * It considers an average number vehicles over all vehicle_types
-        * If vehicle length is not provided converts it to length 5 default
+            * It considers an average number vehicles over all vehicle_types
+            * If vehicle length is not provided converts it to length 5 default
 
         Sumo:
         -----
-        length 	float 	5.0 	The vehicle's netto-length (length) (in m)
-        minGap 	float 	2.5 	Empty space after leader [m]
-        maxSpeed 	float 	55.55 (200 km/h) for vehicles   The vehicle's maximum velocity (in m/s)
+            length 	float 	5.0 	The vehicle's netto-length (length) (in m)
+            minGap 	float 	2.5 	Empty space after leader [m]
+            maxSpeed 	float 	55.55 (200 km/h) for vehicles   The vehicle's maximum velocity (in m/s)
 
         Use case:
         --------
-         Determine the theoretical flow:
-         q (flow) [cars/h]  = D (density) [cars/km] x V (speed) [km/h]
+             Determine the theoretical flow:
+             q (flow) [cars/h]  = D (density) [cars/km] x V (speed) [km/h]
 
-        References:
-        -----------
-        https://en.wikipedia.org/wiki/Fundamental_diagram_of_traffic_flow#Basic_statements
-        http://sumo.sourceforge.net/userdoc/Definition_of_Vehicles,_Vehicle_Types,_and_Routes.html#available_vtype_attributes
         """
-        # Summarize over vehicle types
-        xs, vs = 0, 0
+        xs = 0
         for i, veh_type in enumerate(self.vehicles.types):
-            # compute the average vehicle length
             x = veh_type.get('minGap', 2.5) + veh_type.get('length', 5.0)
-            v = veh_type.get('maxSpeed', 55.55)
             xs = (x + i * xs) / (i + 1)     # mean of lengths
-            vs = (v + i * vs) / (i + 1)     # mean of max_speeds
-
-        # Apply over edges
-        for edge in edges:
-            edge['max_capacity'] = int(edge['length'] / xs) * edge['numLanes']
-            # max of mean speeds (max_speed is too conservative)
-            edge['max_speed'] = 0.5 * edge.get('speed', vs)
-
-        return edges
+        return xs
