@@ -258,7 +258,7 @@ class Intersection(Node):
                 str is the edge_id
                 list<int> is the list of lane_ids which belong to phase.
 
-        * phase_capacity: dict<int, (float, float)>
+        * phase_capacity: dict<int, dict<int, (float, int)>>
             key is the index of the phase.
             tuple is the maximum capacity where:
                 float is the max speed of vehicles for the phase.
@@ -349,7 +349,7 @@ class Phase(Node):
         * Aggregates wrt time.
     """
 
-    def __init__(self, intersection, mdp_params, phase_id, phase_data, max_capacity):
+    def __init__(self, intersection, mdp_params, phase_id, phase_data, phase_capacity):
         """Builds phase
 
         Params:
@@ -366,14 +366,16 @@ class Phase(Node):
                 str is the edge_id
                 list<int> is the list of lane_ids which belong to phase.
 
-        * max_capacity: (float, float)
-            float is the max count of vehicles for the phase.
-            float is the max speed of vehicles for the phase.
+        * phase_capacity: dict<int, dict<int, tuple<float, int>>
+            key: int phase_id
+            key: int lane_number
+            tuple<float, int>
+            max speed of vehicles for the phase.
+            max count of vehicles for the phase.
 
         """
         # 1) Define base attributes
         self._labels = mdp_params.features
-        self._max_speed, self._max_count =  max_capacity
         self._matcher = re.compile('\[(.*?)\]')
         self._lagged = any('lag' in lbl for lbl in mdp_params.features)
 
@@ -392,7 +394,7 @@ class Phase(Node):
             edge_id, lane_nums = incoming
             for lane_num in lane_nums:
                 lane_id = (edge_id, lane_num)
-                lanes[lane_id] = Lane(self, mdp_params, lane_id, self._max_speed)
+                lanes[lane_id] = Lane(self, mdp_params, lane_id, phase_capacity[lane_num])
 
         # 4) Save outgoing lane ids.
         outgoing_ids = []
@@ -403,7 +405,6 @@ class Phase(Node):
         self._outgoing_ids = outgoing_ids
 
         self.cached_features = {}
-
         super(Phase, self).__init__(intersection, phase_id, lanes)
 
 
@@ -727,7 +728,7 @@ class Lane(Node):
         * Computes feature per time step.
         * Aggregates wrt vehicles.
     """
-    def __init__(self, phase, mdp_params, lane_id, max_speed):
+    def __init__(self, phase, mdp_params, lane_id, max_capacity):
         """Builds lane
 
         Params:
@@ -739,14 +740,11 @@ class Lane(Node):
         * lane_id: int
             key is the index of the lane.
 
-        * max_speed: float
+        * max_capacity: tuple<float, int>
             max velocity a car can travel.
         """
-        # self.parent = phase
-        # self._edge_id = edge_id
-        # self._lane_id = lane_id
         self._min_speed = mdp_params.velocity_threshold
-        self._max_speed = max_speed
+        self._max_capacity = max_capacity
         self._normalize = mdp_params.normalize_state_space
         self._labels = mdp_params.features
         self.reset()
@@ -756,10 +754,6 @@ class Lane(Node):
     def lane_id(self):
         return self.node_id
 
-    # @property
-    # def edge_id(self):
-    #     return self._edge_id
-
     @property
     def cache(self):
         return self._cache
@@ -767,6 +761,14 @@ class Lane(Node):
     @property
     def labels(self):
         return self._labels
+
+    @property
+    def max_vehs(self):
+        return self._max_capacity[1]
+
+    @property
+    def max_speed(self):
+        return self._max_capacity[0]
 
     def reset(self):
         """Clears data from previous cycles, define data structures"""
@@ -815,12 +817,11 @@ class Lane(Node):
         """Step update for speeds variable"""
         if 'speed' in self.labels:
             # 1) Normalization factor
-            max_speed = self._max_speed
-            cap = max_speed if self._normalize else 1
+            cap = self.max_speed if self._normalize else 1
 
             # 2) Compute relative speeds:
             # Max prevents relative performance
-            step_speeds = [max(max_speed - v.speed, 0) / cap for v in vehs]
+            step_speeds = [max(self.max_speed - v.speed, 0) / cap for v in vehs]
 
             self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
 
@@ -835,7 +836,7 @@ class Lane(Node):
         """Step update for delays variable"""
         if 'delay' in self.labels or 'queue' in self.labels:
             # 1) Normalization factor and threshold
-            cap = self._max_speed if self._normalize else 1
+            cap = self.max_speed if self._normalize else 1
             vt = self._min_speed
 
             # 2) Compute delays
