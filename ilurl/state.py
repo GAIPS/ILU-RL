@@ -855,7 +855,7 @@ class Lane(Node):
         """Step update for delays variable"""
         if 'delay' in self.labels or 'queue' in self.labels:
             # 1) Normalization factor and threshold
-            cap = self._max_speed if self._normalize else 1
+            cap = self.max_speed if self._normalize else 1
             vt = self._min_speed
 
             # 2) Compute delays
