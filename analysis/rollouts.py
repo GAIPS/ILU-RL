@@ -118,7 +118,7 @@ def main(batch_path=None):
     agent_type = train_config.get('agent_type', 'agent_type')
     agent_args = f'{agent_type.lower()}_args'
 
-    cycle = 90 # TODO: watch out...
+    cycle = 60 # TODO: watch out...
     # gamma = float(train_config.get(agent_args, 'gamma'))
     horizon = float(train_config.get('train_args', 'experiment_time'))
 

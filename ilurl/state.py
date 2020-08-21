@@ -686,10 +686,14 @@ class Phase(Node):
             Max pressure control of a network of signalized intersections
 
         """
-        cin = np.sum([inc._cached_counts for inc in self.incoming.values()]).round(4)
-        cout = np.sum([out._cached_counts for out in self.outgoing.values()]).round(4)
-        return int(cin - cout)
+        c_in = self._compute_pressure(self.incoming)
+        c_out = self._compute_pressure(self.outgoing)
+        return float(c_in - c_out)
 
+
+    def _compute_pressure(self, lanes):
+        counts = [_lane.count for _lane in lanes.values()]
+        return np.sum(counts).round(4)
 
     def _update_cached_weight(self, duration):
         """ If duration = 1 then history's weight must be zero i.e

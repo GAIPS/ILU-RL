@@ -262,6 +262,22 @@ class TrafficLightEnv(Env):
 
         return tuple(ret)
 
+    def apply_rl_actions(self, rl_actions=None):
+        """Overrides Env
+
+        Specify the actions to be performed by the rl agent(s).
+
+        If no actions are provided at any given step, the rl agents default to
+        performing actions specified by SUMO.
+
+        Parameters
+        ----------
+        rl_actions : array_like
+            list of actions provided by the RL algorithm
+        """
+        rl_clipped = self.clip_actions(rl_actions)
+        self._apply_rl_actions(rl_clipped)
+
     def _apply_rl_actions(self, rl_actions):
         """ Specify the actions to be performed.
 
