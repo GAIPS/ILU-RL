@@ -447,6 +447,15 @@ class Phase(Node):
 
         return ret
 
+    @lazy_property
+    def max_speed(self):
+        """Phase Max. Speed
+
+        Consolidates
+            * max_speed is an attribute from the inbound lanes not from phase.
+            * speed_score needs a phase max_speed
+        """
+        return max([inc.max_speed for inc in self.incoming.values()])
 
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
@@ -474,6 +483,7 @@ class Phase(Node):
         # 2) Update lanes
         # TODO: investigate generators to solve this feature computation issue.
         step_speed = 0
+        step_speed_score = 0
         step_count = 0
         step_delay = 0
         step_queue = 0
@@ -485,11 +495,13 @@ class Phase(Node):
             lane.update(duration, _vehs, tls)
 
             step_speed += lane.speed if 'speed' in self.labels else 0
+            step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
             step_count += lane.count if 'count' in self.labels else 0
             step_delay += lane.delay if 'delay' in self.labels else 0
             step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
 
         self._update_speed(step_speed)
+        self._update_speed_score(step_speed_score)
         self._update_count(step_count)
         self._update_delay(step_delay)
         self._update_queue(step_queue)
@@ -512,6 +524,7 @@ class Phase(Node):
 
         # 3) Defines or erases history
         self._cached_speed = 0
+        self._cached_speed_score = 0
         self._cached_count = 0
         self._cached_delay = 0
         self._cached_queue = 0
@@ -575,7 +588,7 @@ class Phase(Node):
             The average speed of all cars in the phase
         """
         if self._cached_count > 0:
-            ret = float(self._cached_speed / self._cached_count)
+            ret = min(float(self._cached_speed_score / (self._cached_count * self.max_speed)), 1)
             return round(ret, 2)
         else:
             return 0.0
@@ -679,7 +692,8 @@ class Phase(Node):
 
 
     def _update_cached_weight(self, duration):
-        """ If duration == 0 then history's weight must be zero."""
+        """ If duration = 1 then history's weight must be zero i.e
+            all weight is given to the new sample"""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
 
     def _update_speed(self, step_speed):
@@ -687,8 +701,14 @@ class Phase(Node):
             w = self._cached_weight
             self._cached_speed = step_speed + (w > 0) * self._cached_speed
 
+    def _update_speed_score(self, step_speed_score):
+        if 'speed_score' in self.labels:
+            w = self._cached_weight
+            m = self._cached_speed_score
+            self._cached_speed_score = step_speed_score + (w > 0) * m
+
     def _update_count(self, step_count):
-        if 'count' in self.labels:
+        if 'count' in self.labels or 'speed_score' in self.labels:
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
 
@@ -824,6 +844,7 @@ class Lane(Node):
 
 
             self._update_speeds(vehs)
+            self._update_speed_scores(vehs)
             self._update_counts(vehs)
             self._update_delays(vehs)
 
@@ -894,7 +915,8 @@ class Lane(Node):
 
     @property
     def delay(self):
-        """Total of vehicles circulating under a velocity threshold per time step and lane.
+        """Total of vehicles circulating under a velocity threshold
+            per time step and lane.
 
         Returns:
         -------
@@ -904,7 +926,8 @@ class Lane(Node):
 
     @property
     def queue(self):
-        """Total of vehicles circulating under a velocity threshold per time step and lane.
+        """Total of vehicles circulating under a velocity threshold
+            per time step and lane.
 
         Returns:
         -------

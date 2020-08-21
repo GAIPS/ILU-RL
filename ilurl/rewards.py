@@ -104,6 +104,35 @@ def reward_max_speed_count(state, *args):
     return ret
 
 
+def reward_max_speed_score(state, *args):
+    """Max. Speed Score
+
+    Params:
+    ------
+    * state: ilurl.state.State
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: speed_score_phase * count_phase
+
+    Reference:
+    ----------
+    * Casas, N. 2017
+        Deep Deterministic Policy Gradient for Urban Traffic Light Control
+
+    """
+    # 1) Splits speed & count
+    speeds_counts = state.feature_map(
+        filter_by=('speed_score', 'count'),
+        split=True
+    )
+
+    # 2) Iterate wrt agents:
+    ret = {tlid:np.dot(*sc) for tlid, sc in speeds_counts.items()}
+
+    return ret
+
 def reward_min_delay(state, *args):
     """Minimizing the delay
 
