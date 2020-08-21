@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-from utils import *
+from .utils import *
 
 plt.style.use('ggplot')
 
