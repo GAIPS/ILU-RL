@@ -1,4 +1,6 @@
 """Implementation of classic adaptive controllers and methods"""
+import copy
+
 import numpy as np
 
 from collections import namedtuple
@@ -6,19 +8,20 @@ from collections import namedtuple
 PressurePhase = namedtuple('PressurePhase', 'id time yellow')
 
 def is_controller_periodic(ts_type):
-    if ts_type in ('rl', 'static', 'uniform', 'random'):
+    if ts_type in ('rl', 'random', 'static', 'webster'):
         return True
 
-    if ts_type in ('actuated','actuated_delay', 'max_pressure'):
+    if ts_type in ('actuated', 'max_pressure'):
         return False
 
     raise ValueError(f'Unknown ts_type:{ts_type}')
 
-def get_ts_controller(ts_type, ts_num_phases):
-    if ts_type in ('max_pressure',):
+def get_ts_controller(ts_type, ts_num_phases, tls_phases, cycle_time):
+    if ts_type == 'max_pressure':
        return MaxPressure(12, 120, 6, ts_num_phases)
-
-    raise ValueError('Only max-pressure controller implemented')
+    elif ts_type == 'webster':
+        return Webster(900, tls_phases, cycle_time)
+    raise ValueError(f'Unknown ts_type:{ts_type}')
 
 class MaxPressure:
     """Adaptive rule based controller based of OSFATSC
@@ -105,3 +108,119 @@ class MaxPressure:
     def reset(self):
         self._ts_phase = {ts_id: 0 for ts_id in ts_ids}
 
+class Webster:
+    """
+        Adaptive webster method.
+    """
+    def __init__(self, aggregation_period, tls_phases, cycle_time):
+
+        self._ts_type = 'webster'
+
+        # Internalise parameters.
+        self._aggregation_period = aggregation_period
+        self._cycle_time = cycle_time
+        self._tls_phases = tls_phases
+
+        # Vehicles counts data structure.
+        self._vehicles_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
+                                for e in data['incoming']}
+                                    for p, data in self._tls_phases[nid].items()}
+                                        for nid in self._tls_phases}
+
+        # Calculate uniform timings.
+        self._uniform_timings = {}
+        for tid in self._tls_phases:
+            timings = []
+
+            num_phases = len(self._tls_phases[tid])
+
+            # Calculate ratios.
+            ratios = [1/num_phases for p in range(num_phases)]
+
+            # Calculate phases durations given allocation ratios.
+            phases_durations = [np.around(r*(cycle_time-6.0*num_phases)) for r in ratios]
+
+            # Calculate timings.
+            counter = 0
+            timings = []
+            for p in range(num_phases):
+                timings.append(counter + phases_durations[p])
+                timings.append(counter + phases_durations[p] + 6.0)
+                counter += phases_durations[p] + 6.0
+
+            timings[-1] = self._cycle_time
+            timings[-2] = self._cycle_time - 6.0
+
+            self._uniform_timings[tid] = timings
+
+        self._webster_timings = copy.deepcopy(self._uniform_timings) # Initialize webster with uniform timings.
+        self._next_signal_plan = copy.deepcopy(self._uniform_timings)
+
+        # Internal counter.
+        self._time_counter = 1
+
+    @property
+    def ts_type(self):
+        return self._ts_type
+
+    def act(self, kernel_data):
+
+        # Update counts.
+        for nid in kernel_data:
+            for p, vehs_p in kernel_data[nid].items():
+                for veh in vehs_p:
+                    if veh.id not in self._vehicles_counts[nid][p][veh.edge_id][veh.lane]:
+                        self._vehicles_counts[nid][p][veh.edge_id][veh.lane].append(veh.id)
+
+        if (self._time_counter % self._aggregation_period == 0) and self._time_counter > 1:
+            # Calculate new signal plan.
+
+            for tls_id in self._vehicles_counts.keys():
+                max_counts = []
+                for p in self._vehicles_counts[tls_id].keys():
+                    max_count = -1
+                    for edge in self._vehicles_counts[tls_id][p].keys():
+                        for l in self._vehicles_counts[tls_id][p][edge].keys():
+                            lane_count = len(self._vehicles_counts[tls_id][p][edge][l])
+                            max_count = max(max_count, lane_count)
+                    max_counts.append(max_count)
+
+                if min(max_counts) < 10:
+                    self._next_signal_plan[tls_id] = self._uniform_timings[tls_id] # Uniform timings.
+
+                else:
+                    num_phases = len(max_counts)
+
+                    # Calculate ratios.
+                    ratios = [p/sum(max_counts) for p in max_counts]
+
+                    # Calculate phases durations given allocation ratios.
+                    phases_durations = [np.around(r*(self._cycle_time-6.0*num_phases)) for r in ratios]
+
+                    # Calculate timings.
+                    counter = 0
+                    timings = []
+                    for p in range(num_phases):
+                        timings.append(counter + phases_durations[p])
+                        timings.append(counter + phases_durations[p] + 6.0)
+                        counter += phases_durations[p] + 6.0
+
+                    timings[-1] = self._cycle_time
+                    timings[-2] = self._cycle_time - 6.0
+
+                    self._next_signal_plan[tls_id] = timings
+
+            # Reset counters.
+            self._vehicles_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
+                                for e in data['incoming']}
+                                    for p, data in self._tls_phases[nid].items()}
+                                        for nid in self._tls_phases}
+
+        if (self._time_counter % self._cycle_time == 0) and self._time_counter > 1:
+            # Update current signal plan.
+            self._webster_timings = copy.deepcopy(self._next_signal_plan)
+
+        # Increment internal counter.
+        self._time_counter += 1
+
+        return self._webster_timings

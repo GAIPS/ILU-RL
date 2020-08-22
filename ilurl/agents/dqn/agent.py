@@ -167,8 +167,7 @@ class DQN(AgentWorker,AgentInterface):
         self._logger.write(values)
 
     def terminate(self):
-        # self.agent.tear_down()
-        pass
+        self.agent.tear_down()
 
     def save_checkpoint(self, path):
         checkpoint_file = "{0}/checkpoints/{1}/{2}.chkpt".format(
