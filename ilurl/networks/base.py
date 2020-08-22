@@ -56,7 +56,7 @@ class Network(flownet.Network):
                         decel=7.5,  # Avoid collisions at emergency stops.
                     ),
                     lane_change_params=SumoLaneChangeParams(
-                        lane_change_mode='only_speed_gain_safe'
+                        lane_change_mode='strategic'
                     )
                 )
 
