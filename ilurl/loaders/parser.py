@@ -109,6 +109,8 @@ class Parser(object):
             category_counts=json.loads(mdp_args['category_counts']),
             category_delays=json.loads(mdp_args['category_delays']),
             category_speeds=json.loads(mdp_args['category_speeds']),
+            category_speed_scores=json.loads(mdp_args['category_speed_scores']),
+            category_pressures=json.loads(mdp_args['category_pressures']),
             category_queues=json.loads(mdp_args['category_queues']),
             category_times=json.loads(mdp_args['category_times']),
             normalize_state_space=str2bool(mdp_args['normalize_state_space']),

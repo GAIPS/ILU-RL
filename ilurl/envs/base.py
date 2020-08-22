@@ -46,7 +46,7 @@ class TrafficLightEnv(Env):
                                               simulator=simulator)
 
         # Traffic light system type.
-        # ('rl', 'static', 'uniform', 'actuated', 'actuated_delay' or 'random).
+        # ('rl', 'random', 'static', 'webster', 'actuated' or 'max-pressure').
         self.ts_type = env_params.additional_params.get('tls_type')
 
         # Cycle time.
@@ -62,15 +62,18 @@ class TrafficLightEnv(Env):
 
         # Problem formulation params.
         self.mdp_params = mdp_params
-
-        # Object that handles the Multi-Agent RL system logic.
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.num_signal_plans_per_tls
-        # self.mas = DecentralizedMAS(mdp_params, exp_path, seed)
+
         if self.ts_type in ('rl', 'random'):
             self.tsc = DecentralizedMAS(mdp_params, exp_path, seed)
-        elif self.ts_type in ('max_pressure',):
-            self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls)
+        elif self.ts_type in ('max_pressure', 'webster'):
+            self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls,
+                                        self.tls_phases, self.cycle_time)
+        elif self.ts_type in ('static', 'actuated'):
+            pass # Nothing to do here.
+        else:
+            raise ValueError(f'Unknown ts_type:{self.ts_type}')
 
         # Reward function.
         self.reward = build_rewards(mdp_params)
@@ -78,7 +81,7 @@ class TrafficLightEnv(Env):
         self.actions_log = {}
         self.states_log = {}
 
-        # overrides GYM's observation space
+        # Overrides GYM's observation space.
         self.observation_space = State(network, mdp_params)
 
         # Continuous action space signal plans.
@@ -89,7 +92,6 @@ class TrafficLightEnv(Env):
     #ABCMeta
     def action_space(self):
         return self.mdp_params.action_space
-
 
     @property
     def duration(self):
@@ -136,6 +138,7 @@ class TrafficLightEnv(Env):
 
     @lazy_property
     def tls_durations(self):
+        # Timings used by 'static' ts_type.
         return {
             tid: np.cumsum(durations).tolist()
             for tid, durations in self.network.tls_durations.items()
@@ -210,7 +213,8 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if (dur == 0 or self.time_counter == 1) and self.ts_type == 'rl' and \
+            if self.ts_type in ('rl', 'random') and \
+                (dur == 0 or self.time_counter == 1) and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
@@ -245,11 +249,14 @@ class TrafficLightEnv(Env):
                 self.signal_plans_continous[tid] = timings
 
             if (dur == 0 and self.step_counter > 1):
+                # New cycle.
                 return True
 
             if self.ts_type == 'static':
                 return dur in self.tls_durations[tid]
-            else:
+            elif self.ts_type == 'webster':
+                return dur in self.webster_timings[tid]
+            elif self.ts_type in ('rl', 'random'):
                 if self.mdp_params.action_space == 'discrete':
                     # Discrete action space: TLS programs.
                     progid = self._current_rl_action()[tid]
@@ -257,13 +264,15 @@ class TrafficLightEnv(Env):
                 else:
                     # Continuous action space: phases durations.
                     return dur in self.signal_plans_continous[tid]
+            else:
+                raise ValueError(f'Unknown ts_type:{self.ts_type}')
 
         ret = [fn(tid) for tid in self.tls_ids]
 
         return tuple(ret)
 
     def apply_rl_actions(self, rl_actions=None):
-        """Overrides Env
+        """ Overrides flow.envs.base.py method.
 
         Specify the actions to be performed by the rl agent(s).
 
@@ -289,7 +298,7 @@ class TrafficLightEnv(Env):
         """
         if is_controller_periodic(self.ts_type):
 
-            if (self.ts_type == 'rl' or self.ts_type == 'random') and \
+            if self.ts_type in ('rl', 'random') and \
                 (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 
@@ -316,14 +325,27 @@ class TrafficLightEnv(Env):
                     prev_action = self.actions_log[cycle_number - 1]
                     self.tsc.update(prev_state, prev_action, reward, state)
 
+            if self.ts_type == 'webster':
+                kernel_data = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
+                                for p, data in self.tls_phases[nid].items()}
+                                    for nid in self.tls_ids}
+                self.webster_timings = self.tsc.act(kernel_data)
+
+            if self.ts_type  == 'static':
+                pass # Nothing to do here.
+
             self._apply_tsc_actions(self._periodic_control_actions())
 
         else:
+            # Aperiodic controller.
             if self.ts_type == 'max_pressure':
                 controller_actions = self.tsc.act(self.get_observation_space(), self.time_counter)
 
                 # Update traffic lights' control signals.
                 self._apply_tsc_actions(controller_actions)
+
+            if self.ts_type == 'actuated':
+                pass # Nothing to do here.
 
     def _apply_tsc_actions(self, controller_actions):
         """ For each TSC shift phase or keep phase.
