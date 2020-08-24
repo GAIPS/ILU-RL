@@ -447,6 +447,15 @@ class Phase(Node):
 
         return ret
 
+    @lazy_property
+    def max_speed(self):
+        """Phase Max. Speed
+
+        Consolidates
+            * max_speed is an attribute from the inbound lanes not from phase.
+            * speed_score needs a phase max_speed
+        """
+        return max([inc.max_speed for inc in self.incoming.values()])
 
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
@@ -474,6 +483,7 @@ class Phase(Node):
         # 2) Update lanes
         # TODO: investigate generators to solve this feature computation issue.
         step_speed = 0
+        step_speed_score = 0
         step_count = 0
         step_delay = 0
         step_queue = 0
@@ -485,11 +495,13 @@ class Phase(Node):
             lane.update(duration, _vehs, tls)
 
             step_speed += lane.speed if 'speed' in self.labels else 0
+            step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
             step_count += lane.count if 'count' in self.labels else 0
             step_delay += lane.delay if 'delay' in self.labels else 0
             step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
 
         self._update_speed(step_speed)
+        self._update_speed_score(step_speed_score)
         self._update_count(step_count)
         self._update_delay(step_delay)
         self._update_queue(step_queue)
@@ -512,6 +524,7 @@ class Phase(Node):
 
         # 3) Defines or erases history
         self._cached_speed = 0
+        self._cached_speed_score = 0
         self._cached_count = 0
         self._cached_delay = 0
         self._cached_queue = 0
@@ -565,6 +578,20 @@ class Phase(Node):
         else:
             return 0.0
 
+    @property
+    def speed_score(self):
+        """Aggregates speed wrt time and lane
+
+        Returns:
+        -------
+        * speed: float
+            The average speed of all cars in the phase
+        """
+        if self._cached_count > 0:
+            ret = min(float(self._cached_speed_score / (self._cached_count * self.max_speed)), 1)
+            return round(ret, 2)
+        else:
+            return 0.0
 
     @property
     def count(self):
@@ -659,13 +686,18 @@ class Phase(Node):
             Max pressure control of a network of signalized intersections
 
         """
-        cin = np.sum([inc._cached_counts for inc in self.incoming.values()]).round(4)
-        cout = np.sum([out._cached_counts for out in self.outgoing.values()]).round(4)
-        return int(cin - cout)
+        c_in = self._compute_pressure(self.incoming)
+        c_out = self._compute_pressure(self.outgoing)
+        return float(c_in - c_out)
 
+
+    def _compute_pressure(self, lanes):
+        counts = [_lane.count for _lane in lanes.values()]
+        return np.sum(counts).round(4)
 
     def _update_cached_weight(self, duration):
-        """ If duration == 0 then history's weight must be zero."""
+        """ If duration = 1 then history's weight must be zero i.e
+            all weight is given to the new sample"""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
 
     def _update_speed(self, step_speed):
@@ -673,8 +705,14 @@ class Phase(Node):
             w = self._cached_weight
             self._cached_speed = step_speed + (w > 0) * self._cached_speed
 
+    def _update_speed_score(self, step_speed_score):
+        if 'speed_score' in self.labels:
+            w = self._cached_weight
+            m = self._cached_speed_score
+            self._cached_speed_score = step_speed_score + (w > 0) * m
+
     def _update_count(self, step_count):
-        if 'count' in self.labels:
+        if 'count' in self.labels or 'speed_score' in self.labels:
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
 
@@ -810,6 +848,7 @@ class Lane(Node):
 
 
             self._update_speeds(vehs)
+            self._update_speed_scores(vehs)
             self._update_counts(vehs)
             self._update_delays(vehs)
 
@@ -825,10 +864,15 @@ class Lane(Node):
 
             self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
 
+    def _update_speed_scores(self, vehs):
+        """Step update for speed_scores variable"""
+        if 'speed_score' in self.labels:
+            # 1) Compute speed average
+            self._cached_speed_scores = round(sum([v.speed for v in vehs]), 4)
+
 
     def _update_counts(self, vehs):
         """Step update for counts variable"""
-        # 1) Compute count @ duration time step
         if 'count' in self.labels or 'pressure' in self.labels:
             self._cached_counts = len(vehs)
 
@@ -843,46 +887,55 @@ class Lane(Node):
             step_delays = [v.speed / cap < vt for v in vehs]
             self._cached_delays = len(step_delays)
 
+
     @property
     def speed(self):
-        """Vehicles' speeds per time step (per lane).
+        """Relative vehicles' speeds per time step and lane.
+
+        * difference between max_speed and observed speed.
 
         Returns:
-            speeds: list<float>
-            Is a duration sized list containing averages
+            speed: float
         """
         return self._cached_speeds
 
     @property
-    def count(self):
-        """Average number of vehicles during cycle (per lane)
+    def speed_score(self):
+        """Sum of raw vehicles' speeds per time step and lane.
 
         Returns:
-            count: list<float>
-            Is a duration sized list containing the total number of vehicles
+            speed_score: float
+        """
+        return self._cached_speed_scores
+
+    @property
+    def count(self):
+        """Average number of vehicles per time step and lane.
+
+        Returns:
+            count: float
         """
         return self._cached_counts
 
     @property
     def delay(self):
-        """Total of vehicles circulating under a velocity threshold (per lane)
+        """Total of vehicles circulating under a velocity threshold
+            per time step and lane.
 
         Returns:
         -------
-            * delay: list<int>
-            Is a duration sized list containing the total number of slow moving
-            vehicles.
+            * delay: int
         """
         return self._cached_delays
 
     @property
     def queue(self):
-        """Max. vehicles circulating under a velocity threshold (per lane).
+        """Total of vehicles circulating under a velocity threshold
+            per time step and lane.
 
         Returns:
         -------
-            * queue: list<int>
-            Is a duration sized list containing the total number of slow moving
-            vehicles.
+            * queue: int
         """
         return self._cached_delays
+

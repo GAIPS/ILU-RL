@@ -104,6 +104,35 @@ def reward_max_speed_count(state, *args):
     return ret
 
 
+def reward_max_speed_score(state, *args):
+    """Max. Speed Score
+
+    Params:
+    ------
+    * state: ilurl.state.State
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: speed_score_phase * count_phase
+
+    Reference:
+    ----------
+    * Casas, N. 2017
+        Deep Deterministic Policy Gradient for Urban Traffic Light Control
+
+    """
+    # 1) Splits speed & count
+    speeds_counts = state.feature_map(
+        filter_by=('speed_score', 'count'),
+        split=True
+    )
+
+    # 2) Iterate wrt agents:
+    ret = {tlid:np.dot(*sc) for tlid, sc in speeds_counts.items()}
+
+    return ret
+
 def reward_min_delay(state, *args):
     """Minimizing the delay
 
@@ -183,8 +212,8 @@ def reward_max_delay_reduction(state, *args):
 
     return ret
 
-def reward_max_outflow(state, *args):
-    """Max. throughput
+def reward_min_pressure(state, *args):
+    """Min. pressure
 
     Params:
     ------
@@ -193,15 +222,24 @@ def reward_max_outflow(state, *args):
     Returns:
     --------
     * ret: dict<str, float>
-        keys: tls_ids, values: rewards
+        keys: tls_ids, values: -sum of pressures
+
+    Reference:
+    ---------
+    * Wei, H., Chen, C., Zheng, G., Wu, K., Gayah, V, Xu, K., Li, Z. 2019.
+        PressLight: Learning Max Pressure Control to Coordinate Traffic Signals
+                        In Arterial Network
+
+    * Genders, W. and Ravazi, S. 2019
+        An Open-Source Framework for Adaptative Traffic Signal Control
 
     """
-    count_lagcount = state.feature_map(
-        filter_by=('count', 'lag[count]'),
+    pressure = state.feature_map(
+        filter_by=('pressure',),
         split=True
     )
-    ret = {tls_id: np.sum(diff(*c_lc)).round(4)
-           for tls_id, c_lc in count_lagcount.items()}
+    ret = {tls_id: -np.sum(press).round(4)
+           for tls_id, press in pressure.items()}
 
     return ret
 
