@@ -525,7 +525,7 @@ class Phase(Node):
 
         # 3) Defines or erases history
         self._cached_cout = 0
-        self._cached_cout_duration = 0
+        self._cached_cout_updated = -1
         self._cached_count = 0
         self._cached_delay = 0
         self._cached_speed = 0
@@ -533,6 +533,7 @@ class Phase(Node):
         self._cached_queue = 0
 
         self._cached_weight = 0
+        self._update_counter = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -590,13 +591,10 @@ class Phase(Node):
 
         w = self._cached_weight
         # It has not been updated
-        if self._duration != self._cached_cout_duration:
+        if self._update_counter != self._cached_cout_updated:
             self._cached_cout = c_out + (w > 0) * self._cached_cout
-            self._cached_cout_duration = self._duration
+            self._cached_cout_updated = self._update_counter
         ret = self.count - round(self._cached_cout / (w + 1), 2)
-        if self.phase_id == 'gneJ0#0':
-            print(self._duration, ret)
-
         return ret
 
 
@@ -738,7 +736,7 @@ class Phase(Node):
         """ If duration = 1 then history's weight must be zero i.e
             all weight is given to the new sample"""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
-        self._duration = duration
+        self._update_counter += 1
 
     def _update_count(self, step_count):
         if self._check_count():
@@ -920,7 +918,7 @@ class Lane(Node):
 
     def _update_counts(self, vehs):
         """Step update for counts variable"""
-        if 'count' in self.labels or 'pressure' in self.labels:
+        if self._check_count():
             self._cached_counts = len(vehs)
 
     def _update_delays(self, vehs):
@@ -986,3 +984,8 @@ class Lane(Node):
         """
         return self._cached_delays
 
+    def _check_count(self):
+        return ('count' in self.labels or
+                    'speed_score' in self.labels or
+                        'pressure' in self.labels or
+                            'average_pressure' in self.labels)
