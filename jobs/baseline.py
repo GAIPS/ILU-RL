@@ -83,7 +83,7 @@ def get_arguments():
     )
 
     parser.add_argument('tls_type', type=str, nargs='?',
-                        choices=('actuated', 'static', 'random', 'max_pressure'),
+                        choices=('actuated', 'static', 'webster', 'random', 'max_pressure'),
                          help='Control type.')
     flags = parser.parse_args()
     sys.argv = [sys.argv[0]]
@@ -162,11 +162,13 @@ def baseline_batch():
             with cfg_path.open('w') as ft:
                 baseline_config.write(ft)
 
+
         # rvs: directories' names holding experiment data
         if num_processors > 1:
+            packed_args = [(delay, cfg)
+                                for (delay, cfg) in zip(range(len(baseline_configs)), baseline_configs)]
             pool = NonDaemonicPool(num_processors)
-            rvs = pool.map(delay_baseline, [(delay, cfg)
-                            for (delay, cfg) in zip(range(len(baseline_configs)), baseline_configs)])
+            rvs = pool.map(delay_baseline, packed_args)
             pool.close()
             pool.join()
         else:
