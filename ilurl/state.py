@@ -494,16 +494,16 @@ class Phase(Node):
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
 
-            step_speed += lane.speed if 'speed' in self.labels else 0
-            step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
             step_count += lane.count if 'count' in self.labels else 0
             step_delay += lane.delay if 'delay' in self.labels else 0
+            step_speed += lane.speed if 'speed' in self.labels else 0
+            step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
             step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
 
-        self._update_speed(step_speed)
-        self._update_speed_score(step_speed_score)
         self._update_count(step_count)
         self._update_delay(step_delay)
+        self._update_speed(step_speed)
+        self._update_speed_score(step_speed_score)
         self._update_queue(step_queue)
 
         # 3) Stores previous cycle for lag labels.
@@ -522,11 +522,14 @@ class Phase(Node):
         self._cached_store = {}
         self._cached_apply = {}
 
+
         # 3) Defines or erases history
-        self._cached_speed = 0
-        self._cached_speed_score = 0
+        self._cached_cout = 0
+        self._cached_cout_duration = 0
         self._cached_count = 0
         self._cached_delay = 0
+        self._cached_speed = 0
+        self._cached_speed_score = 0
         self._cached_queue = 0
 
         self._cached_weight = 0
@@ -562,36 +565,40 @@ class Phase(Node):
 
         return ret
 
-
     @property
-    def speed(self):
-        """Aggregates speed wrt time and lane
+    def average_pressure(self):
+        """Pressure controller
 
-        Returns:
-        -------
-        * speed: float
-            The average speed of all cars in the phase
+        Difference of number of vehicles in incoming or outgoing lanes.
+
+        Reference:
+        ---------
+        * Wade Genders and Saiedeh Razavi, 2019
+            An Open Source Framework for Adaptive Traffic Light Signal Control.
+
+        See also:
+        --------
+        * Wei, et al, 2018
+            PressLight: Learning Max Pressure Control to Coordinate Traffic
+                        Signals in Arterial Network.
+
+        * Pravin Varaiya, 2013
+            Max pressure control of a network of signalized intersections
+
         """
-        if self._cached_count > 0:
-            ret = float(self._cached_speed / self._cached_count)
-            return round(ret, 2)
-        else:
-            return 0.0
+        c_out = self._compute_pressure(self.outgoing)
 
-    @property
-    def speed_score(self):
-        """Aggregates speed wrt time and lane
+        w = self._cached_weight
+        # It has not been updated
+        if self._duration != self._cached_cout_duration:
+            self._cached_cout = c_out + (w > 0) * self._cached_cout
+            self._cached_cout_duration = self._duration
+        ret = self.count - round(self._cached_cout / (w + 1), 2)
+        if self.phase_id == 'gneJ0#0':
+            print(self._duration, ret)
 
-        Returns:
-        -------
-        * speed: float
-            The average speed of all cars in the phase
-        """
-        if self._cached_count > 0:
-            ret = min(float(self._cached_speed_score / (self._cached_count * self.max_speed)), 1)
-            return round(ret, 2)
-        else:
-            return 0.0
+        return ret
+
 
     @property
     def count(self):
@@ -665,11 +672,13 @@ class Phase(Node):
         """
         return round(float(self._cached_queue), 2)
 
+
     @property
     def pressure(self):
         """Pressure controller
 
-        Difference of number of vehicles in incoming or outgoing lanes.
+        * Difference of number of vehicles in incoming or outgoing lanes.
+        * Doesn't take into account.
 
         Reference:
         ---------
@@ -695,24 +704,44 @@ class Phase(Node):
         counts = [_lane.count for _lane in lanes.values()]
         return np.sum(counts).round(4)
 
+    @property
+    def speed(self):
+        """Aggregates speed wrt time and lane
+
+        Returns:
+        -------
+        * speed: float
+            The average speed of all cars in the phase
+        """
+        if self._cached_count > 0:
+            ret = float(self._cached_speed / self._cached_count)
+            return round(ret, 2)
+        else:
+            return 0.0
+
+    @property
+    def speed_score(self):
+        """Aggregates speed wrt time and lane
+
+        Returns:
+        -------
+        * speed: float
+            The average speed of all cars in the phase
+        """
+        if self._cached_count > 0:
+            ret = min(float(self._cached_speed_score / (self._cached_count * self.max_speed)), 1)
+            return round(ret, 2)
+        else:
+            return 0.0
+
     def _update_cached_weight(self, duration):
         """ If duration = 1 then history's weight must be zero i.e
             all weight is given to the new sample"""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
-
-    def _update_speed(self, step_speed):
-        if 'speed' in self.labels:
-            w = self._cached_weight
-            self._cached_speed = step_speed + (w > 0) * self._cached_speed
-
-    def _update_speed_score(self, step_speed_score):
-        if 'speed_score' in self.labels:
-            w = self._cached_weight
-            m = self._cached_speed_score
-            self._cached_speed_score = step_speed_score + (w > 0) * m
+        self._duration = duration
 
     def _update_count(self, step_count):
-        if 'count' in self.labels or 'speed_score' in self.labels:
+        if self._check_count():
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
 
@@ -725,6 +754,18 @@ class Phase(Node):
         if 'queue' in self.labels:
             w = self._cached_weight
             self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
+
+    def _update_speed(self, step_speed):
+        if 'speed' in self.labels:
+            w = self._cached_weight
+            self._cached_speed = step_speed + (w > 0) * self._cached_speed
+
+    def _update_speed_score(self, step_speed_score):
+        if 'speed_score' in self.labels:
+            w = self._cached_weight
+            m = self._cached_speed_score
+            self._cached_speed_score = step_speed_score + (w > 0) * m
+
 
     def _update_lag(self, duration):
         """`rotates` the cached features
@@ -756,6 +797,12 @@ class Phase(Node):
     def _digitize(self, value, label):
         _bins = self._bins[self._get_derived(label)]
         return int(np.digitize(value, bins=_bins))
+
+    def _check_count(self):
+        return ('count' in self.labels or
+                    'speed_score' in self.labels or
+                        'pressure' in self.labels or
+                            'average_pressure' in self.labels)
 
 class Lane(Node):
     """ Represents a lane within an edge.
