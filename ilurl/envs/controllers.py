@@ -108,6 +108,9 @@ class MaxPressure:
     def reset(self):
         self._ts_phase = {ts_id: 0 for ts_id in ts_ids}
 
+    def terminate(self):
+        self.reset()
+
 class Webster:
     """
         Adaptive webster method.
@@ -121,7 +124,7 @@ class Webster:
         self._cycle_time = cycle_time
         self._tls_phases = tls_phases
 
-        # Vehicles counts data structure.
+        # initialise vehicles counts data structure.
         self._vehicles_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
                                 for e in data['incoming']}
                                     for p, data in self._tls_phases[nid].items()}
@@ -211,10 +214,7 @@ class Webster:
                     self._next_signal_plan[tls_id] = timings
 
             # Reset counters.
-            self._vehicles_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
-                                for e in data['incoming']}
-                                    for p, data in self._tls_phases[nid].items()}
-                                        for nid in self._tls_phases}
+            self._reset_counts()
 
         if (self._time_counter % self._cycle_time == 0) and self._time_counter > 1:
             # Update current signal plan.
@@ -224,3 +224,12 @@ class Webster:
         self._time_counter += 1
 
         return self._webster_timings
+
+    def _reset_counts(self):
+        self._vehicles_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
+                        for e in data['incoming']}
+                            for p, data in self._tls_phases[nid].items()}
+                                for nid in self._tls_phases}
+
+    def terminate(self):
+        self._reset_counts()

@@ -162,13 +162,21 @@ def baseline_batch():
             with cfg_path.open('w') as ft:
                 baseline_config.write(ft)
 
+        # mp.pool arguments.
+        packed_args = [(delay, cfg)
+                            for (delay, cfg) in zip(range(len(baseline_configs)), baseline_configs)]
+
+        # Slice arguments given the number of proceses.
+        sliced_packed_args = [packed_args[i:i + num_processors] for i in range(0, len(packed_args), num_processors)]
+
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = NonDaemonicPool(num_processors)
-            rvs = pool.map(delay_baseline, [(delay, cfg)
-                            for (delay, cfg) in zip(range(len(baseline_configs)), baseline_configs)])
-            pool.close()
-            pool.join()
+            rvs = []
+            for p_args in sliced_packed_args:
+                pool = NonDaemonicPool(num_processors)
+                rvs.extend(pool.map(delay_baseline, p_args))
+                pool.close()
+                pool.join()
         else:
             rvs = []
             for cfg in baseline_configs:
