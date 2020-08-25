@@ -83,7 +83,7 @@ def get_arguments():
     )
 
     parser.add_argument('tls_type', type=str, nargs='?',
-                        choices=('actuated', 'static', 'random', 'max_pressure'),
+                        choices=('actuated', 'static', 'webster', 'random', 'max_pressure'),
                          help='Control type.')
     flags = parser.parse_args()
     sys.argv = [sys.argv[0]]
