@@ -108,6 +108,7 @@ class State(Node):
             self._last_time = -1
             self._time_period = mdp_params.time_period
 
+        self._labels = mdp_params.features
         # Local features.
         intersections = {
             tls_id: Intersection(self,
@@ -122,6 +123,10 @@ class State(Node):
     @property
     def tls_ids(self):
         return self._tls_ids
+
+    @property
+    def labels(self):
+        return self._labels
 
     def update(self, duration, vehs, tls=None):
         """Update data structures with observation space
@@ -185,6 +190,11 @@ class State(Node):
                 If split then groups features instead of phases.
                 If flatten then nested list becomes flattened.
         """
+        # 1) Validate user input
+        if filter_by is not None:
+            if not (set(filter_by).issubset(set(self.labels))):
+                err = f'filter_by {filter_by} must belong to states {self.labels}'
+                raise ValueError(err)
         # 1) Delegate feature computation to tree.
         ret = {k:v.feature_map(filter_by=filter_by,
                                categorize=categorize,
