@@ -22,7 +22,12 @@
         7) analysis/test_plots.py: Create plots with metrics
                              for the final agent.
 
+        8) Clean up and compress the experiment folder in 
+            order to optimize disk space usage.
+
 """
+import os
+import shutil
 from pathlib import Path
 
 from jobs.train import train_batch as train
@@ -32,8 +37,6 @@ from jobs.convert2csv import xml2csv
 from analysis.train_plots import main as train_plots
 from analysis.rollouts import main as rollouts_plots
 from analysis.test_plots import main as test_plots
-
-# from ilurl.loaders.xml2csv import main as xml2csv
 
 from ilurl.utils.decorators import safe_run
 
@@ -66,19 +69,23 @@ if __name__ == '__main__':
     # 5) Execute rollouts with last saved checkpoints (test).
     rollouts(test=True, experiment_dir=experiment_root_path)
 
-    # 7) Convert .xml files to .csv files.
+    # 6) Convert .xml files to .csv files.
     xml2csv(experiment_root_path=experiment_root_path)
-    # print('\nConverting .xml files to .csv ...\n')
-    # for xml_path in Path(experiment_root_path).rglob('*.xml'):
-    #     csv_path = str(xml_path).replace('xml', 'csv')
-    #     args = [str(xml_path), '-o', csv_path]
-    #     try:
-    #         xml2csv(args)
-    #         Path(xml_path).unlink()
-    #     except Exception:
-    #         raise
 
-    # 8) Create plots with metrics plots for final agent.
+    # 7) Create plots with metrics plots for final agent.
     test_plots(experiment_root_path)
+
+    # 8) Clean up and compress files.
+    print('\nCleaning and compressing files...\n')
+    experiment_root_path = Path(experiment_root_path)
+    for csv_path in experiment_root_path.rglob('*-emission.csv'):
+        Path(csv_path).unlink()
+
+    shutil.make_archive(experiment_root_path,
+                    'gztar',
+                    os.path.dirname(experiment_root_path),
+                    experiment_root_path.name)
+    
+    shutil.rmtree(experiment_root_path)
 
     print('Experiment folder: {0}'.format(experiment_root_path))
