@@ -15,13 +15,6 @@ from .utils import *
 
 plt.style.use('ggplot')
 
-ILURL_HOME = os.environ['ILURL_HOME']
-
-EMISSION_PATH = \
-    f'{ILURL_HOME}/data/emissions'
-
-EXCLUDE_EMISSION = ['CO', 'CO2', 'HC', 'NOx', 'PMx', 'angle', 'eclass', 'electricity', 'fuel', 'noise']
-
 FIGURE_X = 6.0
 FIGURE_Y = 4.0
 
@@ -81,7 +74,8 @@ def main(experiment_root_folder=None):
         df_per_vehicle = get_vehicles(df_csv)
 
         df_per_vehicle_mean = df_per_vehicle.mean()
-        mean_values_per_eval.append({'speed': df_per_vehicle_mean['speed'],
+        mean_values_per_eval.append({'train_run': Path(csv_file).parts[-4],
+                                     'speed': df_per_vehicle_mean['speed'],
                                      'delay': df_per_vehicle_mean['waiting'],
                                      'travel_time': df_per_vehicle_mean['total']})
 
@@ -99,8 +93,12 @@ def main(experiment_root_folder=None):
 
     # Write mean values per eval into a csv file.
     df_mean_metrics_per_eval = pd.DataFrame(mean_values_per_eval)
-    df_mean_metrics_per_eval.to_csv('{0}/mean_metrics_per_eval.csv'.format(output_folder_path),
-                                    float_format='%.3f')
+    df_mean_metrics_per_eval.to_csv('{0}/{1}_metrics.csv'.format(
+                                            output_folder_path,
+                                            Path(experiment_root_folder).parts[-1]
+                                    ),
+                                    float_format='%.3f',
+                                    columns=["train_run", "speed", "delay", "travel_time"])
 
     """
         Waiting time & travel time.
@@ -108,7 +106,7 @@ def main(experiment_root_folder=None):
     # Describe waiting time.
     print('Waiting time:')
     df_stats = df_vehicles_appended['waiting'].describe()
-    df_stats.to_csv('{0}/test_waiting_time_stats.csv'.format(output_folder_path),
+    df_stats.to_csv('{0}/waiting_time_stats.csv'.format(output_folder_path),
                     float_format='%.3f', header=False)
     print(df_stats)
     print('\n')
@@ -122,14 +120,14 @@ def main(experiment_root_folder=None):
     plt.xlabel('Waiting time (s)')
     plt.ylabel('Density')
     plt.title('Waiting time')
-    plt.savefig('{0}/test_waiting_time_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/test_waiting_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/waiting_time_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/waiting_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
     # Describe travel time.
     print('Travel time:')
     df_stats = df_vehicles_appended['total'].describe()
-    df_stats.to_csv('{0}/test_travel_time_stats.csv'.format(output_folder_path),
+    df_stats.to_csv('{0}/travel_time_stats.csv'.format(output_folder_path),
                     float_format='%.3f', header=False)
     print(df_stats)
     print('\n')
@@ -143,14 +141,14 @@ def main(experiment_root_folder=None):
     plt.xlabel('Travel time (s)')
     plt.ylabel('Density')
     plt.title('Travel time')
-    plt.savefig('{0}/test_travel_time_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/test_travel_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/travel_time_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/travel_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
     # Describe vehicles' speed.
     print('Speed:')
     df_stats = df_vehicles_appended['speed'].describe()
-    df_stats.to_csv('{0}/test_speed_stats.csv'.format(output_folder_path),
+    df_stats.to_csv('{0}/speed_stats.csv'.format(output_folder_path),
                     float_format='%.3f', header=False)
     print(df_stats)
     print('\n')
@@ -164,8 +162,8 @@ def main(experiment_root_folder=None):
     plt.xlabel('Average Speed (m/s)')
     plt.ylabel('Density')
     plt.title('Vehicles\' speed')
-    plt.savefig('{0}/test_speeds_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/test_speeds_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/speeds_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/speeds_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
     # Aggregate results per cycle.
@@ -182,8 +180,8 @@ def main(experiment_root_folder=None):
     plt.xlabel('Cycle')
     plt.ylabel('Average waiting time (s)')
     plt.title('Waiting time')
-    plt.savefig('{0}/test_waiting_time.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/test_waiting_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/waiting_time.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/waiting_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
     fig = plt.figure()
@@ -196,8 +194,8 @@ def main(experiment_root_folder=None):
     plt.xlabel('Cycle')
     plt.ylabel('Average travel time (s)')
     plt.title('Travel time')
-    plt.savefig('{0}/test_travel_time.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/test_travel_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/travel_time.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/travel_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
     """
@@ -220,8 +218,8 @@ def main(experiment_root_folder=None):
     plt.ylabel('#cars')
     plt.title('Throughput')
 
-    plt.savefig('{0}/test_throughput.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/test_throughput.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/throughput.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/throughput.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
     plt.close()
 
@@ -273,8 +271,8 @@ def main(experiment_root_folder=None):
     plt.ylabel('Reward')
     plt.title('Cumulative reward')
 
-    plt.savefig('{0}/rewards_total.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/rewards_total.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/total_reward.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    plt.savefig('{0}/total_reward.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     
     plt.close()
 

@@ -137,9 +137,9 @@ def main(experiment_root_folder=None):
     plt.title('Train rewards ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
-    file_name = '{0}/train_rewards.pdf'.format(output_folder_path)
+    file_name = '{0}/rewards.pdf'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
-    file_name = '{0}/train_rewards.png'.format(output_folder_path)
+    file_name = '{0}/rewards.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     
     plt.close()
@@ -196,9 +196,9 @@ def main(experiment_root_folder=None):
     plt.title('Number of vehicles ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
-    file_name = '{0}/train_vehicles.pdf'.format(output_folder_path)
+    file_name = '{0}/vehicles.pdf'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
-    file_name = '{0}/train_vehicles.png'.format(output_folder_path)
+    file_name = '{0}/vehicles.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     
     plt.close()
@@ -232,15 +232,20 @@ def main(experiment_root_folder=None):
     plt.title('Train: Velocity of the vehicles ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
-    file_name = '{0}/train_velocities.pdf'.format(output_folder_path)
+    file_name = '{0}/velocities.pdf'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
-    file_name = '{0}/train_velocities.png'.format(output_folder_path)
+    file_name = '{0}/velocities.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     
     plt.close()
 
     """ 
         Actions per intersection.
+
+        WARNING: This is commented due to the fact that different agents might
+                 require different processing here. As an example, the actions
+                 taken by the DQN actions (discrete action agent) differ from
+                 the ones taken by the DDPG agent (continuous action agent).
     """
     """ dfs_a = [pd.DataFrame(a) for a in actions]
 
