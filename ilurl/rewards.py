@@ -215,6 +215,8 @@ def reward_max_delay_reduction(state, *args):
 def reward_min_pressure(state, *args):
     """Min. pressure
 
+    * Memoryless pressure computation.
+
     Params:
     ------
     * state: ilurl.state.State
@@ -243,6 +245,38 @@ def reward_min_pressure(state, *args):
 
     return ret
 
+def reward_min_average_pressure(state, *args):
+    """Min. average pressure
+
+    * Average pressure makes use of history.
+
+    Params:
+    ------
+    * state: ilurl.state.State
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: -sum of pressures
+
+    Reference:
+    ---------
+    * Wei, H., Chen, C., Zheng, G., Wu, K., Gayah, V, Xu, K., Li, Z. 2019.
+        PressLight: Learning Max Pressure Control to Coordinate Traffic Signals
+                        In Arterial Network
+
+    * Genders, W. and Ravazi, S. 2019
+        An Open-Source Framework for Adaptative Traffic Signal Control
+
+    """
+    pressure = state.feature_map(
+        filter_by=('average_pressure',),
+        split=True
+    )
+    ret = {tls_id: -np.sum(press).round(4)
+           for tls_id, press in pressure.items()}
+
+    return ret
 def reward_min_queue_squared(state):
     """Minimizing the delta of queue length squared
 
