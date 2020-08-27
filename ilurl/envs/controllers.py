@@ -96,17 +96,16 @@ class MaxPressure:
         # 2) Adaptive change: evaluate pressure
         if tc > self._min_green + self._yellow + pt:
             next_phase = np.argmax(pressure)
-            
             switch = next_phase != pid
             pt = switch * tc + (not switch) * pt
             py = switch * (pt + self._yellow) + (not switch) * py
-            return switch, next_phase, pt, py 
+            return switch, next_phase, pt, py
 
         # 3) Do nothing
         return False, pid, pt, py
 
     def reset(self):
-        self._ts_phase = {ts_id: 0 for ts_id in ts_ids}
+        self._ts_phase = {ts_id: PressurePhase(0, 0, -1) for ts_id in self._ts_phase}
 
     def terminate(self):
         self.reset()
