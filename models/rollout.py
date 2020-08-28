@@ -1,7 +1,7 @@
 """
     models/rollout.py
 
-    This script evaluates a given multi-gent system policy. It performs
+    This script evaluates a given multi-agent system policy. It performs
     a rollout given a static policy loaded from a given checkpoint.
 
 """
@@ -17,7 +17,6 @@ import numpy as np
 import random
 
 from flow.core.params import SumoParams, EnvParams
-from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
@@ -124,7 +123,7 @@ def main(config_file_path=None):
         'print_warnings': False,
         'sim_step': 1, # Do not change.
         'restart_instance': True,
-        'teleport_time': 180
+        'teleport_time': 120
     }
 
     # Setup seeds.
@@ -140,7 +139,6 @@ def main(config_file_path=None):
     sim_params = SumoParams(**sumo_args)
 
     additional_params = {}
-    additional_params.update(ADDITIONAL_ENV_PARAMS)
     additional_params['tls_type'] = train_args.tls_type
     env_args = {
         'evaluate': True,

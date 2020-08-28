@@ -45,7 +45,8 @@ class Experiment:
                 exp_path : str,
                 train : bool = True,
                 save_agent : bool = False,
-                save_agent_interval : int = 100):
+                save_agent_interval : int = 100,
+                tls_type : str = 'rl'):
         """
 
         Parameters:
@@ -60,6 +61,9 @@ class Experiment:
             Whether to save RL agents parameters throughout training.
         save_agent_interval : int
             RL agent save interval (in number of agent-update steps).
+        tls_type : str
+            Traffic ligh system type: ('rl', 'random', 'actuated',
+            'static', 'webster' or 'max_pressure')
 
         """
         # Guarantees that the enviroment has stopped.
@@ -72,6 +76,7 @@ class Experiment:
         self.cycle = getattr(env, 'cycle_time', None)
         self.save_agent = save_agent
         self.save_agent_interval = save_agent_interval
+        self.tls_type = tls_type
 
         logging.info(" Starting experiment {} at {}".format(
             env.network.name, str(datetime.datetime.utcnow())))
@@ -131,10 +136,6 @@ class Experiment:
 
         agent_updates_counter = 0
 
-        # Setup logs folder.
-        os.makedirs(self.exp_path / 'logs', exist_ok=True)
-        train_log_path = self.exp_path / 'logs' / "train_log.json"
-
         state = self.env.reset()
 
         for step in tqdm(range(num_steps)):
@@ -168,7 +169,8 @@ class Experiment:
             if done and stop_on_teleports:
                 break
 
-            if self.save_agent and self._is_save_agent_step(agent_updates_counter):
+            if self.save_agent and self.tls_type == 'rl' and \
+                self._is_save_agent_step(agent_updates_counter):
                 self.env.tsc.save_checkpoint(self.exp_path)
 
         # Save train log (data is aggregated per traffic signal).
@@ -179,7 +181,8 @@ class Experiment:
         info_dict["actions"] = [a for a in self.env.actions_log.values()]
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
-        self.env.tsc.terminate()
+        if self.tls_type not in ('static', 'actuated'):
+            self.env.tsc.terminate()
         self.env.terminate()
 
         return info_dict

@@ -163,7 +163,6 @@ def baseline_batch():
             with cfg_path.open('w') as ft:
                 baseline_config.write(ft)
 
-
         # rvs: directories' names holding experiment data
         if num_processors > 1:
             packed_args = [(delay, cfg)

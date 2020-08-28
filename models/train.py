@@ -22,7 +22,6 @@ from shutil import copyfile
 import numpy as np
 
 from flow.core.params import EnvParams, SumoParams
-from flow.envs.ring.accel import ADDITIONAL_ENV_PARAMS
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
@@ -53,8 +52,8 @@ def main(train_config_path=None):
         'demand_type': train_args.demand_type,
         'tls_type': train_args.tls_type
     }
-
     network = Network(**network_args)
+
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
     os.makedirs(experiment_path, exist_ok=True)
@@ -65,7 +64,7 @@ def main(train_config_path=None):
         'print_warnings': False,
         'sim_step': 1, # Do not change.
         'restart_instance': True,
-        'teleport_time': 180
+        'teleport_time': 120
     }
 
     # Setup seeds.
@@ -81,7 +80,6 @@ def main(train_config_path=None):
     sim_params = SumoParams(**sumo_args)
 
     additional_params = {}
-    additional_params.update(ADDITIONAL_ENV_PARAMS)
     additional_params['tls_type'] = train_args.tls_type
     env_args = {
         'evaluate': True,
@@ -101,17 +99,13 @@ def main(train_config_path=None):
         seed=train_args.experiment_seed,
     )
 
-    # Override possible inconsistent params.
-    if train_args.tls_type not in ('rl',):
-        env.stop = True
-        train_args.save_agent = False
-
     exp = Experiment(
             env=env,
             exp_path=experiment_path.as_posix(),
             train=True,
             save_agent=train_args.experiment_save_agent,
-            save_agent_interval=train_args.experiment_save_agent_interval
+            save_agent_interval=train_args.experiment_save_agent_interval,
+            tls_type=train_args.tls_type
     )
 
     # Store train parameters (config file). 
@@ -125,6 +119,7 @@ def main(train_config_path=None):
     info_dict = exp.run(train_args.experiment_time)
 
     # Store train info dict.
+    os.makedirs(experiment_path/ 'logs', exist_ok=True)
     train_log_path = experiment_path / 'logs' / "train_log.json"
     with train_log_path.open('w') as f:
         json.dump(info_dict, f)
