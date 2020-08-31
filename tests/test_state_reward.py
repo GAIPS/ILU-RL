@@ -11,6 +11,11 @@ from ilurl.networks.base import Network
 
 
 class TestStateReward(unittest.TestCase):
+    """
+        Set of tests that target the implemented
+        problem formulations, i.e. state and reward
+        function definitions.
+    """
 
     def setUp(self):
 
