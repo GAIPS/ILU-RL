@@ -6,6 +6,8 @@ import numpy as np
 from ilurl.utils.aux import flatten as flat
 from ilurl.utils.properties import lazy_property
 
+COUNT_SET = {'average_pressure', 'count', 'speed_score', 'pressure'}
+
 def get_instance_name(x):
     """Gets the name of the instance"""
     return x.__class__.__name__.lower()
@@ -17,6 +19,9 @@ def is_unique(xs):
     if len(xs_set) == 1:
         return list(xs_set)[0]
     return False
+
+def _check_count(labels):
+    return bool(COUNT_SET & set(labels))
 
 class Node:
     """Node into the state tree hierarchy
@@ -491,12 +496,12 @@ class Phase(Node):
 
 
         # 2) Update lanes
-        # TODO: investigate generators to solve this feature computation issue.
-        step_speed = 0
-        step_speed_score = 0
         step_count = 0
         step_delay = 0
+        step_flow = set({})
         step_queue = 0
+        step_speed = 0
+        step_speed_score = 0
         self._update_cached_weight(duration)
 
 
@@ -506,15 +511,17 @@ class Phase(Node):
 
             step_count += lane.count if 'count' in self.labels else 0
             step_delay += lane.delay if 'delay' in self.labels else 0
+            step_flow = step_flow.union(lane.flow) if 'flow' in self.labels else 0
+            step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
             step_speed += lane.speed if 'speed' in self.labels else 0
             step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
-            step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
 
         self._update_count(step_count)
         self._update_delay(step_delay)
+        self._update_flow(step_flow)
+        self._update_queue(step_queue)
         self._update_speed(step_speed)
         self._update_speed_score(step_speed_score)
-        self._update_queue(step_queue)
 
         # 3) Stores previous cycle for lag labels.
         self._update_lag(duration)
@@ -538,9 +545,12 @@ class Phase(Node):
         self._cached_cout_updated = -1
         self._cached_count = 0
         self._cached_delay = 0
+        self._cached_flow = set({})
+        self._cached_step_flow = set({})
+
+        self._cached_queue = 0
         self._cached_speed = 0
         self._cached_speed_score = 0
-        self._cached_queue = 0
 
         self._cached_weight = 0
         self._update_counter = 0
@@ -653,6 +663,20 @@ class Phase(Node):
         return round(float(self._cached_delay / (w + 1)), 2)
 
     @property
+    def flow(self):
+        """Vehicles dispatched
+        Returns:
+        -------
+        * flow: int
+           The number of vehicles dispatched during the cycle.
+        References:
+        ----------
+        """
+        ret = round(float(len(self._cached_flow - self._cached_step_flow)), 2)
+        return ret
+
+
+    @property
     def queue(self):
         """Max. queue of vehicles wrt lane and time steps.
 
@@ -749,7 +773,7 @@ class Phase(Node):
         self._update_counter += 1
 
     def _update_count(self, step_count):
-        if self._check_count():
+        if _check_count(self.labels):
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
 
@@ -757,6 +781,15 @@ class Phase(Node):
         if 'delay' in self.labels:
             w = self._cached_weight
             self._cached_delay = step_delay + (w > 0) * self._cached_delay
+
+    def _update_flow(self, step_flow):
+        if 'flow' in self.labels:
+            self._cached_step_flow = step_flow
+            w = self._cached_weight
+            if w > 0:
+                self._cached_flow = self._cached_flow.union(step_flow)
+            else:
+                self._cached_flow = step_flow
 
     def _update_queue(self, step_queue):
         if 'queue' in self.labels:
@@ -806,11 +839,6 @@ class Phase(Node):
         _bins = self._bins[self._get_derived(label)]
         return int(np.digitize(value, bins=_bins))
 
-    def _check_count(self):
-        return ('count' in self.labels or
-                    'speed_score' in self.labels or
-                        'pressure' in self.labels or
-                            'average_pressure' in self.labels)
 
 class Lane(Node):
     """ Represents a lane within an edge.
@@ -870,6 +898,8 @@ class Lane(Node):
         self._cached_speeds = 0
         self._cached_counts = 0
         self._cached_delays = 0
+
+        self._cached_flows = set({})
         self._last_duration = -1
 
 
@@ -902,10 +932,33 @@ class Lane(Node):
             self._last_duration = duration
 
 
-            self._update_speeds(vehs)
-            self._update_speed_scores(vehs)
             self._update_counts(vehs)
             self._update_delays(vehs)
+            self._update_flows(vehs)
+            self._update_speeds(vehs)
+            self._update_speed_scores(vehs)
+
+
+    def _update_counts(self, vehs):
+        """Step update for counts variable"""
+        if _check_count(self.labels):
+            self._cached_counts = len(vehs)
+
+    def _update_flows(self, vehs):
+            """Step update flows variable"""
+            if 'flow' in self.labels:
+                self._cached_flows = {v.id for v in vehs}
+
+    def _update_delays(self, vehs):
+        """Step update for delays variable"""
+        if 'delay' in self.labels or 'queue' in self.labels:
+            # 1) Normalization factor and threshold
+            cap = self.max_speed if self._normalize else 1
+            vt = self._min_speed
+
+            # 2) Compute delays
+            step_delays = [v.speed / cap < vt for v in vehs]
+            self._cached_delays = len(step_delays)
 
     def _update_speeds(self, vehs):
         """Step update for speeds variable"""
@@ -924,44 +977,6 @@ class Lane(Node):
         if 'speed_score' in self.labels:
             # 1) Compute speed average
             self._cached_speed_scores = round(sum([v.speed for v in vehs]), 4)
-
-
-    def _update_counts(self, vehs):
-        """Step update for counts variable"""
-        if self._check_count():
-            self._cached_counts = len(vehs)
-
-    def _update_delays(self, vehs):
-        """Step update for delays variable"""
-        if 'delay' in self.labels or 'queue' in self.labels:
-            # 1) Normalization factor and threshold
-            cap = self.max_speed if self._normalize else 1
-            vt = self._min_speed
-
-            # 2) Compute delays
-            step_delays = [v.speed / cap < vt for v in vehs]
-            self._cached_delays = len(step_delays)
-
-
-    @property
-    def speed(self):
-        """Relative vehicles' speeds per time step and lane.
-
-        * difference between max_speed and observed speed.
-
-        Returns:
-            speed: float
-        """
-        return self._cached_speeds
-
-    @property
-    def speed_score(self):
-        """Sum of raw vehicles' speeds per time step and lane.
-
-        Returns:
-            speed_score: float
-        """
-        return self._cached_speed_scores
 
     @property
     def count(self):
@@ -984,6 +999,38 @@ class Lane(Node):
         return self._cached_delays
 
     @property
+    def flow(self):
+        """Unique vehicles present at lane (per lane)
+            Returns:
+            -------
+            * flow: set<string>
+                veh_ids
+        """
+        return self._cached_flows
+
+
+    @property
+    def speed(self):
+        """Relative vehicles' speeds per time step and lane.
+
+        * difference between max_speed and observed speed.
+
+        Returns:
+            speed: float
+        """
+        return self._cached_speeds
+
+    @property
+    def speed_score(self):
+        """Sum of raw vehicles' speeds per time step and lane.
+
+        Returns:
+            speed_score: float
+        """
+        return self._cached_speed_scores
+
+
+    @property
     def queue(self):
         """Total of vehicles circulating under a velocity threshold
             per time step and lane.
@@ -994,8 +1041,3 @@ class Lane(Node):
         """
         return self._cached_delays
 
-    def _check_count(self):
-        return ('count' in self.labels or
-                    'speed_score' in self.labels or
-                        'pressure' in self.labels or
-                            'average_pressure' in self.labels)

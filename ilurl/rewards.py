@@ -245,6 +245,28 @@ def reward_min_pressure(state, *args):
 
     return ret
 
+def reward_max_flow(state, *args):
+    """Max flow
+
+    Params:
+    ------
+    * state: ilurl.state.State
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: -sum of pressures
+
+    """
+    flow = state.feature_map(
+        filter_by=('flow',),
+        split=True
+    )
+
+    ret = {tls_id: np.sum(flow).round(4)
+           for tls_id, flow in flow.items()}
+    return ret
+
 def reward_min_average_pressure(state, *args):
     """Min. average pressure
 
