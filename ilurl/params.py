@@ -46,11 +46,11 @@ class MDPParams(Printable):
     """
 
     def __init__(self,
-                discount_factor: float = 0.95,
+                discount_factor: float = 0.98,
                 action_space: str = 'discrete',
                 features: Tuple[str] = ('speed', 'count'),
                 normalize_state_space: bool = True,
-                discretize_state_space: bool = True,
+                discretize_state_space: bool = False,
                 category_counts: List[float] = [8.56, 13.00],
                 category_speeds: List[float] = [2.28, 5.50],
                 category_delays: List[float] = [5, 30],
@@ -111,10 +111,10 @@ class MDPParams(Printable):
         if 'states' in kwargs:
             self.states_labels = kwargs['states']
 
-        if self.normalize_state_space:
-            if max(self.category_speeds) > 1:
-                raise ValueError('If `normalize` flag is set categories'
-                                    'must be between 0 and 1.')
+        # if self.normalize_state_space:
+        #     if max(self.category_speeds) > 1:
+        #         raise ValueError('If `normalize` flag is set categories'
+        #                             'must be between 0 and 1.')
 
         # Action space.
         if self.action_space not in ('discrete', 'continuous'):

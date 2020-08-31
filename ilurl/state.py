@@ -958,7 +958,7 @@ class Lane(Node):
 
             # 2) Compute delays
             step_delays = [v.speed / cap < vt for v in vehs]
-            self._cached_delays = len(step_delays)
+            self._cached_delays = sum(step_delays)
 
     def _update_speeds(self, vehs):
         """Step update for speeds variable"""

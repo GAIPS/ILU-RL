@@ -4,10 +4,13 @@
 
     flow.envs.base.Env.step() methods' calling order:
 
-        1) apply_rl_actions()
-        2) Advance simulator by one step.
-        3) get_state()
-        4) compute_reward()
+        1) Increment counters:
+            self.time_counter += 1
+            self.step_counter += 1
+        2) apply_rl_actions()
+        3) Advance simulator by one step.
+        4) get_state()
+        5) compute_reward()
 
     For more info see flow.envs.base.Env class.
 
@@ -144,7 +147,7 @@ class TrafficLightEnv(Env):
             for tid, durations in self.network.tls_durations.items()
         }
 
-    def get_observation_space(self):
+    def update_observation_space(self):
         """ Query kernel to retrieve vehicles' information
         and send it to ilurl.State object for state computation.
 
@@ -153,18 +156,12 @@ class TrafficLightEnv(Env):
         observation_space: ilurl.State object
 
         """
-        if self._update_counter != self.time_counter:
+        # Query kernel and retrieve vehicles' data.
+        vehs = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
+                    for p, data in self.tls_phases[nid].items()}
+                        for nid in self.tls_ids}
 
-            # Query kernel and retrieve vehicles' data.
-            vehs = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
-                        for p, data in self.tls_phases[nid].items()}
-                            for nid in self.tls_ids}
-
-            self.observation_space.update(self.duration, vehs)
-
-            self._update_counter = self.time_counter
-
-        return self.observation_space
+        self.observation_space.update(self.duration, vehs)
 
     def get_state(self):
         """ Return the state of the simulation as perceived by the RL agent(s).
@@ -174,7 +171,7 @@ class TrafficLightEnv(Env):
         state : dict
 
         """
-        obs = self.get_observation_space().feature_map(
+        obs = self.observation_space.feature_map(
             categorize=self.mdp_params.discretize_state_space,
             flatten=True
         )
@@ -280,6 +277,8 @@ class TrafficLightEnv(Env):
             actions to be performed
 
         """
+        self.update_observation_space()
+
         if is_controller_periodic(self.ts_type):
 
             if self.ts_type in ('rl', 'random') and \
@@ -323,7 +322,7 @@ class TrafficLightEnv(Env):
         else:
             # Aperiodic controller.
             if self.ts_type == 'max_pressure':
-                controller_actions = self.tsc.act(self.get_observation_space(), self.time_counter)
+                controller_actions = self.tsc.act(self.observation_space, self.time_counter)
 
                 # Update traffic lights' control signals.
                 self._apply_tsc_actions(controller_actions)
@@ -375,7 +374,7 @@ class TrafficLightEnv(Env):
             Reward at each TSC.
 
         """
-        return self.reward(self.get_observation_space())
+        return self.reward(self.observation_space)
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
@@ -400,6 +399,3 @@ class TrafficLightEnv(Env):
 
         # Observation space.
         self.observation_space.reset()
-
-        # Controls the number of updates.
-        self._update_counter = -1

@@ -155,7 +155,7 @@ class Experiment:
             if self._is_save_step():
 
                 observation_spaces.append(
-                    self.env.get_observation_space().feature_map())
+                    self.env.observation_space.feature_map())
 
                 rewards.append(reward)
 
