@@ -421,8 +421,201 @@ class TestStateReward(unittest.TestCase):
         self.assertEqual(reward['247123464'], round(-0.01*(0.07-1.48 + 0.15-0.80), 4))
         self.assertEqual(reward['247123468'], round(-0.01*(3.68-2.05 + 0.45-0.57), 4))
 
+
+    def test_min_queue_squared(self):
+        """
+            Minimize and balance the queues.
+        """
+        mdp_params = MDPParams(
+                        features=('queue', 'lag[queue]'),
+                        reward='reward_min_queue_squared',
+                        normalize_state_space=True,
+                        discretize_state_space=False,
+                        reward_rescale=0.01,
+                        time_period=None,
+                        velocity_threshold=0.1)
+
+        self.observation_space = State(self.network, mdp_params)
+        self.observation_space.reset()
+        self.reward = build_rewards(mdp_params)
+    
+        with open('tests/data/grid_kernel_data_1.dat', "rb") as f:
+            kernel_data_1 = pickle.load(f)
+
+        self.assertEqual(len(kernel_data_1), 60)
+
+        with open('tests/data/grid_kernel_data_2.dat', "rb") as f:
+            kernel_data_2 = pickle.load(f)
+
+        self.assertEqual(len(kernel_data_2), 60)
+
+        # Fake environment interaction with state object (cycle 1).
+        timesteps = list(range(1,60)) + [0]
+        for t, data in zip(timesteps, kernel_data_1):
+            self.observation_space.update(t, data)
+
+        # Get state.
+        state = self.observation_space.feature_map(
+            categorize=mdp_params.discretize_state_space,
+            flatten=True
+        )
+
+        self.assertEqual(len(state['247123161']), 4)
+        self.assertEqual(len(state['247123464']), 4)
+        self.assertEqual(len(state['247123468']), 4)
+
+        """ print(state)
+        def queue(x):
+            if (x / 13.89) < 0.1:
+                return 1.0
+            else:
+                return 0.0
+
+        for t_id in ['247123161', '247123464' ,'247123468']:
+            queues_0 = []
+            queues_1 = []
+
+            for t in kernel_data_1:
+
+                temp_count = {}
+                for veh in t[t_id][0]:
+
+                    str_key = veh.edge_id + '_' + str(veh.lane)
+
+                    if str_key in temp_count:
+                        temp_count[str_key] += queue(veh.speed)
+                    else:
+                        temp_count[str_key] = queue(veh.speed)
+
+                if len(temp_count) == 0:
+                    queues_0.append(0.0)
+                else:
+                    queues_0.append(max(temp_count.values()))
+
+                temp_count = {}
+                for veh in t[t_id][1]:
+                    str_key = veh.edge_id + '_' + str(veh.lane)
+
+                    if str_key in temp_count:
+                        temp_count[str_key] += queue(veh.speed)
+                    else:
+                        temp_count[str_key] = queue(veh.speed)
+
+                if len(temp_count) == 0:
+                    queues_1.append(0.0)
+                else:
+                    queues_1.append(max(temp_count.values()))
+
+            print('t_id={0}, queue (phase 0):'.format(t_id), sum(queues_0) / 60)
+            print('t_id={0}, queue (phase 1):'.format(t_id), sum(queues_1) / 60) """
+
+        # State.
+        # 247123161.
+        self.assertEqual(state['247123161'][0], 0.63) # queue, phase 0, actual cycle
+        self.assertEqual(state['247123161'][1], 0.0)  # queue, phase 0, previous cycle (No data yet)
+        self.assertEqual(state['247123161'][2], 0.58) # queue, phase 1, actual cycle
+        self.assertEqual(state['247123161'][3], 0.0)  # queue, phase 1, previous cycle (No data yet)
+
+        # 247123464.
+        self.assertEqual(state['247123464'][0], 0.07) # queue, phase 0, actual cycle
+        self.assertEqual(state['247123464'][1], 0.0)  # queue, phase 0, previous cycle (No data yet)
+        self.assertEqual(state['247123464'][2], 0.15) # queue, phase 1, actual cycle
+        self.assertEqual(state['247123464'][3], 0.0)  # queue, phase 1, previous cycle (No data yet)
+
+        # 247123468.
+        self.assertEqual(state['247123468'][0], 2.05) # queue, phase 0, actual cycle
+        self.assertEqual(state['247123468'][1], 0.0)  # queue, phase 0, previous cycle (No data yet)
+        self.assertEqual(state['247123468'][2], 0.45) # queue, phase 1, actual cycle
+        self.assertEqual(state['247123468'][3], 0.0)  # queue, phase 1, previous cycle (No data yet)
+
+        # Fake environment interaction with state object (cycle 2).
+        timesteps = list(range(1,60)) + [0]
+        for t, data in zip(timesteps, kernel_data_2):
+            self.observation_space.update(t, data)
+
+        # Get state.
+        state = self.observation_space.feature_map(
+            categorize=mdp_params.discretize_state_space,
+            flatten=True
+        )
+
+        self.assertEqual(len(state['247123161']), 4)
+        self.assertEqual(len(state['247123464']), 4)
+        self.assertEqual(len(state['247123468']), 4)
+
+        """ print(state)
+        def queue(x):
+            if (x / 13.89) < 0.1:
+                return 1.0
+            else:
+                return 0.0
+
+        for t_id in ['247123161', '247123464' ,'247123468']:
+            queues_0 = []
+            queues_1 = []
+
+            for t in kernel_data_2:
+
+                temp_count = {}
+                for veh in t[t_id][0]:
+
+                    str_key = veh.edge_id + '_' + str(veh.lane)
+
+                    if str_key in temp_count:
+                        temp_count[str_key] += queue(veh.speed)
+                    else:
+                        temp_count[str_key] = queue(veh.speed)
+
+                if len(temp_count) == 0:
+                    queues_0.append(0.0)
+                else:
+                    queues_0.append(max(temp_count.values()))
+
+                temp_count = {}
+                for veh in t[t_id][1]:
+                    str_key = veh.edge_id + '_' + str(veh.lane)
+
+                    if str_key in temp_count:
+                        temp_count[str_key] += queue(veh.speed)
+                    else:
+                        temp_count[str_key] = queue(veh.speed)
+
+                if len(temp_count) == 0:
+                    queues_1.append(0.0)
+                else:
+                    queues_1.append(max(temp_count.values()))
+
+            print('t_id={0}, queue (phase 0):'.format(t_id), sum(queues_0) / 60)
+            print('t_id={0}, queue (phase 1):'.format(t_id), sum(queues_1) / 60) """
+
+        # State.
+        # 247123161.
+        self.assertEqual(state['247123161'][0], 0.30) # queue, phase 0, actual cycle
+        self.assertEqual(state['247123161'][1], 0.63) # queue, phase 0, previous cycle
+        self.assertEqual(state['247123161'][2], 0.48) # queue, phase 1, actual cycle
+        self.assertEqual(state['247123161'][3], 0.58) # queue, phase 1, previous cycle
+
+        # 247123464.
+        self.assertEqual(state['247123464'][0], 0.63) # queue, phase 0, actual cycle
+        self.assertEqual(state['247123464'][1], 0.07) # queue, phase 0, previous cycle
+        self.assertEqual(state['247123464'][2], 0.80) # queue, phase 1, actual cycle
+        self.assertEqual(state['247123464'][3], 0.15) # queue, phase 1, previous cycle
+
+        # 247123468.
+        self.assertEqual(state['247123468'][0], 1.05) # queue, phase 0, actual cycle
+        self.assertEqual(state['247123468'][1], 2.05) # queue, phase 0, previous cycle
+        self.assertEqual(state['247123468'][2], 0.57) # queue, phase 1, actual cycle
+        self.assertEqual(state['247123468'][3], 0.45) # queue, phase 1, previous cycle
+
+        # Reward.
+        reward = self.reward(self.observation_space)
+        self.assertEqual(reward['247123161'], 0.01*((0.63**2+0.58**2) - (0.30**2+0.48**2)))
+        self.assertEqual(reward['247123464'], 0.01*((0.07**2+0.15**2) - (0.63**2+0.80**2)))
+        self.assertEqual(reward['247123468'], 0.01*((2.05**2+0.45**2) - (1.05**2+0.57**2)))
+
+
     def test_time_period(self):
-        pass
+        pass # TODO
 
     def tearDown(self):
         pass

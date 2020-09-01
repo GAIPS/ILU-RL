@@ -702,7 +702,8 @@ class Phase(Node):
             "Reinforcement learning for true adaptive traffic signal
             control."
         """
-        return round(float(self._cached_queue), 2)
+        w = self._cached_weight
+        return round(float(self._cached_queue / (w + 1)), 2)
 
 
     @property
@@ -794,7 +795,7 @@ class Phase(Node):
     def _update_queue(self, step_queue):
         if 'queue' in self.labels:
             w = self._cached_weight
-            self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
+            self._cached_queue = step_queue + (w > 0) * self._cached_queue
 
     def _update_speed(self, step_speed):
         if 'speed' in self.labels:
