@@ -615,7 +615,81 @@ class TestStateReward(unittest.TestCase):
 
 
     def test_time_period(self):
-        pass # TODO
+        """
+            Time period.
+        """
+        mdp_params = MDPParams(
+                        features=('delay',),
+                        reward='reward_min_delay',
+                        normalize_state_space=True,
+                        discretize_state_space=False,
+                        reward_rescale=0.01,
+                        time_period=3600,
+                        velocity_threshold=0.1)
+
+        self.observation_space = State(self.network, mdp_params)
+        self.observation_space.reset()
+        self.reward = build_rewards(mdp_params)
+    
+        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+            kernel_data = pickle.load(f)
+
+        self.assertEqual(len(kernel_data), 60)
+
+        # Fake environment interaction with state object.
+        timesteps = list(range(1,60)) + [0]
+        for t, data in zip(timesteps, kernel_data):
+            self.observation_space.update(t, data)
+
+        # Get state.
+        state = self.observation_space.feature_map(
+            categorize=mdp_params.discretize_state_space,
+            flatten=True
+        )
+
+        self.assertEqual(len(state['247123161']), 3)
+        self.assertEqual(len(state['247123464']), 3)
+        self.assertEqual(len(state['247123468']), 3)
+
+        # State.
+        # 247123161.
+        self.assertEqual(state['247123161'][0], 0)    # time variable
+        self.assertEqual(state['247123161'][1], 2.85) # delay, phase 0
+        self.assertEqual(state['247123161'][2], 1.18) # delay, phase 1
+
+        # 247123464.
+        self.assertEqual(state['247123464'][0], 0)    # time variable
+        self.assertEqual(state['247123464'][1], 0.0)  # delay, phase 0
+        self.assertEqual(state['247123464'][2], 0.08) # delay, phase 1
+
+        # 247123468.
+        self.assertEqual(state['247123468'][0], 0)    # time variable
+        self.assertEqual(state['247123468'][1], 0.58) # delay, phase 0
+        self.assertEqual(state['247123468'][2], 0.27) # delay, phase 1
+
+        self.observation_space.reset()
+
+        hours = list(range(24)) + [0,1]
+        for hour in hours:
+            
+            for minute in range(60):
+
+                # Fake environment interaction with state object.
+                # (60 seconds = 1 minute).
+                timesteps = list(range(1,60)) + [0]
+                for t, data in zip(timesteps, kernel_data):
+                    self.observation_space.update(t, data)
+
+                # Get state.
+                state = self.observation_space.feature_map(
+                    categorize=mdp_params.discretize_state_space,
+                    flatten=True
+                )
+
+                self.assertEqual(state['247123161'][0], hour)
+                self.assertEqual(state['247123464'][0], hour)
+                self.assertEqual(state['247123468'][0], hour)
+
 
     def tearDown(self):
         pass
