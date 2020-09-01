@@ -8,6 +8,7 @@ from ilurl.envs.elements import build_vehicles
 from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
 from ilurl.networks.base import Network
+from ilurl.utils.aux import flatten
 
 
 class TestStateReward(unittest.TestCase):
@@ -27,6 +28,81 @@ class TestStateReward(unittest.TestCase):
         }
         self.network = Network(**network_args)
 
+
+    def test_max_flow(self):
+        """
+            Maximaze flow.
+        """
+        mdp_params = MDPParams(
+                        features=('flow',),
+                        reward='reward_max_flow',
+                        normalize_state_space=True,
+                        discretize_state_space=False,
+                        reward_rescale=0.01,
+                        time_period=None,
+                        velocity_threshold=0.1)
+
+        self.observation_space = State(self.network, mdp_params)
+        self.observation_space.reset()
+        self.reward = build_rewards(mdp_params)
+
+        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+            kernel_data = pickle.load(f)
+
+        self.assertEqual(len(kernel_data), 60)
+
+        # Fake environment interaction with state object.
+        timesteps = list(range(1,60)) + [0]
+
+        for t, data in zip(timesteps, kernel_data):
+            self.observation_space.update(t, data)
+
+        # Get state.
+        state = self.observation_space.feature_map(
+            categorize=mdp_params.discretize_state_space,
+            flatten=True
+        )
+
+        # Assert that number of phases == 2
+        self.assertEqual(len(state['247123161']), 2)
+        self.assertEqual(len(state['247123464']), 2)
+        self.assertEqual(len(state['247123468']), 2)
+
+
+        """print(state)
+        ID = '247123161'
+        veh_0_set = set()
+        veh_1_set = set()
+        for t, data in zip(timesteps, kernel_data):
+            if t == 0:
+                veh_0_0_set =  {veh.id for veh in data[ID][0]}
+                veh_0_1_set =  {veh.id for veh in data[ID][1]}
+            else:
+                veh_0_set = veh_0_set.union({veh.id for veh in data[ID][0]})
+                veh_1_set = veh_1_set.union({veh.id for veh in data[ID][1]})
+
+        print(len(veh_0_set - veh_0_0_set))
+        print(len(veh_1_set - veh_0_1_set))"""
+
+        # State.
+        # 247123161.
+        self.assertEqual(state['247123161'][0], 7.0) # flow, phase 0
+        self.assertEqual(state['247123161'][1], 9.0) # flow, phase 1
+
+        # 247123464.
+        self.assertEqual(state['247123464'][0], 9) # flow, phase 0
+        self.assertEqual(state['247123464'][1], 1) # flow, phase 1
+
+        # 247123468.
+        self.assertEqual(state['247123468'][0], 15) # flow, phase 0
+        self.assertEqual(state['247123468'][1], 2) # flow, phase 1
+
+        # Reward.
+        reward = self.reward(self.observation_space)
+        self.assertEqual(reward['247123161'], 0.01*(7.0 + 9.0))
+        self.assertEqual(reward['247123464'], 0.01*(9.0  + 1.0))
+        self.assertEqual(reward['247123468'], 0.01*(15 + 2))
+
     def test_max_speed_count(self):
         """
             Maximize weighted average speed.
@@ -42,7 +118,7 @@ class TestStateReward(unittest.TestCase):
         self.observation_space = State(self.network, mdp_params)
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
-    
+
         with open('tests/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
 
@@ -609,9 +685,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], 0.01*((0.63**2+0.58**2) - (0.30**2+0.48**2)))
-        self.assertEqual(reward['247123464'], 0.01*((0.07**2+0.15**2) - (0.63**2+0.80**2)))
-        self.assertEqual(reward['247123468'], 0.01*((2.05**2+0.45**2) - (1.05**2+0.57**2)))
+        self.assertAlmostEqual(reward['247123161'], 0.01*((0.63**2+0.58**2) - (0.30**2+0.48**2)))
+        self.assertAlmostEqual(reward['247123464'], 0.01*((0.07**2+0.15**2) - (0.63**2+0.80**2)))
+        self.assertAlmostEqual(reward['247123468'], 0.01*((2.05**2+0.45**2) - (1.05**2+0.57**2)))
 
 
     def test_time_period(self):
@@ -671,7 +747,6 @@ class TestStateReward(unittest.TestCase):
 
         hours = list(range(24)) + [0,1]
         for hour in hours:
-            
             for minute in range(60):
 
                 # Fake environment interaction with state object.
@@ -693,6 +768,7 @@ class TestStateReward(unittest.TestCase):
 
     def tearDown(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
