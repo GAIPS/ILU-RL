@@ -299,6 +299,7 @@ def reward_min_average_pressure(state, *args):
            for tls_id, press in pressure.items()}
 
     return ret
+
 def reward_min_queue_squared(state):
     """Minimizing the delta of queue length squared
 
@@ -346,5 +347,5 @@ def rescale_rewards(rewards, scale_factor):
 
 
 def diff(x, y):
-    return (np.array(x) - np.array(y)).astype(np.float32)
+    return np.array(x) - np.array(y)
 
