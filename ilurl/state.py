@@ -785,12 +785,12 @@ class Phase(Node):
 
     def _update_flow(self, step_flow):
         if 'flow' in self.labels:
-            self._cached_step_flow = step_flow
             w = self._cached_weight
             if w > 0:
-                self._cached_flow = self._cached_flow.union(step_flow)
+                self._cached_flow = self._cached_flow.union(self._cached_step_flow)
             else:
                 self._cached_flow = step_flow
+            self._cached_step_flow = step_flow
 
     def _update_queue(self, step_queue):
         if 'queue' in self.labels:
