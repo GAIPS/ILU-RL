@@ -517,9 +517,6 @@ class Phase(Node):
             step_speed += lane.speed if 'speed' in self.labels else 0
             step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
 
-            # if self.phase_id == '247123161#1':
-            #     print(self.phase_id, lane.count, lane.lane_id, {v.id for v in _vehs})
-
         self._update_count(step_count)
         self._update_delay(step_delay)
         self._update_flow(step_flow)
@@ -617,8 +614,6 @@ class Phase(Node):
             self._cached_cout = self.pressure + (w > 0) * self._cached_cout
             self._cached_cout_updated = self._update_counter
             ret = round(self._cached_cout / (w + 1), 2)
-            # if self.phase_id == '247123161#1':
-            #     print('AVG. PRESSURE', self._update_counter, self._cached_cout, ret)
         ret = round(self._cached_cout / (w + 1), 2)
         return ret
 
@@ -735,8 +730,6 @@ class Phase(Node):
         """
         c_in = self._compute_pressure(self.incoming)
         c_out = self._compute_pressure(self.outgoing)
-        # if self.phase_id == '247123161#1':
-        #     print('MAX-PRESSURE', c_in, c_out)
         return float(c_in - c_out)
 
 
@@ -779,15 +772,11 @@ class Phase(Node):
             all weight is given to the new sample"""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
         self._update_counter += 1
-        # if self.phase_id == '247123161#1':
-        #     print(self._update_counter)
 
     def _update_count(self, step_count):
         if _check_count(self.labels):
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
-            # if self.phase_id == '247123161#1':
-            #     print(self.phase_id, step_count, self._cached_cout)
 
     def _update_delay(self, step_delay):
         if 'delay' in self.labels:

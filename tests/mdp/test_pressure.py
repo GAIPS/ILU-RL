@@ -14,8 +14,9 @@ from ilurl.utils.aux import flatten
 INCOMING_247123161 = {0: [('309265401', 0), ('309265401', 1), ('-238059328', 0), ('-238059328', 1)],
                       1: [('383432312', 0), ('-238059324', 0)]}
 
-INCOMING_247123464 = [('309265400', 0), ('309265400', 1), ('22941893', 0), ('-309265401', 0), ('-309265401', 1)]
-INCOMING_247123468 = [('23148196', 0), ('309265402', 0), ('309265402', 1), ('-309265400', 0), ('-309265400', 1)]
+INCOMING_247123464 = {0: [('309265400', 0), ('309265400', 1), ('-309265401', 0), ('-309265401', 1)],
+    1: [('22941893', 0)]}
+INCOMING_247123468 = {0: [('309265402', 0), ('309265402', 1), ('-309265400', 0), ('-309265400', 1)], 1: [('23148196', 0)]}
 
 # outgoing approaches
 OUTGOING_247123161 = ['-383432312', '-309265401#0', '-309265401#1', '238059324', '238059324', '238059328#0', '238059328#1']
@@ -144,44 +145,24 @@ class TestPressure(TestBase):
         sol = INT_OUTGOING_247123468
         self.assertEqual(test, sol)
 
-    def test_pressure_state_node_1(self):
+    def test_pressure_tl1(self):
         """ID = '247123161'"""
-        # print(self.state)
+
+        ID = '247123161'
 
         outgoing = INT_OUTGOING_247123161
         incoming = INCOMING_247123161
 
-        # def get(data, approaches):
-        #     return {veh.id for veh in data if vehin(veh, approaches)}
+        p0, p1 = process_pressure(self.kernel_data, incoming, outgoing)
 
-        # def vehin(veh, lane):
-        #     return (veh.edge_id, veh.lane) in lane
-
-        timesteps = list(range(1,60)) + [0]
-
-        for t, data in zip(timesteps, self.kernel_data):
-            dat = get_veh_locations(data)
-
-            vehs_inc_0 = filter_veh_locations(dat, incoming[0])
-            vehs_inc_1 = filter_veh_locations(dat, incoming[1])
-
-
-            vehs_out_0 = filter_veh_locations(dat, outgoing)
-            vehs_out_1 = filter_veh_locations(dat, outgoing)
-            press0 = len(vehs_inc_0) - len(vehs_out_0)
-            press1 = len(vehs_inc_1) - len(vehs_out_1)
-
-        # print(t, 'INCOMING', vehs_inc_0, vehs_inc_1)
-        # print(t, 'OUTGOING', vehs_out_0, vehs_out_1)
-        # print(t, f'PRESSURE {press0}\t{press1}')
-
-
-        # import ipdb
-        # ipdb.set_trace()
         # State.
-        # 247123161.
-        self.assertEqual(self.state['247123161'][0], 5.0) # pressure, phase 0
-        self.assertEqual(self.state['247123161'][1], 0.0) # pressure, phase 1
+        # 247123161 static assertion
+        self.assertEqual(self.state[ID][0], 5.0) # pressure, phase 0
+        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+
+        # 247123161 dynamic assertion
+        self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
+        self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
         # # 247123464.
         # self.assertEqual(self.state['247123464'][0], 9) # flow, phase 0
@@ -192,10 +173,72 @@ class TestPressure(TestBase):
         # self.assertEqual(self.state['247123468'][1], 2) # flow, phase 1
 
         # Reward.
-        # reward = self.reward(self.observation_space)
-        # self.assertEqual(reward['247123161'], 0.01*(7.0 + 9.0))
+        reward = self.reward(self.observation_space)
+        self.assertEqual(reward[ID], -0.01*(5.0 + 0.0))
         # self.assertEqual(reward['247123464'], 0.01*(9.0  + 1.0))
         # self.assertEqual(reward['247123468'], 0.01*(15 + 2))
+
+
+    def test_pressure_tl2(self):
+        """ID = '247123464'"""
+        ID = '247123464'
+
+        outgoing = INT_OUTGOING_247123464
+        incoming = INCOMING_247123464
+
+        p0, p1 = process_pressure(self.kernel_data, incoming, outgoing)
+
+        # State.
+        # 247123464 static assertion
+        self.assertEqual(self.state[ID][0], -3.0) # pressure, phase 0
+        self.assertEqual(self.state[ID][1], -2.0) # pressure, phase 1
+
+        # 247123464 dynamic assertion
+        self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
+        self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
+
+        # Reward.
+        reward = self.reward(self.observation_space)
+        self.assertEqual(reward[ID], 0.01*(3.0 + 2.0))
+
+    def test_pressure_tl3(self):
+        """ID = '247123468'"""
+        ID = '247123468'
+
+        outgoing = INT_OUTGOING_247123468
+        incoming = INCOMING_247123468
+
+        p0, p1 = process_pressure(self.kernel_data, incoming, outgoing)
+
+        # State.
+        # 247123468 static assertion
+        self.assertEqual(self.state[ID][0], 1.0) # pressure, phase 0
+        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+
+        # 247123468 dynamic assertion
+        self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
+        self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
+
+        # Reward.
+        reward = self.reward(self.observation_space)
+        self.assertEqual(reward[ID], -0.01*(1.0 + 0.0))
+
+def process_pressure(kernel_data, incoming, outgoing):
+    timesteps = list(range(1,60)) + [0]
+
+    for t, data in zip(timesteps, kernel_data):
+        dat = get_veh_locations(data)
+        vehs_inc_0 = filter_veh_locations(dat, incoming[0])
+        vehs_inc_1 = filter_veh_locations(dat, incoming[1])
+
+        vehs_out_0 = filter_veh_locations(dat, outgoing)
+        vehs_out_1 = filter_veh_locations(dat, outgoing)
+
+        press0 = len(vehs_inc_0) - len(vehs_out_0)
+        press1 = len(vehs_inc_1) - len(vehs_out_1)
+
+    return press0, press1
+
 
 def get_veh_locations(tl_data):
     """Help flattens hierarchial data
