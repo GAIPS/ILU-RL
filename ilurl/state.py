@@ -200,19 +200,20 @@ class State(Node):
             if not (set(filter_by).issubset(set(self.labels))):
                 err = f'filter_by {filter_by} must belong to states {self.labels}'
                 raise ValueError(err)
-        # 1) Delegate feature computation to tree.
+
+        # 2) Delegate feature computation to tree.
         ret = {k:v.feature_map(filter_by=filter_by,
                                categorize=categorize,
                                split=split)
                for k, v in self.intersections.items()}
 
 
-        # 2) Add network features.
+        # 3) Add network features.
         if self._has_time:
             ret = {k:self._add_time(filter_by, categorize, split, v)
                    for k, v in ret.items()}
 
-        # 3) Flatten results.
+        # 4) Flatten results.
         if flatten:
             ret = {k: tuple(flat(v)) for k, v in ret.items()}
         return ret
@@ -509,7 +510,7 @@ class Phase(Node):
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(duration, _vehs, tls)
 
-            step_count += lane.count if 'count' in self.labels else 0
+            step_count += lane.count if _check_count(self.labels) else 0
             step_delay += lane.delay if 'delay' in self.labels else 0
             step_flow = step_flow.union(lane.flow) if 'flow' in self.labels else 0
             step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
@@ -607,14 +608,13 @@ class Phase(Node):
             Max pressure control of a network of signalized intersections
 
         """
-        c_out = self._compute_pressure(self.outgoing)
-
         w = self._cached_weight
         # It has not been updated
         if self._update_counter != self._cached_cout_updated:
-            self._cached_cout = c_out + (w > 0) * self._cached_cout
+            self._cached_cout = self.pressure + (w > 0) * self._cached_cout
             self._cached_cout_updated = self._update_counter
-        ret = self.count - round(self._cached_cout / (w + 1), 2)
+            ret = round(self._cached_cout / (w + 1), 2)
+        ret = round(self._cached_cout / (w + 1), 2)
         return ret
 
 
