@@ -43,14 +43,6 @@ class TestAveragePressure(TestGridBase):
         for t, data in zip(timesteps, self.kernel_data):
             observation_space.update(t, data)
 
-            # TODO: create a handler after_update
-            # In the case of average pressure -- variable
-            # actualization happens on state request
-            state = observation_space.feature_map(
-                categorize=self.mdp_params.discretize_state_space,
-                flatten=True
-            )
-
         return observation_space
 
     @lazy_property
@@ -96,37 +88,6 @@ class TestAveragePressure(TestGridBase):
         # avg.pressure, phase 0
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
 
-    # def process_pressure(self,  incoming, outgoing):
-
-    #     os = State(self.network, self.mdp_params)
-    #     os.reset()
-    #     timesteps = list(range(1,60)) + [0]
-
-    #     press = 0
-    #     n = 0
-    #     for t, data in zip(timesteps, self.kernel_data):
-    #         os.update(t, data)
-
-    #         dat = get_veh_locations(data)
-    #         inc = filter_veh_locations(dat, incoming)
-    #         out = filter_veh_locations(dat, outgoing)
-
-    #         avgpress = os.feature_map(
-    #             categorize=self.mdp_params.discretize_state_space,
-    #             flatten=True
-    #         )
-
-    #         press += len(inc) - len(out)
-
-    #         test = avgpress['247123161'][0]
-    #         check = round(press / (n + 1), 2)
-    #         print(t, test, check)
-    #         self.assertEqual(test, check, n + 1)
-    #         n += 1
-
-        # import ipdb
-        # ipdb.set_trace()
-    #     return round(press / 60, 2)
     def test_avg_pressure_tl1ph1(self):
         """Tests average pressure state
             * traffic light 1

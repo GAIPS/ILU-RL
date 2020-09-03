@@ -158,6 +158,11 @@ class State(Node):
         for tls_id, tls in self.intersections.items():
             tls.update(duration, vehs[tls_id], tls)
 
+        # 3) Additional intersection commands
+        for tls_id, tls in self.intersections.items():
+            tls.after_update()
+
+
     def reset(self):
         """Clears data from previous cycles, broadcasts method to phases"""
         self._last_time = -1
@@ -323,6 +328,10 @@ class Intersection(Node):
             # `#' is special character
             *tls_ids, num = pid.split('#')
             phase.update(duration, vehs[int(num)], tls)
+
+    def after_update(self):
+        for phase in self.phases.values():
+            phase.after_update()
 
     def reset(self):
         """Clears data from previous cycles, broadcasts method to phases"""
@@ -527,6 +536,12 @@ class Phase(Node):
         # 3) Stores previous cycle for lag labels.
         self._update_lag(duration)
 
+    def after_update(self):
+        """Commands to be executed once after every phase has been updated"""
+        if 'average_pressure' in self.labels:
+            w = self._cached_weight
+            self._cached_average_pressure = self.pressure + (w > 0) * self._cached_average_pressure
+
     def reset(self):
         """Clears data from previous cycles, broadcasts method to lanes"""
         # 1) Communicates update for every lane
@@ -542,8 +557,8 @@ class Phase(Node):
 
 
         # 3) Defines or erases history
-        self._cached_cout = 0
-        self._cached_cout_updated = -1
+        self._cached_average_pressure = 0
+        # self._cached_average_pressure_updated = -1
         self._cached_count = 0
         self._cached_delay = 0
         self._cached_flow = set({})
@@ -554,7 +569,7 @@ class Phase(Node):
         self._cached_speed_score = 0
 
         self._cached_weight = 0
-        self._update_counter = 0
+        # self._update_counter = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -609,12 +624,7 @@ class Phase(Node):
 
         """
         w = self._cached_weight
-        # It has not been updated
-        if self._update_counter != self._cached_cout_updated:
-            self._cached_cout = self.pressure + (w > 0) * self._cached_cout
-            self._cached_cout_updated = self._update_counter
-            ret = round(self._cached_cout / (w + 1), 2)
-        ret = round(self._cached_cout / (w + 1), 2)
+        ret = round(self._cached_average_pressure / (w + 1), 2)
         return ret
 
 
@@ -771,7 +781,6 @@ class Phase(Node):
         """ If duration = 1 then history's weight must be zero i.e
             all weight is given to the new sample"""
         self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
-        self._update_counter += 1
 
     def _update_count(self, step_count):
         if _check_count(self.labels):
