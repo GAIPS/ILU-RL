@@ -18,12 +18,7 @@ INCOMING_247123464 = {0: [('309265400', 0), ('309265400', 1), ('-309265401', 0),
     1: [('22941893', 0)]}
 INCOMING_247123468 = {0: [('309265402', 0), ('309265402', 1), ('-309265400', 0), ('-309265400', 1)], 1: [('23148196', 0)]}
 
-# outgoing approaches
-OUTGOING_247123161 = ['-383432312', '-309265401#0', '-309265401#1', '238059324', '238059324', '238059328#0', '238059328#1']
-OUTGOING_247123464 = ['3092655395#1', '-309265400#0', '-309265400#1', '309265401#0', '309265401#1']
-OUTGOING_247123468 = ['-309265402#0', '-309265402#1', '309265396#1', '309265400#0', '309265400#1']
-
-# internal outgoing approaches; states do not track
+# internal outgoing approaches; lanes between two tl
 INT_OUTGOING_247123161 = [('-309265401', 0), ('-309265401', 1)]
 INT_OUTGOING_247123464 = [('-309265400', 0), ('-309265400', 1), ('309265401', 0), ('309265401', 1)]
 INT_OUTGOING_247123468 = [('309265400', 0), ('309265400', 1)]
@@ -145,81 +140,156 @@ class TestPressure(TestBase):
         sol = INT_OUTGOING_247123468
         self.assertEqual(test, sol)
 
-    def test_pressure_tl1(self):
-        """ID = '247123161'"""
-
+    def test_pressure_tl1ph0(self):
+        """Tests pressure state
+            * traffic light 1
+            * ID = '247123161'
+            * phase0
+        """
         ID = '247123161'
 
         outgoing = INT_OUTGOING_247123161
-        incoming = INCOMING_247123161
+        incoming = INCOMING_247123161[0]
 
-        p0, p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0 = process_pressure(self.kernel_data, incoming, outgoing)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][0], 5.0) # pressure, phase 0
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][0], 5.0, f'pressure:{ID}\tphase:0') # pressure, phase 0
 
         # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
+
+    def test_pressure_tl1ph1(self):
+        """Tests pressure state
+            * traffic light 1
+            * ID = '247123161'
+            * phase 1
+        """
+        ID = '247123161'
+
+        outgoing = INT_OUTGOING_247123161
+        incoming = INCOMING_247123161[1]
+
+        p1 = process_pressure(self.kernel_data, incoming, outgoing)
+
+        # State.
+        # 247123161 static assertion
+        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+
+        # # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
-        # # 247123464.
-        # self.assertEqual(self.state['247123464'][0], 9) # flow, phase 0
-        # self.assertEqual(self.state['247123464'][1], 1) # flow, phase 1
 
-        # # 247123468.
-        # self.assertEqual(self.state['247123468'][0], 15) # flow, phase 0
-        # self.assertEqual(self.state['247123468'][1], 2) # flow, phase 1
-
-        # Reward.
+    def test_min_pressure_tl1(self):
+        """Tests pressure reward
+            * traffic light 1
+            * ID = '247123161'
+        """
+        ID = '247123161'
         reward = self.reward(self.observation_space)
         self.assertEqual(reward[ID], -0.01*(5.0 + 0.0))
-        # self.assertEqual(reward['247123464'], 0.01*(9.0  + 1.0))
-        # self.assertEqual(reward['247123468'], 0.01*(15 + 2))
 
-
-    def test_pressure_tl2(self):
-        """ID = '247123464'"""
+    def test_pressure_tl2ph0(self):
+        """Tests pressure state
+            * traffic light 2
+            * ID = '247123464'
+            * phase 0
+        """
         ID = '247123464'
 
         outgoing = INT_OUTGOING_247123464
-        incoming = INCOMING_247123464
+        incoming = INCOMING_247123464[0]
 
-        p0, p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0  = process_pressure(self.kernel_data, incoming, outgoing)
 
         # State.
         # 247123464 static assertion
         self.assertEqual(self.state[ID][0], -3.0) # pressure, phase 0
-        self.assertEqual(self.state[ID][1], -2.0) # pressure, phase 1
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
+
+    def test_pressure_tl2ph1(self):
+        """Tests pressure state
+            * traffic light 2
+            * ID = '247123464'
+            * phase 1
+        """
+        ID = '247123464'
+
+        outgoing = INT_OUTGOING_247123464
+        incoming = INCOMING_247123464[1]
+
+        p1  = process_pressure(self.kernel_data, incoming, outgoing)
+
+        # State.
+        # 247123464 static assertion
+        self.assertEqual(self.state[ID][1], -2.0) # pressure, phase 1
+
+        # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
-        # Reward.
+        # # Reward.
+        # reward = self.reward(self.observation_space)
+        # self.assertEqual(reward[ID], 0.01*(3.0 + 2.0))
+
+    def test_min_pressure_tl2(self):
+        """Tests pressure reward
+            * traffic light 2
+            * ID = '247123464'
+        """
+        ID = '247123464'
         reward = self.reward(self.observation_space)
         self.assertEqual(reward[ID], 0.01*(3.0 + 2.0))
 
-    def test_pressure_tl3(self):
-        """ID = '247123468'"""
+    def test_pressure_tl3ph0(self):
+        """Tests pressure state
+            * traffic light 3
+            * ID = '247123468'
+            * phase 0
+        """
         ID = '247123468'
 
         outgoing = INT_OUTGOING_247123468
-        incoming = INCOMING_247123468
+        incoming = INCOMING_247123468[0]
 
-        p0, p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0 = process_pressure(self.kernel_data, incoming, outgoing)
 
         # State.
         # 247123468 static assertion
         self.assertEqual(self.state[ID][0], 1.0) # pressure, phase 0
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
+
+
+    def test_pressure_tl3ph1(self):
+        """Tests pressure state
+            * traffic light 3
+            * ID = '247123468'
+            * phase 1
+        """
+        ID = '247123468'
+
+        outgoing = INT_OUTGOING_247123468
+        incoming = INCOMING_247123468[1]
+
+        p1 = process_pressure(self.kernel_data, incoming, outgoing)
+
+        # State.
+        # 247123468 static assertion
+        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+
+        # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
-        # Reward.
+    def test_min_pressure_tl3(self):
+        """Tests pressure reward
+            * traffic light 3
+            * ID = '247123468'
+        """
+        ID = '247123468'
         reward = self.reward(self.observation_space)
         self.assertEqual(reward[ID], -0.01*(1.0 + 0.0))
 
@@ -228,16 +298,12 @@ def process_pressure(kernel_data, incoming, outgoing):
 
     for t, data in zip(timesteps, kernel_data):
         dat = get_veh_locations(data)
-        vehs_inc_0 = filter_veh_locations(dat, incoming[0])
-        vehs_inc_1 = filter_veh_locations(dat, incoming[1])
+        inc = filter_veh_locations(dat, incoming)
+        out = filter_veh_locations(dat, outgoing)
 
-        vehs_out_0 = filter_veh_locations(dat, outgoing)
-        vehs_out_1 = filter_veh_locations(dat, outgoing)
+        press = len(inc) - len(out)
 
-        press0 = len(vehs_inc_0) - len(vehs_out_0)
-        press1 = len(vehs_inc_1) - len(vehs_out_1)
-
-    return press0, press1
+    return press
 
 
 def get_veh_locations(tl_data):
