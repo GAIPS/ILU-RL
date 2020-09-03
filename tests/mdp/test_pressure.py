@@ -9,6 +9,7 @@ from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
 from ilurl.networks.base import Network
 from ilurl.utils.aux import flatten
+from ilurl.utils.properties import lazy_property
 
 # incoming approaches
 INCOMING_247123161 = {0: [('309265401', 0), ('309265401', 1), ('-238059328', 0), ('-238059328', 1)],
@@ -48,16 +49,16 @@ class TestPressure(TestBase):
     """
         * Tests pressure related state and reward
 
-        Set of tests that target the implemented
-        problem formulations, i.e. state and reward
-        function definitions.
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
     """
-
-    def setUp(self):
-        """Code here will run before every test"""
-
-        super(TestPressure, self).setUp()
-
+    @lazy_property
+    def mdp_params(self):
         mdp_params = MDPParams(
                         features=('pressure',),
                         reward='reward_min_pressure',
@@ -66,22 +67,38 @@ class TestPressure(TestBase):
                         reward_rescale=0.01,
                         time_period=None,
                         velocity_threshold=0.1)
+        return mdp_params
 
-        self.observation_space = State(self.network, mdp_params)
-        self.observation_space.reset()
-        self.reward = build_rewards(mdp_params)
-
+    @lazy_property
+    def observation_space(self):
+        observation_space = State(self.network, self.mdp_params)
+        observation_space.reset()
         # Fake environment interaction with state object.
         timesteps = list(range(1,60)) + [0]
 
         for t, data in zip(timesteps, self.kernel_data):
-            self.observation_space.update(t, data)
+            observation_space.update(t, data)
 
+        return observation_space
+
+    @lazy_property
+    def reward(self):
+        reward = build_rewards(self.mdp_params)
+        return reward
+
+    @lazy_property
+    def state(self):
         # Get state.
-        self.state = self.observation_space.feature_map(
-            categorize=mdp_params.discretize_state_space,
+        state = self.observation_space.feature_map(
+            categorize=self.mdp_params.discretize_state_space,
             flatten=True
         )
+        return state
+
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestPressure, self).setUp()
 
 
     def test_kernel_data(self):
