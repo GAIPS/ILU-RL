@@ -9,9 +9,9 @@ from ilurl.utils.properties import lazy_property
 
 from tests.network.test_grid import *
 
-class TestPressure(TestGridBase):
+class TestAveragePressure(TestGridBase):
     """
-        * Tests pressure related state and reward
+        * Tests average pressure related state and reward
 
         * Set of tests that target the implemented
           problem formulations, i.e. state and reward
@@ -24,8 +24,8 @@ class TestPressure(TestGridBase):
     @lazy_property
     def mdp_params(self):
         mdp_params = MDPParams(
-                        features=('pressure',),
-                        reward='reward_min_pressure',
+                        features=('average_pressure',),
+                        reward='reward_min_average_pressure',
                         normalize_state_space=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
@@ -62,14 +62,15 @@ class TestPressure(TestGridBase):
     def setUp(self):
         """Code here will run before every test"""
 
-        super(TestPressure, self).setUp()
+        super(TestAveragePressure, self).setUp()
 
 
-    def test_pressure_tl1ph0(self):
-        """Tests pressure state
+
+    def test_avg_pressure_tl1ph0(self):
+        """Tests average pressure state
             * traffic light 1
             * ID = '247123161'
-            * phase0
+            * phase 0
         """
         ID = '247123161'
 
@@ -80,13 +81,15 @@ class TestPressure(TestGridBase):
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][0], 5.0, f'pressure:{ID}\tphase:0') # pressure, phase 0
+        # avg.pressure, phase 0
+        self.assertEqual(self.state[ID][0], 3.73, f'avg.pressure:{ID}\tphase:0')
 
         # 247123161 dynamic assertion
+        # avg.pressure, phase 0
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
 
-    def test_pressure_tl1ph1(self):
-        """Tests pressure state
+    def test_avg_pressure_tl1ph1(self):
+        """Tests average pressure state
             * traffic light 1
             * ID = '247123161'
             * phase 1
@@ -100,23 +103,25 @@ class TestPressure(TestGridBase):
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+        # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 1.88)
 
-        # # 247123161 dynamic assertion
-        self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
+        # 247123161 dynamic assertion
+        # pressure, phase 1
+        self.assertEqual(self.state[ID][1], p1)
 
 
-    def test_min_pressure_tl1(self):
-        """Tests pressure reward
+    def test_min_avg_pressure_tl1(self):
+        """Tests average pressure reward
             * traffic light 1
             * ID = '247123161'
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(5.0 + 0.0))
+        self.assertAlmostEqual(reward[ID], -0.01*(3.73 + 1.88))
 
-    def test_pressure_tl2ph0(self):
-        """Tests pressure state
+    def test_avg_pressure_tl2ph0(self):
+        """Tests average pressure state
             * traffic light 2
             * ID = '247123464'
             * phase 0
@@ -130,13 +135,13 @@ class TestPressure(TestGridBase):
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][0], -3.0) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], -2.58) # pressure, phase 0
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
 
-    def test_pressure_tl2ph1(self):
-        """Tests pressure state
+    def test_avg_pressure_tl2ph1(self):
+        """Tests average pressure state
             * traffic light 2
             * ID = '247123464'
             * phase 1
@@ -150,26 +155,22 @@ class TestPressure(TestGridBase):
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][1], -2.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], -2.95) # pressure, phase 1
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
-        # # Reward.
-        # reward = self.reward(self.observation_space)
-        # self.assertEqual(reward[ID], 0.01*(3.0 + 2.0))
-
-    def test_min_pressure_tl2(self):
-        """Tests pressure reward
+    def test_min_avg_pressure_tl2(self):
+        """Tests avg pressure reward
             * traffic light 2
             * ID = '247123464'
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], 0.01*(3.0 + 2.0))
+        self.assertEqual(reward[ID], 0.01*(2.58 + 2.95))
 
-    def test_pressure_tl3ph0(self):
-        """Tests pressure state
+    def test_avg_pressure_tl3ph0(self):
+        """Tests avg pressure state
             * traffic light 3
             * ID = '247123468'
             * phase 0
@@ -183,14 +184,14 @@ class TestPressure(TestGridBase):
 
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][0], 1.0) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.73) # pressure, phase 0
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
 
 
-    def test_pressure_tl3ph1(self):
-        """Tests pressure state
+    def test_avg_pressure_tl3ph1(self):
+        """Tests avg pressure state
             * traffic light 3
             * ID = '247123468'
             * phase 1
@@ -204,7 +205,7 @@ class TestPressure(TestGridBase):
 
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 0.02) # pressure, phase 1
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -216,19 +217,21 @@ class TestPressure(TestGridBase):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(1.0 + 0.0))
+        self.assertEqual(reward[ID], -0.01*(0.73 + 0.02))
 
 def process_pressure(kernel_data, incoming, outgoing):
+
     timesteps = list(range(1,60)) + [0]
 
+    press = 0
     for t, data in zip(timesteps, kernel_data):
         dat = get_veh_locations(data)
         inc = filter_veh_locations(dat, incoming)
         out = filter_veh_locations(dat, outgoing)
 
-        press = len(inc) - len(out)
+        press += len(inc) - len(out)
 
-    return press
+    return round(press / 60, 2)
 
 
 def get_veh_locations(tl_data):
