@@ -73,59 +73,6 @@ class TestAveragePressure(TestGridBase):
         super(TestAveragePressure, self).setUp()
 
 
-    # TODO: move this to observation_space test
-    # def test_num_phases_247123161(self):
-    #     self.assertEqual(len(self.state['247123161']), 2)
-
-    # def test_num_phases_247123464(self):
-    #     self.assertEqual(len(self.state['247123464']), 2)
-
-    # def test_num_phases_247123468(self):
-    #     self.assertEqual(len(self.state['247123468']), 2)
-
-    # def test_outgoing_247123161_0(self):
-    #     # internal outgoing edge for phase 0 
-    #     p0 = self.observation_space['247123161']['247123161#0']
-    #     test = sorted([outid for outid in p0.outgoing])
-    #     sol = INT_OUTGOING_247123161
-    #     self.assertEqual(test, sol)
-
-    # def test_outgoing_247123161_1(self):
-    #     # internal outgoing edge for phase 0 
-    #     p1 = self.observation_space['247123161']['247123161#1']
-    #     test = sorted([outid for outid in p1.outgoing])
-    #     sol = INT_OUTGOING_247123161
-    #     self.assertEqual(test, sol)
-
-
-    # def test_outgoing_247123464_0(self):
-    #     # internal outgoing edge for phase 0 
-    #     p0 = self.observation_space['247123464']['247123464#0']
-    #     test = sorted([outid for outid in p0.outgoing])
-    #     sol = INT_OUTGOING_247123464
-    #     self.assertEqual(test, sol)
-
-    # def test_outgoing_247123464_1(self):
-    #     # internal outgoing edge for phase 0 
-    #     p1 = self.observation_space['247123464']['247123464#1']
-    #     test = sorted([outid for outid in p1.outgoing])
-    #     sol = INT_OUTGOING_247123464
-    #     self.assertEqual(test, sol)
-
-
-    # def test_outgoing_247123468_0(self):
-    #     # internal outgoing edge for phase 0 
-    #     p0 = self.observation_space['247123468']['247123468#0']
-    #     test = sorted([outid for outid in p0.outgoing])
-    #     sol = INT_OUTGOING_247123468
-    #     self.assertEqual(test, sol)
-
-    # def test_outgoing_247123468_1(self):
-    #     # internal outgoing edge for phase 0 
-    #     p1 = self.observation_space['247123468']['247123468#1']
-    #     test = sorted([outid for outid in p1.outgoing])
-    #     sol = INT_OUTGOING_247123468
-    #     self.assertEqual(test, sol)
 
     def test_avg_pressure_tl1ph0(self):
         """Tests average pressure state
