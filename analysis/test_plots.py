@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-from .utils import *
+from analysis.utils import str2bool, get_emissions, get_vehicles, get_throughput
 
 plt.style.use('ggplot')
 
