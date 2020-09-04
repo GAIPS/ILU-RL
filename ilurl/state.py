@@ -403,7 +403,8 @@ class Phase(Node):
         self._labels = mdp_params.features
         self._matcher = re.compile('\[(.*?)\]')
         self._lagged = any('lag' in lbl for lbl in mdp_params.features)
-        self._normalize = mdp_params.normalize_velocities
+        self._normalize_velocities = mdp_params.normalize_velocities
+        self._normalize_vehicles = mdp_params.normalize_vehicles
 
         # 2) Get categorization bins.
         # fn: extracts category_<feature_name>s from mdp_params
@@ -445,6 +446,14 @@ class Phase(Node):
     @property
     def lagged(self):
         return self._lagged
+
+    @property
+    def normalize_velocities(self):
+        return self._normalize_velocities
+
+    @property
+    def normalize_vehicles(self):
+        return self._normalize_vehicles
 
     @property
     def incoming(self):
@@ -809,8 +818,8 @@ class Phase(Node):
     def _update_delay(self, step_delay):
         if 'delay' in self.labels:
             w = self._cached_weight
-            # fct = self.max_vehs if self._normalize else 1
-            # self._cached_delay = (step_delay / fct) + (w > 0) * self._cached_delay
+            fct = self.max_vehs if self.normalize_vehicles else 1
+            self._cached_delay = (step_delay / fct) + (w > 0) * self._cached_delay
             self._cached_delay = (step_delay) + (w > 0) * self._cached_delay
 
     def _update_flow(self, step_flow):
@@ -900,7 +909,8 @@ class Lane(Node):
         """
         self._min_speed = mdp_params.velocity_threshold
         self._max_capacity = max_capacity
-        self._normalize = mdp_params.normalize_velocities
+        self._normalize_velocities = mdp_params.normalize_velocities
+        self._normalize_vehicles = mdp_params.normalize_vehicles
         self._labels = mdp_params.features
         self.reset()
         super(Lane, self).__init__(phase, lane_id, {})
@@ -924,6 +934,14 @@ class Lane(Node):
     @property
     def max_speed(self):
         return self._max_capacity[0]
+
+    @property
+    def normalize_velocities(self):
+        return self._normalize_velocities
+
+    @property
+    def normalize_vehicles(self):
+        return self._normalize_vehicles
 
     def reset(self):
         """Clears data from previous cycles, define data structures"""
@@ -987,7 +1005,7 @@ class Lane(Node):
         """Step update for delays variable"""
         if 'delay' in self.labels or 'queue' in self.labels:
             # 1) Normalization factor and threshold
-            cap = self.max_speed if self._normalize else 1
+            cap = self.max_speed if self.normalize_velocities else 1
             vt = self._min_speed
 
             # 2) Compute delays
@@ -998,7 +1016,7 @@ class Lane(Node):
         """Step update for speeds variable"""
         if 'speed' in self.labels:
             # 1) Normalization factor
-            cap = self.max_speed if self._normalize else 1
+            cap = self.max_speed if self.normalize_velocities else 1
 
             # 2) Compute relative speeds:
             # Max prevents relative performance

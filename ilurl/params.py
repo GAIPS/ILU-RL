@@ -50,6 +50,7 @@ class MDPParams(Printable):
                 action_space: str = 'discrete',
                 features: Tuple[str] = ('speed', 'count'),
                 normalize_velocities: bool = True,
+                normalize_vehicles: bool = True,
                 discretize_state_space: bool = False,
                 category_counts: List[float] = [8.56, 13.00],
                 category_speeds: List[float] = [2.28, 5.50],
@@ -81,7 +82,10 @@ class MDPParams(Printable):
             the features to be used as state space representation.
 
         * normalize_velocities: bool
-            if True the state space normalization will be applied.
+            if True normalize the features which relate to vehicles' speeds
+
+        * normalize_vehicles: bool
+            if True normalize the features which relate to the number of vehicles.
 
         * discretize_state_space: bool
             if True the state space will be categorized (categories below).

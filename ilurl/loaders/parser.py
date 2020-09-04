@@ -117,6 +117,7 @@ class Parser(object):
             category_speed_scores=json.loads(mdp_args['category_speed_scores']),
             category_times=json.loads(mdp_args['category_times']),
             normalize_velocities=str2bool(mdp_args['normalize_velocities']),
+            normalize_vehicles=str2bool(mdp_args['normalize_vehicles']),
             discretize_state_space=str2bool(mdp_args['discretize_state_space']),
             reward=literal_eval(mdp_args['reward']),
             reward_rescale=float(mdp_args['reward_rescale']),
