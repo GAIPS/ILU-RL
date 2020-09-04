@@ -317,8 +317,8 @@ class TestGridPressureNorm(TestGridPressure):
 
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[0]
-        fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
-        fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
+        fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
+        fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
         p0 = process_pressure(self.kernel_data, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
