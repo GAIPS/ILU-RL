@@ -4,7 +4,6 @@ from ilurl.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
-from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
 from tests.network.test_grid import (TestGridBase,
@@ -12,6 +11,8 @@ from tests.network.test_grid import (TestGridBase,
                                      INCOMING_247123464, OUTGOING_247123464,
                                      INCOMING_247123468, OUTGOING_247123468,
                                      MAX_VEHS, MAX_VEHS_OUT)
+
+from tests.utils import process_pressure
 
 class TestGridPressure(TestGridBase):
     """
@@ -417,49 +418,6 @@ class TestGridPressureNorm(TestGridPressure):
         reward = self.reward(self.observation_space)
         self.assertEqual(reward[ID], -0.01*(0.0312 + 0.0))
 
-def process_pressure(kernel_data, incoming, outgoing, fctin=1, fctout=1):
-    timesteps = list(range(1,60)) + [0]
-
-    for t, data in zip(timesteps, kernel_data):
-        dat = get_veh_locations(data)
-        inc = filter_veh_locations(dat, incoming)
-        out = filter_veh_locations(dat, outgoing)
-
-        press = round(len(inc) / fctin - len(out) / fctout, 4)
-
-    return press
-
-
-def get_veh_locations(tl_data):
-    """Help flattens hierarchial data
-
-    Params:
-    ------
-        * tl_data: dict<str, dict<int, list<namedtuple<Vehicle>>>>
-            nested dict containing tls x phases x vehicles
-
-    Returns:
-    --------
-        * veh_locations: list<Tuple>
-            list containing triplets: veh_id, edge_id, lane
-    """
-
-    # 1) Produces a flat generator with 3 informations: veh_id, edge_id, lane
-    gen = flatten([(veh.id, veh.edge_id, veh.lane)
-                    for ph_data in tl_data.values()
-                    for vehs in ph_data.values()
-                    for veh in vehs])
-
-    # 2) generates a list of triplets
-    it = iter(gen)
-    ret = []
-    for x in it:
-        ret.append((x, next(it), next(it)))
-    return ret
-
-def filter_veh_locations(veh_locations, lane_ids):
-    """Help flattens hierarchial data"""
-    return [vehloc[0] for vehloc in veh_locations if vehloc[1:] in lane_ids]
 
 
 if __name__ == '__main__':

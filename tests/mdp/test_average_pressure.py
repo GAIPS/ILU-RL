@@ -7,9 +7,14 @@ from ilurl.params import MDPParams
 from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import *
+from tests.utils import process_pressure
+from tests.network.test_grid import (TestGridBase,
+                                     INCOMING_247123161, OUTGOING_247123161,
+                                     INCOMING_247123464, OUTGOING_247123464,
+                                     INCOMING_247123468, OUTGOING_247123468,
+                                     MAX_VEHS, MAX_VEHS_OUT)
 
-class TestAveragePressure(TestGridBase):
+class TestGridAveragePressure(TestGridBase):
     """
         * Tests average pressure related state and reward
 
@@ -21,7 +26,7 @@ class TestAveragePressure(TestGridBase):
           as many times as you want -- it's a cached
           property
     """
-    @lazy_property
+    @property
     def mdp_params(self):
         mdp_params = MDPParams(
                         features=('average_pressure',),
@@ -62,7 +67,7 @@ class TestAveragePressure(TestGridBase):
     def setUp(self):
         """Code here will run before every test"""
 
-        super(TestAveragePressure, self).setUp()
+        super(TestGridAveragePressure, self).setUp()
 
 
 
@@ -77,7 +82,7 @@ class TestAveragePressure(TestGridBase):
         outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[0]
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
 
         # State.
         # 247123161 static assertion
@@ -99,7 +104,7 @@ class TestAveragePressure(TestGridBase):
         outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[1]
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p1 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
 
         # State.
         # 247123161 static assertion
@@ -131,7 +136,7 @@ class TestAveragePressure(TestGridBase):
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[0]
 
-        p0  = process_pressure(self.kernel_data, incoming, outgoing)
+        p0  = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
 
         # State.
         # 247123464 static assertion
@@ -151,7 +156,7 @@ class TestAveragePressure(TestGridBase):
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[1]
 
-        p1  = process_pressure(self.kernel_data, incoming, outgoing)
+        p1  = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
 
         # State.
         # 247123464 static assertion
@@ -180,7 +185,7 @@ class TestAveragePressure(TestGridBase):
         outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[0]
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
 
         # State.
         # 247123468 static assertion
@@ -201,7 +206,7 @@ class TestAveragePressure(TestGridBase):
         outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[1]
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p1 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
 
         # State.
         # 247123468 static assertion
@@ -218,52 +223,6 @@ class TestAveragePressure(TestGridBase):
         ID = '247123468'
         reward = self.reward(self.observation_space)
         self.assertEqual(reward[ID], -0.01*(0.73 + 0.02))
-
-def process_pressure(kernel_data, incoming, outgoing):
-
-    timesteps = list(range(1,60)) + [0]
-
-    press = 0
-    for t, data in zip(timesteps, kernel_data):
-        dat = get_veh_locations(data)
-        inc = filter_veh_locations(dat, incoming)
-        out = filter_veh_locations(dat, outgoing)
-
-        press += len(inc) - len(out)
-
-    return round(press / 60, 2)
-
-
-def get_veh_locations(tl_data):
-    """Help flattens hierarchial data
-
-    Params:
-    ------
-        * tl_data: dict<str, dict<int, list<namedtuple<Vehicle>>>>
-            nested dict containing tls x phases x vehicles
-
-    Returns:
-    --------
-        * veh_locations: list<Tuple>
-            list containing triplets: veh_id, edge_id, lane
-    """
-
-    # 1) Produces a flat generator with 3 informations: veh_id, edge_id, lane
-    gen = flatten([(veh.id, veh.edge_id, veh.lane)
-                    for ph_data in tl_data.values()
-                    for vehs in ph_data.values()
-                    for veh in vehs])
-
-    # 2) generates a list of triplets
-    it = iter(gen)
-    ret = []
-    for x in it:
-        ret.append((x, next(it), next(it)))
-    return ret
-
-def filter_veh_locations(veh_locations, lane_ids):
-    """Help flattens hierarchial data"""
-    return [vehloc[0] for vehloc in veh_locations if vehloc[1:] in lane_ids]
 
 
 if __name__ == '__main__':
