@@ -586,7 +586,6 @@ class Phase(Node):
 
         # 3) Defines or erases history
         self._cached_average_pressure = 0
-        # self._cached_average_pressure_updated = -1
         self._cached_count = 0
         self._cached_delay = 0
         self._cached_flow = set({})
@@ -597,7 +596,6 @@ class Phase(Node):
         self._cached_speed_score = 0
 
         self._cached_weight = 0
-        # self._update_counter = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -766,9 +764,12 @@ class Phase(Node):
             Max pressure control of a network of signalized intersections
 
         """
-        c_in = self._compute_pressure(self.incoming)
-        c_out = self._compute_pressure(self.outgoing)
-        return float(c_in - c_out)
+        fct = self.max_vehs if self.normalize_vehicles else 1
+        inbound = self._compute_pressure(self.incoming) / fct
+
+        fct = self.max_vehs_out if self.normalize_vehicles else 1
+        outbound = self._compute_pressure(self.outgoing) / fct
+        return float(inbound - outbound)
 
 
     def _compute_pressure(self, lanes):
