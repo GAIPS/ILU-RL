@@ -1,3 +1,5 @@
+import numpy as np
+
 import unittest
 
 from ilurl.state import State
@@ -7,7 +9,8 @@ from ilurl.params import MDPParams
 from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import *
+from tests.network.test_grid import TestGridBase, MAX_VEHS
+
 
 class TestGridDelay(TestGridBase):
     """
@@ -177,13 +180,17 @@ class TestGridDelayVehicles(TestGridDelay):
           as many times as you want -- it's a cached
           property
     """
+    @property
+    def norm_vehs(self):
+        return True
+
     @lazy_property
     def mdp_params(self):
         mdp_params = MDPParams(
                         features=('delay',),
                         reward='reward_min_delay',
                         normalize_velocities=True,
-                        normalize_vehicles=True,
+                        normalize_vehicles=self.norm_vehs,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -198,10 +205,10 @@ class TestGridDelayVehicles(TestGridDelay):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, node_id, phase_id, norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 2.85) # delay, phase 0
+        self.assertEqual(check, 0.08) # delay, phase 0
         self.assertEqual(check, sol) # delay, phase 0
 
     def test_delay_tl1ph1(self):
@@ -211,16 +218,17 @@ class TestGridDelayVehicles(TestGridDelay):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, node_id, phase_id,
+                            norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 1.18) # delay, phase 1
+        self.assertEqual(check, 0.07) # delay, phase 1
         self.assertEqual(check, sol) # delay, phase 1
 
     def test_min_delay_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(2.85 + 1.18))
+        self.assertEqual(reward[node_id], -0.01*(0.08 + 0.07))
 
     def test_delay_tl2ph0(self):
         # 1) Define constraints
@@ -229,7 +237,8 @@ class TestGridDelayVehicles(TestGridDelay):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, node_id, phase_id,
+                        norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123464
         self.assertEqual(check, 0.00) # delay, phase 0
@@ -242,16 +251,17 @@ class TestGridDelayVehicles(TestGridDelay):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, node_id, phase_id,
+                            norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.08) # delay, phase 1
+        self.assertEqual(check, 0.01) # delay, phase 1
         self.assertEqual(check, sol) # delay, phase 1
 
     def test_min_delay_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.0 + 0.08))
+        self.assertEqual(reward[node_id], -0.01*(0.0 + 0.01))
 
 
     def test_delay_tl3ph0(self):
@@ -261,10 +271,11 @@ class TestGridDelayVehicles(TestGridDelay):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, node_id, phase_id,
+                            norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123468
-        self.assertEqual(check,  0.58) # delay, phase 0
+        self.assertEqual(check,  0.02) # delay, phase 0
         self.assertEqual(check, sol) # delay, phase 0
 
     def test_delay_tl3ph1(self):
@@ -274,21 +285,22 @@ class TestGridDelayVehicles(TestGridDelay):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, node_id, phase_id,
+                            norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123468
-        self.assertEqual(check, 0.27) # delay, phase 1
+        self.assertEqual(check, 0.03) # delay, phase 1
         self.assertEqual(check, sol) # delay, phase 1
 
     def test_min_delay_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.58 + 0.27))
+        self.assertEqual(reward[node_id], -0.01*(0.02 + 0.03))
 
     def tearDown(self):
         pass
 
-def process_delay(kernel_data, node_id, phase_id):
+def process_delay(kernel_data, node_id, phase_id, norm_vehs=False):
     """Processes batched delay computation"""
 
     values_count = []
@@ -301,7 +313,8 @@ def process_delay(kernel_data, node_id, phase_id):
 
     vehs_speeds = np.array(vehs_speeds)
 
-    ret = np.sum(np.where(vehs_speeds / 13.89 < 0.1, 1, 0)) / 60
+    fct = MAX_VEHS[(node_id, phase_id)] if norm_vehs else 1
+    ret = np.sum(np.where(vehs_speeds / 13.89 < 0.1, 1, 0)) / (fct * 60)
     ret = round(ret, 2)
     return ret
 
