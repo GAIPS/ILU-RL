@@ -403,6 +403,7 @@ class Phase(Node):
         self._labels = mdp_params.features
         self._matcher = re.compile('\[(.*?)\]')
         self._lagged = any('lag' in lbl for lbl in mdp_params.features)
+        self._normalize = mdp_params.normalize_velocities
 
         # 2) Get categorization bins.
         # fn: extracts category_<feature_name>s from mdp_params
@@ -481,6 +482,24 @@ class Phase(Node):
             * speed_score needs a phase max_speed
         """
         return max([inc.max_speed for inc in self.incoming.values()])
+
+    @lazy_property
+    def max_vehs(self):
+        """Phase Max. Capacity wrt incoming lanes
+
+        Consolidates
+            * max_capacity: is the sum of all incoming lanes' capacities
+        """
+        return sum([inc.max_vehs for inc in self.incoming.values()])
+
+    @lazy_property
+    def max_vehs_out(self):
+        """Phase Max. Capacity wrt outgoing lanes
+
+        Consolidates
+            * max_capacity: is the sum of all outgoing lanes' capacities
+        """
+        return sum([out.max_vehs for out in self.outgoing.values()])
 
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
@@ -790,7 +809,9 @@ class Phase(Node):
     def _update_delay(self, step_delay):
         if 'delay' in self.labels:
             w = self._cached_weight
-            self._cached_delay = step_delay + (w > 0) * self._cached_delay
+            # fct = self.max_vehs if self._normalize else 1
+            # self._cached_delay = (step_delay / fct) + (w > 0) * self._cached_delay
+            self._cached_delay = (step_delay) + (w > 0) * self._cached_delay
 
     def _update_flow(self, step_flow):
         if 'flow' in self.labels:
@@ -879,7 +900,7 @@ class Lane(Node):
         """
         self._min_speed = mdp_params.velocity_threshold
         self._max_capacity = max_capacity
-        self._normalize = mdp_params.normalize_state_space
+        self._normalize = mdp_params.normalize_velocities
         self._labels = mdp_params.features
         self.reset()
         super(Lane, self).__init__(phase, lane_id, {})

@@ -26,7 +26,7 @@ class TestPressure(TestGridBase):
         mdp_params = MDPParams(
                         features=('pressure',),
                         reward='reward_min_pressure',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,

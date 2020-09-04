@@ -36,7 +36,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('flow',),
                         reward='reward_max_flow',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -110,7 +110,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('speed', 'count'),
                         reward='reward_max_speed_count',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None)
@@ -192,7 +192,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('speed_score', 'count'),
                         reward='reward_max_speed_score',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None)
@@ -277,7 +277,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('delay',),
                         reward='reward_min_delay',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -355,7 +355,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('delay', 'lag[delay]'),
                         reward='reward_max_delay_reduction',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -505,7 +505,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('queue', 'lag[queue]'),
                         reward='reward_min_queue_squared',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -697,7 +697,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('delay',),
                         reward='reward_min_delay',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=3600,

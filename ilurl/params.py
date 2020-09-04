@@ -49,7 +49,7 @@ class MDPParams(Printable):
                 discount_factor: float = 0.98,
                 action_space: str = 'discrete',
                 features: Tuple[str] = ('speed', 'count'),
-                normalize_state_space: bool = True,
+                normalize_velocities: bool = True,
                 discretize_state_space: bool = False,
                 category_counts: List[float] = [8.56, 13.00],
                 category_speeds: List[float] = [2.28, 5.50],
@@ -80,7 +80,7 @@ class MDPParams(Printable):
         * states: ('speed', 'count', ...)
             the features to be used as state space representation.
 
-        * normalize_state_space: bool
+        * normalize_velocities: bool
             if True the state space normalization will be applied.
 
         * discretize_state_space: bool
@@ -111,7 +111,7 @@ class MDPParams(Printable):
         if 'states' in kwargs:
             self.states_labels = kwargs['states']
 
-        # if self.normalize_state_space:
+        # if self.normalize_velocities:
         #     if max(self.category_speeds) > 1:
         #         raise ValueError('If `normalize` flag is set categories'
         #                             'must be between 0 and 1.')
