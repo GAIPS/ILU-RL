@@ -769,7 +769,7 @@ class Phase(Node):
 
         fct = self.max_vehs_out if self.normalize_vehicles else 1
         outbound = self._compute_pressure(self.outgoing) / fct
-        return float(inbound - outbound)
+        return round(float(inbound - outbound), 4)
 
 
     def _compute_pressure(self, lanes):
