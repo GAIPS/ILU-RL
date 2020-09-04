@@ -50,7 +50,7 @@ class MDPParams(Printable):
                 action_space: str = 'discrete',
                 features: Tuple[str] = ('speed', 'count'),
                 normalize_velocities: bool = True,
-                normalize_vehicles: bool = True,
+                normalize_vehicles: bool = False,
                 discretize_state_space: bool = False,
                 category_counts: List[float] = [8.56, 13.00],
                 category_speeds: List[float] = [2.28, 5.50],

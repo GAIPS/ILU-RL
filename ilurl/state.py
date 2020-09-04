@@ -820,7 +820,7 @@ class Phase(Node):
             w = self._cached_weight
             fct = self.max_vehs if self.normalize_vehicles else 1
             self._cached_delay = (step_delay / fct) + (w > 0) * self._cached_delay
-            self._cached_delay = (step_delay) + (w > 0) * self._cached_delay
+            # self._cached_delay = (step_delay) + (w > 0) * self._cached_delay
 
     def _update_flow(self, step_flow):
         if 'flow' in self.labels:
