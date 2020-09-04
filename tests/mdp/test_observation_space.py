@@ -57,7 +57,6 @@ class TestGridObservationSpace(TestGridBase):
 
         super(TestGridObservationSpace, self).setUp()
 
-
     def test_num_phases_247123161(self):
         self.assertEqual(len(self.state['247123161']), 2)
 
@@ -114,27 +113,75 @@ class TestGridObservationSpace(TestGridBase):
 
     def test_tl1ph0_max_vehs(self):
         check = self.observation_space['247123161']['247123161#0'].max_vehs
+        sol = MAX_VEHS[('247123161', 0)]
         self.assertEqual(check, 36)
+        self.assertEqual(check, sol)
 
-    def test_tl2ph1_max_vehs(self):
+    def test_tl1ph1_max_vehs(self):
         check = self.observation_space['247123161']['247123161#1'].max_vehs
+        sol = MAX_VEHS[('247123161', 1)]
         self.assertEqual(check, 16)
+        self.assertEqual(check, sol)
 
     def test_tl2ph0_max_vehs(self):
         check = self.observation_space['247123464']['247123464#0'].max_vehs
+        sol = MAX_VEHS[('247123464', 0)]
         self.assertEqual(check, 32)
+        self.assertEqual(check, sol)
 
     def test_tl2ph1_max_vehs(self):
         check = self.observation_space['247123464']['247123464#1'].max_vehs
+        sol = MAX_VEHS[('247123464', 1)]
         self.assertEqual(check, 9)
+        self.assertEqual(check, sol)
 
     def test_tl3ph0_max_vehs(self):
         check = self.observation_space['247123468']['247123468#0'].max_vehs
+        sol = MAX_VEHS[('247123468', 0)]
         self.assertEqual(check, 32)
+        self.assertEqual(check, sol)
 
     def test_tl3ph1_max_vehs(self):
         check = self.observation_space['247123468']['247123468#1'].max_vehs
+        sol = MAX_VEHS[('247123468', 1)]
         self.assertEqual(check, 9)
+        self.assertEqual(check, sol)
+
+    def test_tl1ph0_max_vehs_out(self):
+        check = self.observation_space['247123161']['247123161#0'].max_vehs_out
+        sol = MAX_VEHS_OUT[('247123161', 0)]
+        self.assertEqual(check, 16)
+        self.assertEqual(check, sol)
+
+    def test_tl1ph1_max_vehs_out(self):
+        check = self.observation_space['247123161']['247123161#1'].max_vehs_out
+        sol = MAX_VEHS_OUT[('247123161', 1)]
+        self.assertEqual(check, 16)
+        self.assertEqual(check, sol)
+
+    def test_tl2ph0_max_vehs_out(self):
+        check = self.observation_space['247123464']['247123464#0'].max_vehs_out
+        sol = MAX_VEHS_OUT[('247123464', 0)]
+        self.assertEqual(check, 34)
+        self.assertEqual(check, sol)
+
+    def test_tl2ph1_max_vehs_out(self):
+        check = self.observation_space['247123464']['247123464#1'].max_vehs_out
+        sol = MAX_VEHS_OUT[('247123464', 1)]
+        self.assertEqual(check, 34)
+        self.assertEqual(check, sol)
+
+    def test_tl3ph0_max_vehs_out(self):
+        check = self.observation_space['247123468']['247123468#0'].max_vehs_out
+        sol = MAX_VEHS_OUT[('247123468', 0)]
+        self.assertEqual(check, 16)
+        self.assertEqual(check, sol)
+
+    def test_tl3ph1_max_vehs_out(self):
+        check = self.observation_space['247123468']['247123468#1'].max_vehs_out
+        sol = MAX_VEHS_OUT[('247123468', 1)]
+        self.assertEqual(check, 16)
+        self.assertEqual(check, sol)
 
 if __name__ == '__main__':
     unittest.main()
