@@ -74,7 +74,7 @@ class TestAveragePressure(TestGridBase):
         """
         ID = '247123161'
 
-        outgoing = INT_OUTGOING_247123161
+        outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[0]
 
         p0 = process_pressure(self.kernel_data, incoming, outgoing)
@@ -96,7 +96,7 @@ class TestAveragePressure(TestGridBase):
         """
         ID = '247123161'
 
-        outgoing = INT_OUTGOING_247123161
+        outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[1]
 
         p1 = process_pressure(self.kernel_data, incoming, outgoing)
@@ -128,7 +128,7 @@ class TestAveragePressure(TestGridBase):
         """
         ID = '247123464'
 
-        outgoing = INT_OUTGOING_247123464
+        outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[0]
 
         p0  = process_pressure(self.kernel_data, incoming, outgoing)
@@ -148,7 +148,7 @@ class TestAveragePressure(TestGridBase):
         """
         ID = '247123464'
 
-        outgoing = INT_OUTGOING_247123464
+        outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[1]
 
         p1  = process_pressure(self.kernel_data, incoming, outgoing)
@@ -177,7 +177,7 @@ class TestAveragePressure(TestGridBase):
         """
         ID = '247123468'
 
-        outgoing = INT_OUTGOING_247123468
+        outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[0]
 
         p0 = process_pressure(self.kernel_data, incoming, outgoing)
@@ -198,7 +198,7 @@ class TestAveragePressure(TestGridBase):
         """
         ID = '247123468'
 
-        outgoing = INT_OUTGOING_247123468
+        outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[1]
 
         p1 = process_pressure(self.kernel_data, incoming, outgoing)
