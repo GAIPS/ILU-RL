@@ -1091,5 +1091,6 @@ class Lane(Node):
         -------
             * queue: int
         """
-        return self._cached_delays
+        fct = self.max_vehs if self.normalize_vehicles else 1
+        return self._cached_delays / fct
 
