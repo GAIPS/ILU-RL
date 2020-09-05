@@ -1,5 +1,5 @@
 import os
-import json
+import tarfile
 import pandas as pd
 import argparse
 import numpy as np
@@ -46,9 +46,23 @@ def main():
     # Open dataframes.
     dfs = {}
     for exp_path in args.experiments_paths:
-        exp_name = Path(exp_path).name
-        dfs[exp_name] = pd.read_csv('{0}/plots/test/processed_data.csv'.format(
-                                        exp_path), header=[0, 1], index_col=0)
+
+        if Path(exp_path).suffix == '.gz':
+            # Compressed file (.tar.gz).
+
+            exp_name = Path(exp_path).name.split('.')[0] + \
+                        '.' + Path(exp_path).name.split('.')[1]
+
+            tar = tarfile.open(exp_path)
+            tar_file = tar.extractfile("{0}/plots/test/processed_data.csv".format(exp_name))
+            
+            dfs[exp_name] = pd.read_csv(tar_file, header=[0, 1], index_col=0)
+
+        else:
+            # Uncompressed file (experiment_folder).
+            exp_name = Path(exp_path).name
+            dfs[exp_name] = pd.read_csv('{0}/plots/test/processed_data.csv'.format(
+                                            exp_path), header=[0, 1], index_col=0)
 
     """
         waiting_time_hist_kde

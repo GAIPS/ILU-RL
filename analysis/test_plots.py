@@ -121,8 +121,6 @@ def main(experiment_root_folder=None):
     kde = stats.gaussian_kde(df_vehicles_appended['waiting'])
     kde_x = np.linspace(df_vehicles_appended['waiting'].min(), df_vehicles_appended['waiting'].max(), 1000)
     kde_y = kde(kde_x)
-    print(kde_x)
-    print(kde_y)
     plt.plot(kde_x, kde_y, linewidth=3)
 
     # Store data in dataframe for further materialization.
@@ -225,7 +223,7 @@ def main(experiment_root_folder=None):
     waiting_time_per_cycle['y'] = Y
 
     plt.plot(X,Y)
-    
+
     plt.xlabel('Cycle')
     plt.ylabel('Average waiting time (s)')
     plt.title('Waiting time')
