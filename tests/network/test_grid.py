@@ -51,12 +51,25 @@ class TestGridBase(unittest.TestCase):
 
         with open('tests/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
-
         self.kernel_data = kernel_data
 
+        with open('tests/data/grid_kernel_data_1.dat', "rb") as f:
+            kernel_data_1 = pickle.load(f)
+        self.kernel_data_1 = kernel_data_1
+
+
+        with open('tests/data/grid_kernel_data_2.dat', "rb") as f:
+            kernel_data_2 = pickle.load(f)
+        self.kernel_data_2 = kernel_data_2
 
     def test_kernel_data(self):
         self.assertEqual(len(self.kernel_data), 60)
+
+    def test_kernel_data_1(self):
+        self.assertEqual(len(self.kernel_data_1), 60)
+
+    def test_kernel_data_2(self):
+        self.assertEqual(len(self.kernel_data_2), 60)
 
 if __name__ == '__main__':
     unittest.main()
