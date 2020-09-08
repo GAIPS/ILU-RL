@@ -357,6 +357,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
 
     def tearDown(self):
         pass
+
 class TestGridQueueCycle2(TestGridQueueCycle1):
     """
         * Tests queue wrt Grid network

@@ -141,7 +141,7 @@ def reward_min_delay(state, *args):
     Params:
     ------
     * state: ilurl.state.State
-        captures the delay experiened by phases.
+        captures the delay experienced by phases.
 
     Returns:
     --------
@@ -171,6 +171,28 @@ def reward_min_delay(state, *args):
     )
     ret = {}
     for tls_id, phase_obs in delays.items():
+        ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    return ret
+
+def reward_min_waiting_time(state, *args):
+    """Minimizing the waiting time.
+
+    Params:
+    ------
+    * state: ilurl.state.State
+        captures the delay experienced by phases.
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    """
+    wait_times = state.feature_map(
+        filter_by=('waiting_time',)
+    )
+    ret = {}
+    for tls_id, phase_obs in wait_times.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
     return ret
 

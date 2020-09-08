@@ -29,9 +29,6 @@ from ilurl.utils.aux import Printable
 '''
 Bounds = namedtuple('Bounds', 'rank depth')
 
-# State space features.
-STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
-
 # Traffic light system types.
 TLS_TYPES = ('rl', 'static', 'webster',
              'actuated', 'random', 'max_pressure')
@@ -56,6 +53,7 @@ class MDPParams(Printable):
                 category_speeds: List[float] = [2.28, 5.50],
                 category_delays: List[float] = [5, 30],
                 category_queues: List[float] = [1, 10],
+                category_waiting_times: List[float] = [1, 10],
                 category_times: List[int] = [1, 10],
                 category_pressures: List[int] = [1, 10],
                 category_average_pressures: List[int] = [1, 10],
@@ -94,6 +92,7 @@ class MDPParams(Printable):
         * category_speeds: List[float]
         * category_delays: List[float]
         * category_queues: List[float]
+        * (...)
 
         * reward: str
             The reward function to be applied.

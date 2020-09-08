@@ -23,6 +23,13 @@ def is_unique(xs):
 def _check_count(labels):
     return bool(COUNT_SET & set(labels))
 
+def delay(x):
+    if x >= 1.0:
+        return 0.0
+    else:
+        return np.exp(-5.0*x)
+
+
 class Node:
     """Node into the state tree hierarchy
 
@@ -532,25 +539,25 @@ class Phase(Node):
         def _in(veh, lane):
             return (veh.edge_id, veh.lane) == lane.lane_id
 
-
         # 2) Update lanes
         step_count = 0
         step_delay = 0
         step_flow = set({})
         step_queue = 0
+        step_waiting_time = 0
         step_speed = 0
         step_speed_score = 0
         self._update_cached_weight(duration)
 
-
         for lane in self.lanes.values():
             _vehs = [v for v in vehs if _in(v, lane)]
-            lane.update(duration, _vehs, tls)
+            lane.update(_vehs)
 
             step_count += lane.count if _check_count(self.labels) else 0
             step_delay += lane.delay if 'delay' in self.labels else 0
             step_flow = step_flow.union(lane.flow) if 'flow' in self.labels else 0
-            step_queue = max(step_queue, lane.queue) if 'queue' in self.labels else 0
+            step_queue = max(step_queue, lane.stopped_vehs) if 'queue' in self.labels else 0
+            step_waiting_time += lane.stopped_vehs if 'waiting_time' in self.labels else 0
             step_speed += lane.speed if 'speed' in self.labels else 0
             step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
 
@@ -558,6 +565,7 @@ class Phase(Node):
         self._update_delay(step_delay)
         self._update_flow(step_flow)
         self._update_queue(step_queue)
+        self._update_waiting_time(step_waiting_time)
         self._update_speed(step_speed)
         self._update_speed_score(step_speed_score)
 
@@ -592,6 +600,7 @@ class Phase(Node):
         self._cached_step_flow = set({})
 
         self._cached_queue = 0
+        self._cached_waiting_time = 0
         self._cached_speed = 0
         self._cached_speed_score = 0
 
@@ -600,7 +609,7 @@ class Phase(Node):
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
 
-            This method must be called in every scyle
+            This method must be called in every cycle
         Params:
         -------
             * filter_by: list<str>
@@ -741,6 +750,19 @@ class Phase(Node):
         w = self._cached_weight
         return round(float(self._cached_queue / (w + 1)), 2)
 
+    @property
+    def waiting_time(self):
+        """Max. queue of vehicles wrt lane and time steps.
+
+        Returns:
+        -------
+        * waiting_time: float
+            The average number of cars under a given velocity threshold.
+
+        """
+        w = self._cached_weight
+        return round(float(self._cached_waiting_time / (w + 1)), 2)
+
 
     @property
     def pressure(self):
@@ -819,8 +841,7 @@ class Phase(Node):
     def _update_delay(self, step_delay):
         if 'delay' in self.labels:
             w = self._cached_weight
-            fct = self.max_vehs if self.normalize_vehicles else 1
-            self._cached_delay = (step_delay / fct) + (w > 0) * self._cached_delay
+            self._cached_delay = step_delay + (w > 0) * self._cached_delay
 
     def _update_flow(self, step_flow):
         if 'flow' in self.labels:
@@ -839,6 +860,11 @@ class Phase(Node):
             w = self._cached_weight
             self._cached_queue = step_queue + (w > 0) * self._cached_queue
 
+    def _update_waiting_time(self, step_waiting_time):
+        if 'waiting_time' in self.labels:
+            w = self._cached_weight
+            self._cached_waiting_time = step_waiting_time + (w > 0) * self._cached_waiting_time
+
     def _update_speed(self, step_speed):
         if 'speed' in self.labels:
             w = self._cached_weight
@@ -850,7 +876,6 @@ class Phase(Node):
             m = self._cached_speed_score
             self._cached_speed_score = step_speed_score + (w > 0) * m
 
-
     def _update_lag(self, duration):
         """`rotates` the cached features
             (i) previous cycle's stored features go to apply.
@@ -860,7 +885,6 @@ class Phase(Node):
             derived_features = [self._get_derived(lbl) for lbl in self.labels if 'lag' in lbl]
             self._cached_apply.update(self._cached_store)
             self._cached_store = {f: getattr(self, f) for f in derived_features}
-
 
     def _get_feature_by(self, label):
         """Returns feature by label"""
@@ -891,21 +915,26 @@ class Lane(Node):
         * Performs normalization.
         * Computes feature per time step.
         * Aggregates wrt vehicles.
+
     """
     def __init__(self, phase, mdp_params, lane_id, max_capacity):
-        """Builds lane
+        """ Builds lane.
 
         Params:
         ------
+        * phase: ilurl.state.Phase
+            phase associated to the lane (parent node).
+
         * mdp_params: ilurl.core.params.MDPParams
             mdp specification: agent, states, rewards, gamma and
-                               learning params
+                               learning params.
 
         * lane_id: int
             key is the index of the lane.
 
         * max_capacity: tuple<float, int>
-            max velocity a car can travel.
+            max velocity a car can travel/lane's max capacity.
+
         """
         self._min_speed = mdp_params.velocity_threshold
         self._max_capacity = max_capacity
@@ -918,10 +947,6 @@ class Lane(Node):
     @property
     def lane_id(self):
         return self.node_id
-
-    @property
-    def cache(self):
-        return self._cache
 
     @property
     def labels(self):
@@ -944,18 +969,14 @@ class Lane(Node):
         return self._normalize_vehicles
 
     def reset(self):
-        """Clears data from previous cycles, define data structures"""
-        # Uncomment for validation
-        # self._cache = OrderedDict()
-        self._cached_speeds = 0
-        self._cached_counts = 0
-        self._cached_delays = 0
+        """ Clears data from previous cycles, defines data structures"""
+        self._cached_speed = 0
+        self._cached_count = 0
+        self._cached_delay = 0
+        self._cached_stopped_vehs = 0
+        self._cached_flow = set({})
 
-        self._cached_flows = set({})
-        self._last_duration = -1
-
-
-    def update(self, duration, vehs, tls):
+    def update(self, vehs):
         """Update data structures with observation space
 
             * Holds vehs and tls data for the duration of a cycle
@@ -964,56 +985,54 @@ class Lane(Node):
 
         Params:
         -------
-            * duration: float
-                Number of time steps in seconds within a cycle.
-                Assumption: min time_step 1 second.
-                Circular updates: 0.0, 1.0, 2.0, ..., 0.0, 1.0, ...
-
             * vehs: list<namedtuple<ilurl.envs.elements.Vehicles>>
                 Container for vehicle data (from VehicleKernel)
 
-            * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
-                Container for traffic light program representation
         """
-        # TODO: As of now stores an array with the cycles' data
-        # More efficient to only store last time_step
-        # cross sectional data or intra time_step data.
-        if duration != self._last_duration:
-            # 1) Uncomment for validation 
-            # self._cache[duration] = (vehs, tls)
-            self._last_duration = duration
+        self._update_count(vehs)
+        self._update_delay(vehs)
+        self._update_stopped_vehs(vehs)
+        self._update_flows(vehs)
+        self._update_speed(vehs)
+        self._update_speed_score(vehs)
 
-
-            self._update_counts(vehs)
-            self._update_delays(vehs)
-            self._update_flows(vehs)
-            self._update_speeds(vehs)
-            self._update_speed_scores(vehs)
-
-
-    def _update_counts(self, vehs):
-        """Step update for counts variable"""
+    def _update_count(self, vehs):
+        """Step update for count variable"""
         if _check_count(self.labels):
-            self._cached_counts = len(vehs)
+            self._cached_count = len(vehs)
 
     def _update_flows(self, vehs):
-            """Step update flows variable"""
-            if 'flow' in self.labels:
-                self._cached_flows = {v.id for v in vehs}
+        """Step update for flow variable"""
+        if 'flow' in self.labels:
+            self._cached_flow = {v.id for v in vehs}
 
-    def _update_delays(self, vehs):
-        """Step update for delays variable"""
-        if 'delay' in self.labels or 'queue' in self.labels:
-            # 1) Normalization factor and threshold
+    def _update_delay(self, vehs):
+        """Step update for delay variable"""
+        if 'delay' in self.labels:
+            # 1) Speed normalization factor.
             cap = self.max_speed if self.normalize_velocities else 1
+
+            # 2) Compute delay
+            step_delays = [delay(v.speed / cap) for v in vehs]
+            self._cached_delay = sum(step_delays)
+
+    def _update_stopped_vehs(self, vehs):
+        """ Step update for the number of stopped vehicles,
+            i.e. the (normalized) number of vehicles with a
+            velocity under the defined threshold. """
+        if 'queue' in self.labels or 'waiting_time' in self.labels:
+            # 1) Normalization factors.
+            cap = self.max_speed if self.normalize_velocities else 1 # TODO: Can we remove this and always normalize the speed?
+            fct = self.max_vehs if self.normalize_vehicles else 1
             vt = self._min_speed
 
-            # 2) Compute delays
-            step_delays = [v.speed / cap < vt for v in vehs]
-            self._cached_delays = sum(step_delays)
+            # 2) Compute the number of stopped vehicles.
+            step_stopped_vehs = [v.speed / cap < vt for v in vehs]
 
-    def _update_speeds(self, vehs):
-        """Step update for speeds variable"""
+            self._cached_stopped_vehs = sum(step_stopped_vehs) / fct
+
+    def _update_speed(self, vehs):
+        """Step update for speed variable"""
         if 'speed' in self.labels:
             # 1) Normalization factor
             cap = self.max_speed if self.normalize_velocities else 1
@@ -1022,9 +1041,9 @@ class Lane(Node):
             # Max prevents relative performance
             step_speeds = [max(self.max_speed - v.speed, 0) / cap for v in vehs]
 
-            self._cached_speeds = sum(step_speeds) if any(step_speeds) else 0
+            self._cached_speed = sum(step_speeds) if any(step_speeds) else 0
 
-    def _update_speed_scores(self, vehs):
+    def _update_speed_score(self, vehs):
         """Step update for speed_scores variable"""
         if 'speed_score' in self.labels:
             # 1) Compute speed average
@@ -1032,34 +1051,34 @@ class Lane(Node):
 
     @property
     def count(self):
-        """Average number of vehicles per time step and lane.
+        """ Average number of vehicles per time step and lane.
 
         Returns:
             count: float
         """
-        return self._cached_counts
+        return self._cached_count
 
     @property
     def delay(self):
-        """Total of vehicles circulating under a velocity threshold
-            per time step and lane.
-
+        """ The sum of the delay of all vehicles. The delay is defined as a
+            function of the vehicles' velocity (see the definition of the
+            delay function in the beginning of this file).
+        
         Returns:
         -------
             * delay: int
         """
-        return self._cached_delays
+        return self._cached_delay
 
     @property
     def flow(self):
-        """Unique vehicles present at lane (per lane)
+        """ Unique vehicles present at lane (per lane)
             Returns:
             -------
             * flow: set<string>
                 veh_ids
         """
-        return self._cached_flows
-
+        return self._cached_flow
 
     @property
     def speed(self):
@@ -1070,7 +1089,7 @@ class Lane(Node):
         Returns:
             speed: float
         """
-        return self._cached_speeds
+        return self._cached_speed
 
     @property
     def speed_score(self):
@@ -1081,16 +1100,14 @@ class Lane(Node):
         """
         return self._cached_speed_scores
 
-
     @property
-    def queue(self):
+    def stopped_vehs(self):
         """Total of vehicles circulating under a velocity threshold
             per time step and lane.
 
         Returns:
         -------
-            * queue: int
+            * stopped_vehs: int
+                (Normalized) number of vehicles with speed under threshold.
         """
-        fct = self.max_vehs if self.normalize_vehicles else 1
-        return self._cached_delays / fct
-
+        return self._cached_stopped_vehs
