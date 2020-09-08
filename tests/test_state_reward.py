@@ -518,9 +518,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward['247123161'], round(-0.01*(0.85-0.32 + 0.82-0.80), 4))
-        self.assertAlmostEqual(reward['247123464'], round(-0.01*(0.08-1.52 + 0.16-0.83), 4))
-        self.assertAlmostEqual(reward['247123468'], round(-0.01*(3.73-2.13 + 0.50-0.57), 4))
+        self.assertAlmostEqual(reward['247123161'], round(0.01*(0.85-0.32 + 0.82-0.80), 4))
+        self.assertAlmostEqual(reward['247123464'], round(0.01*(0.08-1.52 + 0.16-0.83), 4))
+        self.assertAlmostEqual(reward['247123468'], round(0.01*(3.73-2.13 + 0.50-0.57), 4))
 
 
 

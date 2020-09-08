@@ -229,9 +229,8 @@ def reward_max_delay_reduction(state, *args):
         filter_by=('lag[delay]', 'delay'),
         split=True
     )
-    ret = {tls_id: np.sum(diff(*del_ldel)).round(4)
+    ret = {tls_id: -np.sum(diff(*del_ldel)).round(4)
            for tls_id, del_ldel in delay_lagdelay.items()}
-
     return ret
 
 def reward_min_pressure(state, *args):

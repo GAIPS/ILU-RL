@@ -416,7 +416,7 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         self.assertEqual(check_1, 0.30) # queue, phase 0, feature 1
         self.assertEqual(check_1, sol) # queue, phase 0
 
-        # 4) Assert 247123161 previous cycle (no data)
+        # 4) Assert 247123161 previous cycle
         self.assertEqual(check_2, 0.63) # queue, phase 0, feature 2
 
     def test_queue_tl1ph1(self):
