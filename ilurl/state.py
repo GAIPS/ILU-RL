@@ -673,8 +673,8 @@ class Phase(Node):
             The average number of vehicles in the approach
         """
         w = self._cached_weight
-        ret = float(self._cached_count / (w + 1))
-        return round(ret, 2)
+        ret = round(float(self._cached_count / (w + 1)), 2)
+        return ret
 
     @property
     def delay(self):
@@ -1047,7 +1047,7 @@ class Lane(Node):
         """Step update for speed_scores variable"""
         if 'speed_score' in self.labels:
             # 1) Compute speed average
-            self._cached_speed_scores = round(sum([v.speed for v in vehs]), 4)
+            self._cached_speed_scores = sum([v.speed for v in vehs])
 
     @property
     def count(self):
