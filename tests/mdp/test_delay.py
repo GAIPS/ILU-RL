@@ -96,7 +96,7 @@ class TestGridMinDelay(TestGridBase):
     def test_min_delay_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(2.91 + 1.23))
+        self.assertEqual(reward[node_id], round(-0.01*(2.91 + 1.23), 4))
 
     def test_delay_tl2ph0(self):
         # 1) Define constraints
@@ -127,7 +127,7 @@ class TestGridMinDelay(TestGridBase):
     def test_min_delay_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.02 + 0.09))
+        self.assertEqual(reward[node_id], round(-0.01*(0.02 + 0.09), 4))
 
 
     def test_delay_tl3ph0(self):
@@ -159,7 +159,7 @@ class TestGridMinDelay(TestGridBase):
     def test_min_delay_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.69 + 0.29))
+        self.assertEqual(reward[node_id], round(-0.01*(0.69 + 0.29), 4))
 
     def tearDown(self):
         pass
@@ -402,7 +402,7 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
     def test_max_delay_reduction_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], 0.01*(0.85-0.32 + 0.82-0.8))
+        self.assertAlmostEqual(reward[node_id], round(0.01*(0.85-0.32 + 0.82-0.8), 4))
     
     def test_delay_tl2ph0(self):
         # 1) Define constraints
@@ -441,7 +441,7 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
     def test_max_delay_reduction_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], 0.01*(0.08-1.52 + 0.16-0.83))
+        self.assertAlmostEqual(reward[node_id], round(0.01*(0.08-1.52 + 0.16-0.83), 4))
 
     def test_delay_tl3ph0(self):
         # 1) Define constraints
@@ -480,7 +480,7 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
     def test_max_delay_reduction_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], 0.01*(3.73-2.13 + 0.50-0.57))
+        self.assertAlmostEqual(reward[node_id], round(0.01*(3.73-2.13 + 0.50-0.57), 4))
 
     def tearDown(self):
         pass

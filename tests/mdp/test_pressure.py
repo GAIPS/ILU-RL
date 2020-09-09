@@ -118,7 +118,7 @@ class TestGridPressure(TestGridBase):
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(5.0 + 0.0))
+        self.assertEqual(reward[ID], round(-0.01*(5.0 + 0.0), 4))
 
     def test_pressure_tl2ph0(self):
         """Tests pressure state
@@ -168,7 +168,7 @@ class TestGridPressure(TestGridBase):
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], 0.01*(3.0 + 2.0))
+        self.assertEqual(reward[ID], round(0.01*(3.0 + 2.0), 4))
 
     def test_pressure_tl3ph0(self):
         """Tests pressure state
@@ -218,7 +218,7 @@ class TestGridPressure(TestGridBase):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(1.0 + 0.0))
+        self.assertEqual(reward[ID], round(-0.01*(1.0 + 0.0), 4))
 
 
 class TestGridPressureNorm(TestGridPressure):
@@ -305,7 +305,7 @@ class TestGridPressureNorm(TestGridPressure):
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(0.1389 + 0.0))
+        self.assertEqual(reward[ID], round(-0.01*(0.1389 + 0.0), 4))
 
     def test_pressure_tl2ph0(self):
         """Tests pressure state
@@ -361,7 +361,7 @@ class TestGridPressureNorm(TestGridPressure):
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[ID], -0.01*(-0.0882 + 0.0229))
+        self.assertAlmostEqual(reward[ID], round(-0.01*(-0.0882 + 0.0229), 4))
 
     def test_pressure_tl3ph0(self):
         """Tests pressure state
@@ -416,8 +416,7 @@ class TestGridPressureNorm(TestGridPressure):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(0.0312 + 0.0))
-
+        self.assertEqual(reward[ID], round(-0.01*(0.0312 + 0.0), 4))
 
 
 if __name__ == '__main__':

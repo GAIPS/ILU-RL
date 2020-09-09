@@ -113,7 +113,7 @@ class TestGridQueueCycle1(TestGridBase):
     def test_min_queue_squared_tl1(self):
         nid ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], -0.01*(0.58**2 + 0.63**2))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(0.58**2 + 0.63**2), 4))
 
     def test_queue_tl2ph0(self):
         # 1) Define constraints
@@ -152,7 +152,7 @@ class TestGridQueueCycle1(TestGridBase):
     def test_min_queue_squared_tl2(self):
         nid ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], -0.01*(0.07**2 + 0.15**2))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(0.07**2 + 0.15**2), 4))
 
 
     def test_queue_tl3ph0(self):
@@ -192,7 +192,7 @@ class TestGridQueueCycle1(TestGridBase):
     def test_min_queue_squared_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], -0.01*(2.05**2 + 0.45**2))
+        self.assertAlmostEqual(reward[node_id], round(-0.01*(2.05**2 + 0.45**2), 4))
 
     def tearDown(self):
         pass
@@ -271,7 +271,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
     def test_min_queue_squared_tl1(self):
         nid ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], -0.01*(0.07**2 + 0.07**2))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(0.07**2 + 0.07**2), 4))
 
     def test_queue_tl2ph0(self):
         # 1) Define constraints
@@ -311,7 +311,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
     def test_min_queue_squared_tl2(self):
         nid ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], -0.01*(0.01**2 + 0.02**2))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(0.01**2 + 0.02**2), 4))
 
 
     def test_queue_tl3ph0(self):
@@ -353,7 +353,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
     def test_min_queue_squared_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], -0.01*(0.26**2 + 0.05**2))
+        self.assertAlmostEqual(reward[node_id], round(-0.01*(0.26**2 + 0.05**2), 4))
 
     def tearDown(self):
         pass
@@ -441,7 +441,7 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         reward = self.reward(self.observation_space)
         self.assertAlmostEqual(
             reward[nid],
-            -0.01*((0.30**2 + 0.48**2) - (0.58**2 + 0.63**2))
+            round(-0.01*((0.30**2 + 0.48**2) - (0.58**2 + 0.63**2)), 4)
         )
 
     def test_queue_tl2ph0(self):
@@ -483,7 +483,8 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         reward = self.reward(self.observation_space)
         self.assertAlmostEqual(
             reward[nid],
-            -0.01*((0.63**2 + 0.8**2) - (0.07**2 + 0.15**2)))
+            round(-0.01*((0.63**2 + 0.8**2) - (0.07**2 + 0.15**2)), 4)
+            )
 
 
     def test_queue_tl3ph0(self):
@@ -525,7 +526,8 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         reward = self.reward(self.observation_space)
         self.assertAlmostEqual(
             reward[node_id],
-            -0.01*((1.05**2 + 0.57**2) - (2.05**2 + 0.45**2)))
+            round(-0.01*((1.05**2 + 0.57**2) - (2.05**2 + 0.45**2)), 4)
+            )
 
     def tearDown(self):
         pass

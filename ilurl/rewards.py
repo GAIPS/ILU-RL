@@ -209,7 +209,7 @@ def reward_max_delay_reduction(state, *args):
     Params:
     ------
     * state: ilurl.state.State
-        captures the delay experiened by phases.
+        captures the delay experienced by phases.
 
     Returns:
     --------
@@ -229,7 +229,7 @@ def reward_max_delay_reduction(state, *args):
         filter_by=('lag[delay]', 'delay'),
         split=True
     )
-    ret = {tls_id: -np.sum(diff(*del_ldel)).round(4)
+    ret = {tls_id: -np.sum(diff(*del_ldel))
            for tls_id, del_ldel in delay_lagdelay.items()}
     return ret
 
@@ -261,7 +261,7 @@ def reward_min_pressure(state, *args):
         filter_by=('pressure',),
         split=True
     )
-    ret = {tls_id: -np.sum(press).round(4)
+    ret = {tls_id: -np.sum(press)
            for tls_id, press in pressure.items()}
 
     return ret
@@ -284,7 +284,7 @@ def reward_max_flow(state, *args):
         split=True
     )
 
-    ret = {tls_id: np.sum(flow).round(4)
+    ret = {tls_id: np.sum(flow)
            for tls_id, flow in flow.items()}
     return ret
 
@@ -316,7 +316,7 @@ def reward_min_average_pressure(state, *args):
         filter_by=('average_pressure',),
         split=True
     )
-    ret = {tls_id: -np.sum(press).round(4)
+    ret = {tls_id: -np.sum(press)
            for tls_id, press in pressure.items()}
 
     return ret
@@ -364,7 +364,8 @@ def reward_min_queue_squared(state):
 
 
 def rescale_rewards(rewards, scale_factor):
-    return {key: r * scale_factor for (key, r) in rewards.items()}
+    # Rescale and round.
+    return {key: round(r * scale_factor, 4) for (key, r) in rewards.items()}
 
 
 def diff(x, y):

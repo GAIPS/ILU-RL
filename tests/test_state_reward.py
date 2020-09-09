@@ -99,9 +99,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], 0.01*(7.0 + 9.0))
-        self.assertEqual(reward['247123464'], 0.01*(9.0  + 1.0))
-        self.assertEqual(reward['247123468'], 0.01*(15 + 2))
+        self.assertEqual(reward['247123161'], round(0.01*(7.0  + 9.0), 4))
+        self.assertEqual(reward['247123464'], round(0.01*(9.0  + 1.0), 4))
+        self.assertEqual(reward['247123468'], round(0.01*(15.0 + 2.0), 4))
 
     def test_max_speed_count(self):
         """
@@ -180,9 +180,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], -0.01*(0.82*3.88 + 0.74*2.03))
-        self.assertEqual(reward['247123464'], -0.01*(0.18*0.68 + 0.53*0.32))
-        self.assertEqual(reward['247123468'], -0.01*(0.74*1.27 + 0.70*0.55))
+        self.assertEqual(reward['247123161'], round(-0.01*(0.82*3.88 + 0.74*2.03), 4))
+        self.assertEqual(reward['247123464'], round(-0.01*(0.18*0.68 + 0.53*0.32), 4))
+        self.assertEqual(reward['247123468'], round(-0.01*(0.74*1.27 + 0.70*0.55), 4))
 
 
     def test_max_speed_score(self):
@@ -265,9 +265,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], 0.01*(0.18*3.88 + 0.27*2.03))
-        self.assertEqual(reward['247123464'], 0.01*(0.82*0.68 + 0.47*0.32))
-        self.assertEqual(reward['247123468'], 0.01*(0.27*1.27 + 0.30*0.55))
+        self.assertEqual(reward['247123161'], round(0.01*(0.18*3.88 + 0.27*2.03), 4))
+        self.assertEqual(reward['247123464'], round(0.01*(0.82*0.68 + 0.47*0.32), 4))
+        self.assertEqual(reward['247123468'], round(0.01*(0.27*1.27 + 0.30*0.55), 4))
 
 
     def test_min_delay(self):
@@ -369,9 +369,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], -0.01*(2.91 + 1.23))
-        self.assertEqual(reward['247123464'], -0.01*(0.02 + 0.09))
-        self.assertEqual(reward['247123468'], -0.01*(0.69 + 0.29))
+        self.assertEqual(reward['247123161'], round(-0.01*(2.91 + 1.23), 4))
+        self.assertEqual(reward['247123464'], round(-0.01*(0.02 + 0.09), 4))
+        self.assertEqual(reward['247123468'], round(-0.01*(0.69 + 0.29), 4))
 
 
     def test_max_delay_reduction(self):
@@ -521,8 +521,6 @@ class TestStateReward(unittest.TestCase):
         self.assertAlmostEqual(reward['247123161'], round(0.01*(0.85-0.32 + 0.82-0.80), 4))
         self.assertAlmostEqual(reward['247123464'], round(0.01*(0.08-1.52 + 0.16-0.83), 4))
         self.assertAlmostEqual(reward['247123468'], round(0.01*(3.73-2.13 + 0.50-0.57), 4))
-
-
 
 
     def test_time_period(self):
