@@ -4,6 +4,7 @@ import pandas as pd
 import argparse
 import numpy as np
 from pathlib import Path
+from scipy import stats
 
 import matplotlib
 matplotlib.use('agg')
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-from .utils import *
+from analysis.utils import str2bool, get_emissions, get_vehicles, get_throughput
 
 plt.style.use('ggplot')
 
@@ -21,7 +22,7 @@ FIGURE_Y = 4.0
 def get_arguments():
     parser = argparse.ArgumentParser(
         description="""
-            This script evaluates a traffic light system.
+            This script creates evaluation plots, given an experiment folder path.
         """
     )
     parser.add_argument('experiment_root_folder', type=str, nargs='?',
@@ -101,7 +102,7 @@ def main(experiment_root_folder=None):
                                     columns=["train_run", "speed", "delay", "travel_time"])
 
     """
-        Waiting time & travel time.
+        Waiting time stats.
     """
     # Describe waiting time.
     print('Waiting time:')
@@ -111,11 +112,21 @@ def main(experiment_root_folder=None):
     print(df_stats)
     print('\n')
 
+    # Histogram and KDE.
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    sns.distplot(df_vehicles_appended['waiting'], hist=False, kde=True,
-                kde_kws = {'linewidth': 3})
+    # plt.hist(df_vehicles_appended['waiting'], density=True)
+
+    kde = stats.gaussian_kde(df_vehicles_appended['waiting'])
+    kde_x = np.linspace(df_vehicles_appended['waiting'].min(), df_vehicles_appended['waiting'].max(), 1000)
+    kde_y = kde(kde_x)
+    plt.plot(kde_x, kde_y, linewidth=3)
+
+    # Store data in dataframe for further materialization.
+    waiting_time_hist_kde = pd.DataFrame()
+    waiting_time_hist_kde['x'] = kde_x
+    waiting_time_hist_kde['y'] = kde_y
 
     plt.xlabel('Waiting time (s)')
     plt.ylabel('Density')
@@ -124,6 +135,9 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/waiting_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
+    """
+        Travel time stats.
+    """
     # Describe travel time.
     print('Travel time:')
     df_stats = df_vehicles_appended['total'].describe()
@@ -132,11 +146,21 @@ def main(experiment_root_folder=None):
     print(df_stats)
     print('\n')
 
+    # Histogram and KDE.
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    sns.distplot(df_vehicles_appended['total'], hist=False, kde=True,
-                 kde_kws = {'linewidth': 3})
+    # plt.hist(df_vehicles_appended['total'], density=True)
+
+    kde = stats.gaussian_kde(df_vehicles_appended['total'])
+    kde_x = np.linspace(df_vehicles_appended['total'].min(), df_vehicles_appended['total'].max(), 1000)
+    kde_y = kde(kde_x)
+    plt.plot(kde_x, kde_y, linewidth=3)
+
+    # Store data in dataframe for further materialization.
+    travel_time_hist_kde = pd.DataFrame()
+    travel_time_hist_kde['x'] = kde_x
+    travel_time_hist_kde['y'] = kde_y
 
     plt.xlabel('Travel time (s)')
     plt.ylabel('Density')
@@ -145,6 +169,9 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/travel_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
+    """
+        Speed stats.
+    """
     # Describe vehicles' speed.
     print('Speed:')
     df_stats = df_vehicles_appended['speed'].describe()
@@ -153,30 +180,50 @@ def main(experiment_root_folder=None):
     print(df_stats)
     print('\n')
 
+    # Histogram and KDE.
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    sns.distplot(df_vehicles_appended['speed'], hist=False, kde=True,
-                 kde_kws = {'linewidth': 3})
+    # plt.hist(df_vehicles_appended['speed'], density=True)
 
-    plt.xlabel('Average Speed (m/s)')
+    kde = stats.gaussian_kde(df_vehicles_appended['speed'])
+    kde_x = np.linspace(df_vehicles_appended['speed'].min(), df_vehicles_appended['speed'].max(), 1000)
+    kde_y = kde(kde_x)
+    plt.plot(kde_x, kde_y, linewidth=3)
+
+    # Store data in dataframe for further materialization.
+    speed_hist_kde = pd.DataFrame()
+    speed_hist_kde['x'] = kde_x
+    speed_hist_kde['y'] = kde_y
+
+    plt.xlabel('Average speed (m/s)')
     plt.ylabel('Density')
     plt.title('Vehicles\' speed')
     plt.savefig('{0}/speeds_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/speeds_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
+
     # Aggregate results per cycle.
     intervals = np.arange(0, df_vehicles_appended['finish'].max(), cycle_time)
     df_per_cycle = df_vehicles_appended.groupby(pd.cut(df_vehicles_appended["finish"], intervals)).mean()
 
+    """
+        Waiting time per cycle.
+    """
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
     Y = df_per_cycle['waiting'].values
     X = np.linspace(1, len(Y), len(Y))
 
+    # Store data in dataframe for further materialization.
+    waiting_time_per_cycle = pd.DataFrame()
+    waiting_time_per_cycle['x'] = X
+    waiting_time_per_cycle['y'] = Y
+
     plt.plot(X,Y)
+
     plt.xlabel('Cycle')
     plt.ylabel('Average waiting time (s)')
     plt.title('Waiting time')
@@ -184,13 +231,22 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/waiting_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
 
+    """
+        Travel time per cycle.
+    """
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
     Y = df_per_cycle['total'].values
     X = np.linspace(1, len(Y), len(Y))
 
+    # Store data in dataframe for further materialization.
+    travel_time_per_cycle = pd.DataFrame()
+    travel_time_per_cycle['x'] = X
+    travel_time_per_cycle['y'] = Y
+
     plt.plot(X,Y)
+
     plt.xlabel('Cycle')
     plt.ylabel('Average travel time (s)')
     plt.title('Travel time')
@@ -199,10 +255,9 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """
-        Throughput.
-
-        (throughput is calculated per cycle length)
+        Throughput per cycle.
     """
+    # Throughput per cycle.
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
@@ -211,6 +266,11 @@ def main(experiment_root_folder=None):
 
     Y = df['time'].values
     X = np.linspace(1, len(Y), len(Y))
+
+    # Store data in dataframe for further materialization.
+    throughput_per_cycle = pd.DataFrame()
+    throughput_per_cycle['x'] = X
+    throughput_per_cycle['y'] = Y
 
     plt.plot(X,Y)
 
@@ -223,6 +283,7 @@ def main(experiment_root_folder=None):
 
     plt.close()
 
+
     # Get test eval json file from experiment root folder.
     json_file = Path(experiment_root_folder) / 'rollouts_test.json'
     print('JSON file path: {0}\n'.format(json_file))
@@ -234,7 +295,7 @@ def main(experiment_root_folder=None):
     id = str(json_data['id'][0])
 
     """
-        Rewards per intersection.
+        Rewards per intersection (per cycle).
     """
     dfs_r = [pd.DataFrame(r) for r in json_data['rewards'][id]]
 
@@ -260,10 +321,10 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """
-        Total rewards.
+        Total rewards (per cycle).
     """
     fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+    fig.set_size_inches(FIGURE_X, FIGURE_Y) 
 
     plt.plot(df_rewards.sum(axis=1))
 
@@ -283,7 +344,7 @@ def main(experiment_root_folder=None):
                     float_format='%.3f', header=False)
 
     """
-        Actions per intersection.
+        Actions per intersection (per cycle).
     """
     dfs_a = [pd.DataFrame(r) for r in json_data['actions'][id]]
 
@@ -309,7 +370,7 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """
-        Number of vehicles.
+        Number of vehicles per cycle.
     """
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
@@ -320,8 +381,16 @@ def main(experiment_root_folder=None):
 
     by_row_index = df_concat.groupby(df_concat.index)
     df_vehicles = by_row_index.mean()
+    
+    X = np.arange(0, len(df_vehicles))
+    Y = df_vehicles
 
-    plt.plot(df_vehicles)
+    # Store data in dataframe for further materialization.
+    vehicles_per_cycle = pd.DataFrame()
+    vehicles_per_cycle['x'] = X
+    vehicles_per_cycle['y'] = Y
+
+    plt.plot(X,Y)
 
     plt.xlabel('Cycle')
     plt.ylabel('# Vehicles')
@@ -333,7 +402,7 @@ def main(experiment_root_folder=None):
     plt.close()
 
     """
-        Average vehicles' velocity.
+        Average vehicles' velocity per cycle.
     """
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
@@ -345,7 +414,15 @@ def main(experiment_root_folder=None):
     by_row_index = df_concat.groupby(df_concat.index)
     df_velocities = by_row_index.mean()
 
-    plt.plot(df_velocities)
+    X = np.arange(0, len(df_velocities))
+    Y = df_velocities
+
+    # Store data in dataframe for further materialization.
+    velocities_per_cycle = pd.DataFrame()
+    velocities_per_cycle['x'] = X
+    velocities_per_cycle['y'] = Y
+
+    plt.plot(X,Y)
 
     plt.xlabel('Cycle')
     plt.ylabel('Average velocities')
@@ -355,6 +432,31 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/velocities.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
     plt.close()
+
+
+    # Materialize processed data.
+    processed_data = pd.concat([waiting_time_hist_kde,
+                                travel_time_hist_kde,
+                                speed_hist_kde,
+                                waiting_time_per_cycle,
+                                travel_time_per_cycle,
+                                throughput_per_cycle,
+                                vehicles_per_cycle,
+                                velocities_per_cycle]
+                                , keys=['waiting_time_hist_kde',
+                                'travel_time_hist_kde',
+                                'speed_hist_kde',
+                                'waiting_time_per_cycle',
+                                'travel_time_per_cycle',
+                                'throughput_per_cycle',
+                                'vehicles_per_cycle',
+                                'velocities_per_cycle']
+                                , axis=1)
+
+    processed_data.to_csv('{0}/processed_data.csv'.format(
+                                            output_folder_path),
+                                            float_format='%.6f')
+
 
 if __name__ == "__main__":
     main()
