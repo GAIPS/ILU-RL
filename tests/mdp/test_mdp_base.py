@@ -1,23 +1,27 @@
 import unittest
 
+
+from ilurl.rewards import build_rewards
 from ilurl.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.params import MDPParams
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import *
+from tests.network.test_grid import (TestGridSetUp,
+                                     MAX_VEHS, MAX_VEHS_OUT,
+                                     INCOMING_247123161, OUTGOING_247123161,
+                                     INCOMING_247123464, OUTGOING_247123464,
+                                     INCOMING_247123468, OUTGOING_247123468,
+                                     MAX_VEHS, MAX_VEHS_OUT)
 
-class TestGridObservationSpace(TestGridBase):
+class TestGridMDPSetUp(TestGridSetUp):
     """
-        * Tests basic observation space
+        * Sets up common problem formulations
 
-        * Set of tests that target the implemented
-          problem formulations, i.e. state and reward
-          function definitions.
+        * Tests here will run also on children
 
-        * Use lazy_properties to compute once and use
-          as many times as you want -- it's a cached
-          property
+        * Avoid this behaviour by placing observation
+          space tests in another class.
     """
     @lazy_property
     def mdp_params(self):
@@ -51,6 +55,40 @@ class TestGridObservationSpace(TestGridBase):
             flatten=True
         )
         return state
+
+    @lazy_property
+    def reward(self):
+        reward = build_rewards(self.mdp_params)
+        return reward
+
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridMDPSetUp, self).setUp()
+
+class TestGridObservationSpace(TestGridMDPSetUp):
+    """
+        * Tests basic observation space
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    @lazy_property
+    def mdp_params(self):
+        mdp_params = MDPParams(
+                        features=('pressure',),
+                        reward='reward_min_pressure',
+                        normalize_velocities=True,
+                        discretize_state_space=False,
+                        reward_rescale=0.01,
+                        time_period=None,
+                        velocity_threshold=0.1)
+        return mdp_params
 
     def setUp(self):
         """Code here will run before every test"""

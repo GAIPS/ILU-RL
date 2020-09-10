@@ -3,16 +3,16 @@ import numpy as np
 import unittest
 
 from ilurl.state import State
-from ilurl.envs.elements import build_vehicles
-from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
-from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import TestGridBase, MAX_VEHS
+from tests.mdp.test_mdp_base import (TestGridMDPSetUp,
+                                     INCOMING_247123161, OUTGOING_247123161,
+                                     INCOMING_247123464, OUTGOING_247123464,
+                                     INCOMING_247123468, OUTGOING_247123468,
+                                     MAX_VEHS, MAX_VEHS_OUT)
 
-
-class TestGridMinDelay(TestGridBase):
+class TestGridMinDelay(TestGridMDPSetUp):
     """
         * Tests delay wrt Grid network (reward_min_delay)
 
@@ -36,32 +36,6 @@ class TestGridMinDelay(TestGridBase):
                         time_period=None,
                         velocity_threshold=0.1)
         return mdp_params
-
-    @lazy_property
-    def observation_space(self):
-        observation_space = State(self.network, self.mdp_params)
-        observation_space.reset()
-        # Fake environment interaction with state object.
-        timesteps = list(range(1,60)) + [0]
-
-        for t, data in zip(timesteps, self.kernel_data):
-            observation_space.update(t, data)
-
-        return observation_space
-
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
-
-    @lazy_property
-    def state(self):
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=True
-        )
-        return state
 
     def setUp(self):
         """Code here will run before every test"""
@@ -165,7 +139,7 @@ class TestGridMinDelay(TestGridBase):
         pass
 
 
-class TestGridMaxDelayReduction1(TestGridBase):
+class TestGridMaxDelayReduction1(TestGridMDPSetUp):
     """
         * Tests delay wrt Grid network (reward_max_delay_reduction)
         * (part 1)
@@ -203,19 +177,6 @@ class TestGridMaxDelayReduction1(TestGridBase):
 
         return observation_space
 
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
-
-    @lazy_property
-    def state(self):
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=True
-        )
-        return state
 
     def setUp(self):
         """Code here will run before every test"""
@@ -350,11 +311,6 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
             observation_space.update(t, data)
 
         return observation_space
-
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
 
     def setUp(self):
         """Code here will run before every test"""

@@ -52,11 +52,16 @@ MAX_VEHS_PER_LANE = { ('309265401', 0): 9,
                       ('23148196', 0): 9}
 
 
-class TestGridBase(unittest.TestCase):
+
+class TestGridSetUp(unittest.TestCase):
     """
         * Defines a network and the kernel data.
 
         * Common base for problem formulation tests.
+
+        * Do not define any tests here!
+         It's made to be extended
+
     """
     def setUp(self):
 
@@ -80,6 +85,11 @@ class TestGridBase(unittest.TestCase):
         with open('tests/data/grid_kernel_data_2.dat', "rb") as f:
             kernel_data_2 = pickle.load(f)
         self.kernel_data_2 = kernel_data_2
+
+class TestGridBase(TestGridSetUp):
+    """
+        * Place concrete network & data tests here
+    """
 
     def test_kernel_data(self):
         self.assertEqual(len(self.kernel_data), 60)

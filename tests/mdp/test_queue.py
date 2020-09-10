@@ -4,16 +4,14 @@ import unittest
 from collections import defaultdict
 
 from ilurl.state import State
-from ilurl.envs.elements import build_vehicles
-from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
-from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import TestGridBase, MAX_VEHS_PER_LANE
+from tests.network.test_grid import MAX_VEHS_PER_LANE
+from tests.mdp.test_mdp_base import TestGridMDPSetUp
 
 
-class TestGridQueueCycle1(TestGridBase):
+class TestGridQueueCycle1(TestGridMDPSetUp):
     """
         * Tests queue wrt Grid network
 
@@ -49,20 +47,6 @@ class TestGridQueueCycle1(TestGridBase):
             observation_space.update(t, data)
 
         return observation_space
-
-    @lazy_property
-    def state(self):
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=True
-        )
-        return state
-
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
 
 
     def setUp(self):
@@ -384,11 +368,6 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
             observation_space.update(t, data)
 
         return observation_space
-
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
 
 
     def setUp(self):

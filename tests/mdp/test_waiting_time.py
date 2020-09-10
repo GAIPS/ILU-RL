@@ -10,10 +10,10 @@ from ilurl.params import MDPParams
 from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import TestGridBase, MAX_VEHS_PER_LANE
+from tests.network.test_grid import MAX_VEHS_PER_LANE
+from tests.mdp.test_mdp_base import TestGridMDPSetUp
 
-
-class TestGridWaitingTime(TestGridBase):
+class TestGridWaitingTime(TestGridMDPSetUp):
     """
         * Tests waiting time wrt Grid network
 
@@ -38,31 +38,31 @@ class TestGridWaitingTime(TestGridBase):
                         velocity_threshold=0.1)
         return mdp_params
 
-    @lazy_property
-    def observation_space(self):
-        observation_space = State(self.network, self.mdp_params)
-        observation_space.reset()
-        # Fake environment interaction with state object.
-        timesteps = list(range(1,60)) + [0]
+    # @lazy_property
+    # def observation_space(self):
+    #     observation_space = State(self.network, self.mdp_params)
+    #     observation_space.reset()
+    #     # Fake environment interaction with state object.
+    #     timesteps = list(range(1,60)) + [0]
 
-        for t, data in zip(timesteps, self.kernel_data):
-            observation_space.update(t, data)
+    #     for t, data in zip(timesteps, self.kernel_data):
+    #         observation_space.update(t, data)
 
-        return observation_space
+    #     return observation_space
 
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
+    # @lazy_property
+    # def reward(self):
+    #     reward = build_rewards(self.mdp_params)
+    #     return reward
 
-    @lazy_property
-    def state(self):
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=True
-        )
-        return state
+    # @lazy_property
+    # def state(self):
+    #     # Get state.
+    #     state = self.observation_space.feature_map(
+    #         categorize=self.mdp_params.discretize_state_space,
+    #         flatten=True
+    #     )
+    #     return state
 
     def setUp(self):
         """Code here will run before every test"""
@@ -168,7 +168,7 @@ class TestGridWaitingTime(TestGridBase):
         pass
 
 
-class TestGridWaitingTimeNorm(TestGridBase):
+class TestGridWaitingTimeNorm(TestGridMDPSetUp):
     """
         * Tests waiting time wrt Grid network
 
@@ -199,31 +199,31 @@ class TestGridWaitingTimeNorm(TestGridBase):
                         velocity_threshold=0.1)
         return mdp_params
 
-    @lazy_property
-    def observation_space(self):
-        observation_space = State(self.network, self.mdp_params)
-        observation_space.reset()
-        # Fake environment interaction with state object.
-        timesteps = list(range(1,60)) + [0]
+    # @lazy_property
+    # def observation_space(self):
+    #     observation_space = State(self.network, self.mdp_params)
+    #     observation_space.reset()
+    #     # Fake environment interaction with state object.
+    #     timesteps = list(range(1,60)) + [0]
 
-        for t, data in zip(timesteps, self.kernel_data):
-            observation_space.update(t, data)
+    #     for t, data in zip(timesteps, self.kernel_data):
+    #         observation_space.update(t, data)
 
-        return observation_space
+    #     return observation_space
 
-    @lazy_property
-    def reward(self):
-        reward = build_rewards(self.mdp_params)
-        return reward
+    # @lazy_property
+    # def reward(self):
+    #     reward = build_rewards(self.mdp_params)
+    #     return reward
 
-    @lazy_property
-    def state(self):
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=True
-        )
-        return state
+    # @lazy_property
+    # def state(self):
+    #     # Get state.
+    #     state = self.observation_space.feature_map(
+    #         categorize=self.mdp_params.discretize_state_space,
+    #         flatten=True
+    #     )
+    #     return state
 
     def setUp(self):
         """Code here will run before every test"""
