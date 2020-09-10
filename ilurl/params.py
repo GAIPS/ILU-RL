@@ -29,9 +29,6 @@ from ilurl.utils.aux import Printable
 '''
 Bounds = namedtuple('Bounds', 'rank depth')
 
-# State space features.
-STATE_FEATURES = ('speed', 'count', 'delay', 'queue') #, 'flow'
-
 # Traffic light system types.
 TLS_TYPES = ('rl', 'static', 'webster',
              'actuated', 'random', 'max_pressure')
@@ -49,12 +46,14 @@ class MDPParams(Printable):
                 discount_factor: float = 0.98,
                 action_space: str = 'discrete',
                 features: Tuple[str] = ('speed', 'count'),
-                normalize_state_space: bool = True,
+                normalize_velocities: bool = True,
+                normalize_vehicles: bool = False,
                 discretize_state_space: bool = False,
                 category_counts: List[float] = [8.56, 13.00],
                 category_speeds: List[float] = [2.28, 5.50],
                 category_delays: List[float] = [5, 30],
                 category_queues: List[float] = [1, 10],
+                category_waiting_times: List[float] = [1, 10],
                 category_times: List[int] = [1, 10],
                 category_pressures: List[int] = [1, 10],
                 category_average_pressures: List[int] = [1, 10],
@@ -80,8 +79,11 @@ class MDPParams(Printable):
         * states: ('speed', 'count', ...)
             the features to be used as state space representation.
 
-        * normalize_state_space: bool
-            if True the state space normalization will be applied.
+        * normalize_velocities: bool
+            if True normalize the features which relate to vehicles' speeds
+
+        * normalize_vehicles: bool
+            if True normalize the features which relate to the number of vehicles.
 
         * discretize_state_space: bool
             if True the state space will be categorized (categories below).
@@ -90,6 +92,7 @@ class MDPParams(Printable):
         * category_speeds: List[float]
         * category_delays: List[float]
         * category_queues: List[float]
+        * (...)
 
         * reward: str
             The reward function to be applied.
@@ -111,7 +114,7 @@ class MDPParams(Printable):
         if 'states' in kwargs:
             self.states_labels = kwargs['states']
 
-        # if self.normalize_state_space:
+        # if self.normalize_velocities:
         #     if max(self.category_speeds) > 1:
         #         raise ValueError('If `normalize` flag is set categories'
         #                             'must be between 0 and 1.')

@@ -31,12 +31,12 @@ class TestStateReward(unittest.TestCase):
 
     def test_max_flow(self):
         """
-            Maximaze flow.
+            Maximize flow.
         """
         mdp_params = MDPParams(
                         features=('flow',),
                         reward='reward_max_flow',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -99,9 +99,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], 0.01*(7.0 + 9.0))
-        self.assertEqual(reward['247123464'], 0.01*(9.0  + 1.0))
-        self.assertEqual(reward['247123468'], 0.01*(15 + 2))
+        self.assertEqual(reward['247123161'], round(0.01*(7.0  + 9.0), 4))
+        self.assertEqual(reward['247123464'], round(0.01*(9.0  + 1.0), 4))
+        self.assertEqual(reward['247123468'], round(0.01*(15.0 + 2.0), 4))
 
     def test_max_speed_count(self):
         """
@@ -110,7 +110,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('speed', 'count'),
                         reward='reward_max_speed_count',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None)
@@ -180,9 +180,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], -0.01*(0.82*3.88 + 0.74*2.03))
-        self.assertEqual(reward['247123464'], -0.01*(0.18*0.68 + 0.53*0.32))
-        self.assertEqual(reward['247123468'], -0.01*(0.74*1.27 + 0.70*0.55))
+        self.assertEqual(reward['247123161'], round(-0.01*(0.82*3.88 + 0.74*2.03), 4))
+        self.assertEqual(reward['247123464'], round(-0.01*(0.18*0.68 + 0.53*0.32), 4))
+        self.assertEqual(reward['247123468'], round(-0.01*(0.74*1.27 + 0.70*0.55), 4))
 
 
     def test_max_speed_score(self):
@@ -192,7 +192,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('speed_score', 'count'),
                         reward='reward_max_speed_score',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None)
@@ -265,9 +265,9 @@ class TestStateReward(unittest.TestCase):
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], 0.01*(0.18*3.88 + 0.27*2.03))
-        self.assertEqual(reward['247123464'], 0.01*(0.82*0.68 + 0.47*0.32))
-        self.assertEqual(reward['247123468'], 0.01*(0.27*1.27 + 0.30*0.55))
+        self.assertEqual(reward['247123161'], round(0.01*(0.18*3.88 + 0.27*2.03), 4))
+        self.assertEqual(reward['247123464'], round(0.01*(0.82*0.68 + 0.47*0.32), 4))
+        self.assertEqual(reward['247123468'], round(0.01*(0.27*1.27 + 0.30*0.55), 4))
 
 
     def test_min_delay(self):
@@ -277,7 +277,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('delay',),
                         reward='reward_min_delay',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -307,7 +307,9 @@ class TestStateReward(unittest.TestCase):
         self.assertEqual(len(state['247123464']), 2)
         self.assertEqual(len(state['247123468']), 2)
 
-        """ print(state)
+        """
+        # OLD = WAITING TIME
+        print(state)
         values_0_count = []
         values_1_count = []
         ID = '247123468'
@@ -328,24 +330,48 @@ class TestStateReward(unittest.TestCase):
         print(np.sum(np.where(vehs_speeds_0 / 13.89 < 0.1, 1, 0)) / 60)
         print(np.sum(np.where(vehs_speeds_1 / 13.89 < 0.1, 1, 0)) / 60) """
 
+        """ def delay(x):
+            return np.where(x >= 1, 0.0, np.exp(-5*x))
+
+        print(state)
+        values_0_count = []
+        values_1_count = []
+        ID = '247123464'
+        for t in kernel_data:
+            values_0_count.extend(t[ID][0])
+            values_1_count.extend(t[ID][1])
+
+        vehs_speeds_0 = []
+        vehs_speeds_1 = []
+        for veh in values_0_count:
+            vehs_speeds_0.append(veh.speed)
+        for veh in values_1_count:
+            vehs_speeds_1.append(veh.speed)
+
+        vehs_speeds_0 = np.array(vehs_speeds_0)
+        vehs_speeds_1 = np.array(vehs_speeds_1)
+
+        print(np.sum(delay(vehs_speeds_0 / 13.89)) / 60)
+        print(np.sum(delay(vehs_speeds_1 / 13.89)) / 60) """
+
         # State.
         # 247123161.
-        self.assertEqual(state['247123161'][0], 2.85) # delay, phase 0
-        self.assertEqual(state['247123161'][1], 1.18) # delay, phase 1
+        self.assertEqual(state['247123161'][0], 2.91) # delay, phase 0
+        self.assertEqual(state['247123161'][1], 1.23) # delay, phase 1
 
         # 247123464.
-        self.assertEqual(state['247123464'][0], 0.0) # delay, phase 0
-        self.assertEqual(state['247123464'][1], 0.08) # delay, phase 1
+        self.assertEqual(state['247123464'][0], 0.02) # delay, phase 0
+        self.assertEqual(state['247123464'][1], 0.09) # delay, phase 1
 
         # 247123468.
-        self.assertEqual(state['247123468'][0], 0.58) # delay, phase 0
-        self.assertEqual(state['247123468'][1], 0.27) # delay, phase 1
+        self.assertEqual(state['247123468'][0], 0.69) # delay, phase 0
+        self.assertEqual(state['247123468'][1], 0.29) # delay, phase 1
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], -0.01*(2.85 + 1.18))
-        self.assertEqual(reward['247123464'], -0.01*(0.0  + 0.08))
-        self.assertEqual(reward['247123468'], -0.01*(0.58 + 0.27))
+        self.assertEqual(reward['247123161'], round(-0.01*(2.91 + 1.23), 4))
+        self.assertEqual(reward['247123464'], round(-0.01*(0.02 + 0.09), 4))
+        self.assertEqual(reward['247123468'], round(-0.01*(0.69 + 0.29), 4))
 
 
     def test_max_delay_reduction(self):
@@ -355,7 +381,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('delay', 'lag[delay]'),
                         reward='reward_max_delay_reduction',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=None,
@@ -390,8 +416,10 @@ class TestStateReward(unittest.TestCase):
         self.assertEqual(len(state['247123464']), 4)
         self.assertEqual(len(state['247123468']), 4)
 
-        """
-        print(state)
+        def delay(x):
+            return np.where(x >= 1, 0.0, np.exp(-5*x))
+
+        """ print(state)
         for t_id in ['247123161', '247123464' ,'247123468']:
             values_0_count = []
             values_1_count = []
@@ -410,27 +438,26 @@ class TestStateReward(unittest.TestCase):
             vehs_speeds_0 = np.array(vehs_speeds_0)
             vehs_speeds_1 = np.array(vehs_speeds_1)
 
-            print('t_id={0}, delay (phase 0):'.format(t_id), np.sum(np.where(vehs_speeds_0 / 13.89 < 0.1, 1, 0)) / 60)
-            print('t_id={0}, delay (phase 1):'.format(t_id), np.sum(np.where(vehs_speeds_1 / 13.89 < 0.1, 1, 0)) / 60)
-        """
-
+            print('t_id={0}, delay (phase 0):'.format(t_id), np.sum(delay(vehs_speeds_0 / 13.89)) / 60)
+            print('t_id={0}, delay (phase 1):'.format(t_id), np.sum(delay(vehs_speeds_1 / 13.89)) / 60) """
+        
         # State.
         # 247123161.
-        self.assertEqual(state['247123161'][0], 0.73) # delay, phase 0, actual cycle
+        self.assertEqual(state['247123161'][0], 0.85) # delay, phase 0, actual cycle
         self.assertEqual(state['247123161'][1], 0.0)  # delay, phase 0, previous cycle (No data yet)
-        self.assertEqual(state['247123161'][2], 0.77) # delay, phase 1, actual cycle
+        self.assertEqual(state['247123161'][2], 0.82) # delay, phase 1, actual cycle
         self.assertEqual(state['247123161'][3], 0.0)  # delay, phase 1, previous cycle (No data yet)
 
         # 247123464.
-        self.assertEqual(state['247123464'][0], 0.07) # delay, phase 0, actual cycle
+        self.assertEqual(state['247123464'][0], 0.08) # delay, phase 0, actual cycle
         self.assertEqual(state['247123464'][1], 0.0)  # delay, phase 0, previous cycle (No data yet)
-        self.assertEqual(state['247123464'][2], 0.15) # delay, phase 1, actual cycle
+        self.assertEqual(state['247123464'][2], 0.16) # delay, phase 1, actual cycle
         self.assertEqual(state['247123464'][3], 0.0)  # delay, phase 1, previous cycle (No data yet)
 
         # 247123468.
-        self.assertEqual(state['247123468'][0], 3.68) # delay, phase 0, actual cycle
+        self.assertEqual(state['247123468'][0], 3.73) # delay, phase 0, actual cycle
         self.assertEqual(state['247123468'][1], 0.0)  # delay, phase 0, previous cycle (No data yet)
-        self.assertEqual(state['247123468'][2], 0.45) # delay, phase 1, actual cycle
+        self.assertEqual(state['247123468'][2], 0.50) # delay, phase 1, actual cycle
         self.assertEqual(state['247123468'][3], 0.0)  # delay, phase 1, previous cycle (No data yet)
 
         # Fake environment interaction with state object (cycle 2).
@@ -448,8 +475,7 @@ class TestStateReward(unittest.TestCase):
         self.assertEqual(len(state['247123464']), 4)
         self.assertEqual(len(state['247123468']), 4)
 
-        """
-        print(state) 
+        """ print(state) 
         for t_id in ['247123161', '247123464' ,'247123468']:
             values_0_count = []
             values_1_count = []
@@ -468,226 +494,33 @@ class TestStateReward(unittest.TestCase):
             vehs_speeds_0 = np.array(vehs_speeds_0)
             vehs_speeds_1 = np.array(vehs_speeds_1)
 
-            print('t_id={0}, delay (phase 0):'.format(t_id), np.sum(np.where(vehs_speeds_0 / 13.89 < 0.1, 1, 0)) / 60)
-            print('t_id={0}, delay (phase 1):'.format(t_id), np.sum(np.where(vehs_speeds_1 / 13.89 < 0.1, 1, 0)) / 60)
-        """
+            print('t_id={0}, delay (phase 0):'.format(t_id), np.sum(delay(vehs_speeds_0 / 13.89)) / 60)
+            print('t_id={0}, delay (phase 1):'.format(t_id), np.sum(delay(vehs_speeds_1 / 13.89)) / 60) """
 
         # State.
         # 247123161.
-        self.assertEqual(state['247123161'][0], 0.30) # delay, phase 0, actual cycle
-        self.assertEqual(state['247123161'][1], 0.73) # delay, phase 0, previous cycle
-        self.assertEqual(state['247123161'][2], 0.77) # delay, phase 1, actual cycle
-        self.assertEqual(state['247123161'][3], 0.77) # delay, phase 1, previous cycle
+        self.assertEqual(state['247123161'][0], 0.32) # delay, phase 0, actual cycle
+        self.assertEqual(state['247123161'][1], 0.85) # delay, phase 0, previous cycle
+        self.assertEqual(state['247123161'][2], 0.80) # delay, phase 1, actual cycle
+        self.assertEqual(state['247123161'][3], 0.82) # delay, phase 1, previous cycle
 
         # 247123464.
-        self.assertEqual(state['247123464'][0], 1.48) # delay, phase 0, actual cycle
-        self.assertEqual(state['247123464'][1], 0.07) # delay, phase 0, previous cycle
-        self.assertEqual(state['247123464'][2], 0.80) # delay, phase 1, actual cycle
-        self.assertEqual(state['247123464'][3], 0.15) # delay, phase 1, previous cycle
+        self.assertEqual(state['247123464'][0], 1.52) # delay, phase 0, actual cycle
+        self.assertEqual(state['247123464'][1], 0.08) # delay, phase 0, previous cycle
+        self.assertEqual(state['247123464'][2], 0.83) # delay, phase 1, actual cycle
+        self.assertEqual(state['247123464'][3], 0.16) # delay, phase 1, previous cycle
 
         # 247123468.
-        self.assertEqual(state['247123468'][0], 2.05) # delay, phase 0, actual cycle
-        self.assertEqual(state['247123468'][1], 3.68) # delay, phase 0, previous cycle
+        self.assertEqual(state['247123468'][0], 2.13) # delay, phase 0, actual cycle
+        self.assertEqual(state['247123468'][1], 3.73) # delay, phase 0, previous cycle
         self.assertEqual(state['247123468'][2], 0.57) # delay, phase 1, actual cycle
-        self.assertEqual(state['247123468'][3], 0.45) # delay, phase 1, previous cycle
+        self.assertEqual(state['247123468'][3], 0.50) # delay, phase 1, previous cycle
 
         # Reward.
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward['247123161'], round(-0.01*(0.73-0.30 + 0.77-0.77), 4))
-        self.assertEqual(reward['247123464'], round(-0.01*(0.07-1.48 + 0.15-0.80), 4))
-        self.assertEqual(reward['247123468'], round(-0.01*(3.68-2.05 + 0.45-0.57), 4))
-
-
-    def test_min_queue_squared(self):
-        """
-            Minimize and balance the queues.
-        """
-        mdp_params = MDPParams(
-                        features=('queue', 'lag[queue]'),
-                        reward='reward_min_queue_squared',
-                        normalize_state_space=True,
-                        discretize_state_space=False,
-                        reward_rescale=0.01,
-                        time_period=None,
-                        velocity_threshold=0.1)
-
-        self.observation_space = State(self.network, mdp_params)
-        self.observation_space.reset()
-        self.reward = build_rewards(mdp_params)
-    
-        with open('tests/data/grid_kernel_data_1.dat', "rb") as f:
-            kernel_data_1 = pickle.load(f)
-
-        self.assertEqual(len(kernel_data_1), 60)
-
-        with open('tests/data/grid_kernel_data_2.dat', "rb") as f:
-            kernel_data_2 = pickle.load(f)
-
-        self.assertEqual(len(kernel_data_2), 60)
-
-        # Fake environment interaction with state object (cycle 1).
-        timesteps = list(range(1,60)) + [0]
-        for t, data in zip(timesteps, kernel_data_1):
-            self.observation_space.update(t, data)
-
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=mdp_params.discretize_state_space,
-            flatten=True
-        )
-
-        self.assertEqual(len(state['247123161']), 4)
-        self.assertEqual(len(state['247123464']), 4)
-        self.assertEqual(len(state['247123468']), 4)
-
-        """ print(state)
-        def queue(x):
-            if (x / 13.89) < 0.1:
-                return 1.0
-            else:
-                return 0.0
-
-        for t_id in ['247123161', '247123464' ,'247123468']:
-            queues_0 = []
-            queues_1 = []
-
-            for t in kernel_data_1:
-
-                temp_count = {}
-                for veh in t[t_id][0]:
-
-                    str_key = veh.edge_id + '_' + str(veh.lane)
-
-                    if str_key in temp_count:
-                        temp_count[str_key] += queue(veh.speed)
-                    else:
-                        temp_count[str_key] = queue(veh.speed)
-
-                if len(temp_count) == 0:
-                    queues_0.append(0.0)
-                else:
-                    queues_0.append(max(temp_count.values()))
-
-                temp_count = {}
-                for veh in t[t_id][1]:
-                    str_key = veh.edge_id + '_' + str(veh.lane)
-
-                    if str_key in temp_count:
-                        temp_count[str_key] += queue(veh.speed)
-                    else:
-                        temp_count[str_key] = queue(veh.speed)
-
-                if len(temp_count) == 0:
-                    queues_1.append(0.0)
-                else:
-                    queues_1.append(max(temp_count.values()))
-
-            print('t_id={0}, queue (phase 0):'.format(t_id), sum(queues_0) / 60)
-            print('t_id={0}, queue (phase 1):'.format(t_id), sum(queues_1) / 60) """
-
-        # State.
-        # 247123161.
-        self.assertEqual(state['247123161'][0], 0.63) # queue, phase 0, actual cycle
-        self.assertEqual(state['247123161'][1], 0.0)  # queue, phase 0, previous cycle (No data yet)
-        self.assertEqual(state['247123161'][2], 0.58) # queue, phase 1, actual cycle
-        self.assertEqual(state['247123161'][3], 0.0)  # queue, phase 1, previous cycle (No data yet)
-
-        # 247123464.
-        self.assertEqual(state['247123464'][0], 0.07) # queue, phase 0, actual cycle
-        self.assertEqual(state['247123464'][1], 0.0)  # queue, phase 0, previous cycle (No data yet)
-        self.assertEqual(state['247123464'][2], 0.15) # queue, phase 1, actual cycle
-        self.assertEqual(state['247123464'][3], 0.0)  # queue, phase 1, previous cycle (No data yet)
-
-        # 247123468.
-        self.assertEqual(state['247123468'][0], 2.05) # queue, phase 0, actual cycle
-        self.assertEqual(state['247123468'][1], 0.0)  # queue, phase 0, previous cycle (No data yet)
-        self.assertEqual(state['247123468'][2], 0.45) # queue, phase 1, actual cycle
-        self.assertEqual(state['247123468'][3], 0.0)  # queue, phase 1, previous cycle (No data yet)
-
-        # Fake environment interaction with state object (cycle 2).
-        timesteps = list(range(1,60)) + [0]
-        for t, data in zip(timesteps, kernel_data_2):
-            self.observation_space.update(t, data)
-
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=mdp_params.discretize_state_space,
-            flatten=True
-        )
-
-        self.assertEqual(len(state['247123161']), 4)
-        self.assertEqual(len(state['247123464']), 4)
-        self.assertEqual(len(state['247123468']), 4)
-
-        """ print(state)
-        def queue(x):
-            if (x / 13.89) < 0.1:
-                return 1.0
-            else:
-                return 0.0
-
-        for t_id in ['247123161', '247123464' ,'247123468']:
-            queues_0 = []
-            queues_1 = []
-
-            for t in kernel_data_2:
-
-                temp_count = {}
-                for veh in t[t_id][0]:
-
-                    str_key = veh.edge_id + '_' + str(veh.lane)
-
-                    if str_key in temp_count:
-                        temp_count[str_key] += queue(veh.speed)
-                    else:
-                        temp_count[str_key] = queue(veh.speed)
-
-                if len(temp_count) == 0:
-                    queues_0.append(0.0)
-                else:
-                    queues_0.append(max(temp_count.values()))
-
-                temp_count = {}
-                for veh in t[t_id][1]:
-                    str_key = veh.edge_id + '_' + str(veh.lane)
-
-                    if str_key in temp_count:
-                        temp_count[str_key] += queue(veh.speed)
-                    else:
-                        temp_count[str_key] = queue(veh.speed)
-
-                if len(temp_count) == 0:
-                    queues_1.append(0.0)
-                else:
-                    queues_1.append(max(temp_count.values()))
-
-            print('t_id={0}, queue (phase 0):'.format(t_id), sum(queues_0) / 60)
-            print('t_id={0}, queue (phase 1):'.format(t_id), sum(queues_1) / 60) """
-
-        # State.
-        # 247123161.
-        self.assertEqual(state['247123161'][0], 0.30) # queue, phase 0, actual cycle
-        self.assertEqual(state['247123161'][1], 0.63) # queue, phase 0, previous cycle
-        self.assertEqual(state['247123161'][2], 0.48) # queue, phase 1, actual cycle
-        self.assertEqual(state['247123161'][3], 0.58) # queue, phase 1, previous cycle
-
-        # 247123464.
-        self.assertEqual(state['247123464'][0], 0.63) # queue, phase 0, actual cycle
-        self.assertEqual(state['247123464'][1], 0.07) # queue, phase 0, previous cycle
-        self.assertEqual(state['247123464'][2], 0.80) # queue, phase 1, actual cycle
-        self.assertEqual(state['247123464'][3], 0.15) # queue, phase 1, previous cycle
-
-        # 247123468.
-        self.assertEqual(state['247123468'][0], 1.05) # queue, phase 0, actual cycle
-        self.assertEqual(state['247123468'][1], 2.05) # queue, phase 0, previous cycle
-        self.assertEqual(state['247123468'][2], 0.57) # queue, phase 1, actual cycle
-        self.assertEqual(state['247123468'][3], 0.45) # queue, phase 1, previous cycle
-
-        # Reward.
-        reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward['247123161'], 0.01*((0.63**2+0.58**2) - (0.30**2+0.48**2)))
-        self.assertAlmostEqual(reward['247123464'], 0.01*((0.07**2+0.15**2) - (0.63**2+0.80**2)))
-        self.assertAlmostEqual(reward['247123468'], 0.01*((2.05**2+0.45**2) - (1.05**2+0.57**2)))
+        self.assertAlmostEqual(reward['247123161'], round(0.01*(0.85-0.32 + 0.82-0.80), 4))
+        self.assertAlmostEqual(reward['247123464'], round(0.01*(0.08-1.52 + 0.16-0.83), 4))
+        self.assertAlmostEqual(reward['247123468'], round(0.01*(3.73-2.13 + 0.50-0.57), 4))
 
 
     def test_time_period(self):
@@ -697,7 +530,7 @@ class TestStateReward(unittest.TestCase):
         mdp_params = MDPParams(
                         features=('delay',),
                         reward='reward_min_delay',
-                        normalize_state_space=True,
+                        normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
                         time_period=3600,
@@ -730,18 +563,18 @@ class TestStateReward(unittest.TestCase):
         # State.
         # 247123161.
         self.assertEqual(state['247123161'][0], 0)    # time variable
-        self.assertEqual(state['247123161'][1], 2.85) # delay, phase 0
-        self.assertEqual(state['247123161'][2], 1.18) # delay, phase 1
+        self.assertEqual(state['247123161'][1], 2.91) # delay, phase 0
+        self.assertEqual(state['247123161'][2], 1.23) # delay, phase 1
 
         # 247123464.
         self.assertEqual(state['247123464'][0], 0)    # time variable
-        self.assertEqual(state['247123464'][1], 0.0)  # delay, phase 0
-        self.assertEqual(state['247123464'][2], 0.08) # delay, phase 1
+        self.assertEqual(state['247123464'][1], 0.02)  # delay, phase 0
+        self.assertEqual(state['247123464'][2], 0.09) # delay, phase 1
 
         # 247123468.
         self.assertEqual(state['247123468'][0], 0)    # time variable
-        self.assertEqual(state['247123468'][1], 0.58) # delay, phase 0
-        self.assertEqual(state['247123468'][2], 0.27) # delay, phase 1
+        self.assertEqual(state['247123468'][1], 0.69) # delay, phase 0
+        self.assertEqual(state['247123468'][2], 0.29) # delay, phase 1
 
         self.observation_space.reset()
 
