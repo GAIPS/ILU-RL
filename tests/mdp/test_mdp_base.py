@@ -23,17 +23,6 @@ class TestGridMDPSetUp(TestGridSetUp):
         * Avoid this behaviour by placing observation
           space tests in another class.
     """
-    @lazy_property
-    def mdp_params(self):
-        mdp_params = MDPParams(
-                        features=('pressure',),
-                        reward='reward_min_pressure',
-                        normalize_velocities=True,
-                        discretize_state_space=False,
-                        reward_rescale=0.01,
-                        time_period=None,
-                        velocity_threshold=0.1)
-        return mdp_params
 
     @lazy_property
     def observation_space(self):

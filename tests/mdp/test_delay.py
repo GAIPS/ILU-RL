@@ -6,11 +6,7 @@ from ilurl.state import State
 from ilurl.params import MDPParams
 from ilurl.utils.properties import lazy_property
 
-from tests.mdp.test_mdp_base import (TestGridMDPSetUp,
-                                     INCOMING_247123161, OUTGOING_247123161,
-                                     INCOMING_247123464, OUTGOING_247123464,
-                                     INCOMING_247123468, OUTGOING_247123468,
-                                     MAX_VEHS, MAX_VEHS_OUT)
+from tests.mdp.test_mdp_base import TestGridMDPSetUp
 
 class TestGridMinDelay(TestGridMDPSetUp):
     """
