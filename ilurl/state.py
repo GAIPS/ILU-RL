@@ -747,8 +747,7 @@ class Phase(Node):
             "Reinforcement learning for true adaptive traffic signal
             control."
         """
-        w = self._cached_weight
-        return round(float(self._cached_queue / (w + 1)), 2)
+        return round(float(self._cached_queue), 2)
 
     @property
     def waiting_time(self):
@@ -858,7 +857,7 @@ class Phase(Node):
     def _update_queue(self, step_queue):
         if 'queue' in self.labels:
             w = self._cached_weight
-            self._cached_queue = step_queue + (w > 0) * self._cached_queue
+            self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
 
     def _update_waiting_time(self, step_waiting_time):
         if 'waiting_time' in self.labels:

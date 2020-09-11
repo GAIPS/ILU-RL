@@ -71,7 +71,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
         sol = process_queue(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.63) # queue, phase 0, feature 1
+        self.assertEqual(check_1, 1.0) # queue, phase 0, feature 1
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -88,7 +88,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
         sol = process_queue(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161
-        self.assertEqual(check_1, 0.58) # queue, phase 1, feature 1
+        self.assertEqual(check_1, 3.0) # queue, phase 1, feature 1
         self.assertEqual(check_1, sol) # queue, phase 1, feature 1
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -97,7 +97,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
     def test_min_queue_squared_tl1(self):
         nid ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], round(-0.01*(0.58**2 + 0.63**2), 4))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(1.0**2 + 3.0**2), 4))
 
     def test_queue_tl2ph0(self):
         # 1) Define constraints
@@ -110,7 +110,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
         sol = process_queue(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123464
-        self.assertEqual(check_1, 0.07) # queue, phase 0
+        self.assertEqual(check_1, 1.0) # queue, phase 0
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -127,7 +127,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
         sol = process_queue(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123464
-        self.assertEqual(check_1, 0.15) # queue, phase 1
+        self.assertEqual(check_1, 1.0) # queue, phase 1
         self.assertEqual(check_1, sol) # queue, phase 1
 
         # 4) Assert 247123464 prevous cycle
@@ -136,7 +136,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
     def test_min_queue_squared_tl2(self):
         nid ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], round(-0.01*(0.07**2 + 0.15**2), 4))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(1.0**2 + 1.0**2), 4))
 
 
     def test_queue_tl3ph0(self):
@@ -150,7 +150,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
         sol = process_queue(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123468 actual cycle
-        self.assertEqual(check_1,  2.05) # queue, phase 0
+        self.assertEqual(check_1, 3.0) # queue, phase 0
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123468 prevous cycle
@@ -167,7 +167,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
         sol = process_queue(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123468
-        self.assertEqual(check_1, 0.45) # queue, phase 1
+        self.assertEqual(check_1, 2.0) # queue, phase 1
         self.assertEqual(check_1, sol) # queue, phase 1
 
         # 4) Assert 247123468 prevous cycle
@@ -176,7 +176,7 @@ class TestGridQueueCycle1(TestGridMDPSetUp):
     def test_min_queue_squared_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(-0.01*(2.05**2 + 0.45**2), 4))
+        self.assertAlmostEqual(reward[node_id], round(-0.01*(3.0**2 + 2.0**2), 4))
 
     def tearDown(self):
         pass
@@ -228,7 +228,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
                             norm_vehs=True)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.07) # queue, phase 0, feature 1
+        self.assertEqual(check_1, 0.11) # queue, phase 0, feature 1
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -245,8 +245,9 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
 
         sol = process_queue(self.kernel_data_1, nid, pid,
                             norm_vehs=True)
+
         # 3) Assert 247123161
-        self.assertEqual(check_1, 0.07) # queue, phase 1, feature 1
+        self.assertEqual(check_1, 0.38) # queue, phase 1, feature 1
         self.assertEqual(check_1, sol) # queue, phase 1, feature 1
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -255,7 +256,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
     def test_min_queue_squared_tl1(self):
         nid ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], round(-0.01*(0.07**2 + 0.07**2), 4))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(0.11**2 + 0.38**2), 4))
 
     def test_queue_tl2ph0(self):
         # 1) Define constraints
@@ -267,8 +268,9 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
         check_1, check_2 = self.state[nid][fid]
         sol = process_queue(self.kernel_data_1, nid, pid,
                             norm_vehs=True)
+
         # 3) Assert 247123464
-        self.assertEqual(check_1, 0.01) # queue, phase 0
+        self.assertEqual(check_1, 0.12) # queue, phase 0
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -286,7 +288,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
                             norm_vehs=True)
 
         # 3) Assert 247123464
-        self.assertEqual(check_1, 0.02) # queue, phase 1
+        self.assertEqual(check_1, 0.11) # queue, phase 1
         self.assertEqual(check_1, sol) # queue, phase 1
 
         # 4) Assert 247123464 prevous cycle
@@ -295,7 +297,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
     def test_min_queue_squared_tl2(self):
         nid ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[nid], round(-0.01*(0.01**2 + 0.02**2), 4))
+        self.assertAlmostEqual(reward[nid], round(-0.01*(0.12**2 + 0.11**2), 4))
 
 
     def test_queue_tl3ph0(self):
@@ -310,7 +312,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
                             norm_vehs=True)
 
         # 3) Assert 247123468 actual cycle
-        self.assertEqual(check_1,  0.26) # queue, phase 0
+        self.assertEqual(check_1,  0.38) # queue, phase 0
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123468 prevous cycle
@@ -328,7 +330,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
                             norm_vehs=True)
 
         # 3) Assert 247123468
-        self.assertEqual(check_1, 0.05) # queue, phase 1
+        self.assertEqual(check_1, 0.22) # queue, phase 1
         self.assertEqual(check_1, sol) # queue, phase 1
 
         # 4) Assert 247123468 prevous cycle
@@ -337,7 +339,7 @@ class TestGridQueueCycle1Norm(TestGridQueueCycle1):
     def test_min_queue_squared_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(-0.01*(0.26**2 + 0.05**2), 4))
+        self.assertAlmostEqual(reward[node_id], round(-0.01*(0.38**2 + 0.22**2), 4))
 
     def tearDown(self):
         pass
@@ -369,12 +371,10 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
 
         return observation_space
 
-
     def setUp(self):
         """Code here will run before every test"""
 
         super(TestGridQueueCycle1, self).setUp()
-
 
     def test_state(self):
         self.assertEqual(len(self.state['247123161']), 4)
@@ -392,11 +392,11 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         sol = process_queue(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.30) # queue, phase 0, feature 1
+        self.assertEqual(check_1, 1.0) # queue, phase 0, feature 1
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123161 previous cycle
-        self.assertEqual(check_2, 0.63) # queue, phase 0, feature 2
+        self.assertEqual(check_2, 1.0) # queue, phase 0, feature 2
 
     def test_queue_tl1ph1(self):
         # 1) Define constraints
@@ -409,18 +409,18 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         sol = process_queue(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161
-        self.assertEqual(check_1, 0.48) # queue, phase 1, feature 1
+        self.assertEqual(check_1, 1.0) # queue, phase 1, feature 1
         self.assertEqual(check_1, sol) # queue, phase 1, feature 1
 
         # 4) Assert 247123161 previous cycle
-        self.assertEqual(check_2, 0.58) # queue, phase 1, feature 2
+        self.assertEqual(check_2, 3.0) # queue, phase 1, feature 2
 
     def test_min_queue_squared_tl1(self):
         nid ='247123161'
         reward = self.reward(self.observation_space)
         self.assertAlmostEqual(
             reward[nid],
-            round(-0.01*((0.30**2 + 0.48**2) - (0.58**2 + 0.63**2)), 4)
+            round(0.01*((1.0**2 + 3.0**2) - (1.0**2 + 1.0**2)), 4)
         )
 
     def test_queue_tl2ph0(self):
@@ -434,11 +434,11 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         sol = process_queue(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123464
-        self.assertEqual(check_1, 0.63) # queue, phase 0
+        self.assertEqual(check_1, 1.0) # queue, phase 0
         self.assertEqual(check_1, sol) # queue, phase 0
 
         # 4) Assert 247123161 previous cycle
-        self.assertEqual(check_2, 0.07) # queue, phase 1, feature 2
+        self.assertEqual(check_2, 1.0) # queue, phase 1, feature 2
 
     def test_queue_tl2ph1(self):
         # 1) Define constraints
@@ -451,20 +451,19 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         sol = process_queue(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123464
-        self.assertEqual(check_1, 0.80) # queue, phase 1
+        self.assertEqual(check_1, 2.0) # queue, phase 1
         self.assertEqual(check_1, sol) # queue, phase 1
 
-        # 4) Assert 247123464 prevous cycle
-        self.assertEqual(check_2, 0.15) # queue, phase 1, feature 2
+        # 4) Assert 247123464 previous cycle
+        self.assertEqual(check_2, 1.0) # queue, phase 1, feature 2
 
     def test_min_queue_squared_tl2(self):
         nid ='247123464'
         reward = self.reward(self.observation_space)
         self.assertAlmostEqual(
             reward[nid],
-            round(-0.01*((0.63**2 + 0.8**2) - (0.07**2 + 0.15**2)), 4)
-            )
-
+            round(0.01*((1.0**2 + 1.0**2) - (1.0**2 + 2.0**2)), 4)
+        )
 
     def test_queue_tl3ph0(self):
         # 1) Define constraints
@@ -477,11 +476,11 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         sol = process_queue(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123468 actual cycle
-        self.assertEqual(check_1,  1.05) # queue, phase 0
+        self.assertEqual(check_1, 2.0) # queue, phase 0
         self.assertEqual(check_1, sol) # queue, phase 0
 
-        # 4) Assert 247123468 prevous cycle
-        self.assertEqual(check_2, 2.05) # queue, phase 1, feature 2
+        # 4) Assert 247123468 previous cycle
+        self.assertEqual(check_2, 3.0) # queue, phase 1, feature 2
 
     def test_queue_tl3ph1(self):
         # 1) Define constraints
@@ -494,22 +493,23 @@ class TestGridQueueCycle2(TestGridQueueCycle1):
         sol = process_queue(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123468
-        self.assertEqual(check_1, 0.57) # queue, phase 1
+        self.assertEqual(check_1, 2.0) # queue, phase 1
         self.assertEqual(check_1, sol) # queue, phase 1
 
-        # 4) Assert 247123468 prevous cycle
-        self.assertEqual(check_2, 0.45) # queue, phase 1, feature 2
+        # 4) Assert 247123468 previous cycle
+        self.assertEqual(check_2, 2.0) # queue, phase 1, feature 2
 
     def test_min_queue_squared_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
         self.assertAlmostEqual(
             reward[node_id],
-            round(-0.01*((1.05**2 + 0.57**2) - (2.05**2 + 0.45**2)), 4)
-            )
+            round(0.01*((3.0**2 + 2.0**2) - (2.0**2 + 2.0**2)), 4)
+        )
 
     def tearDown(self):
         pass
+
 
 def process_queue(data, node_id, phase_id, norm_vehs=False):
 
@@ -537,8 +537,7 @@ def process_queue(data, node_id, phase_id, norm_vehs=False):
                 else:
                     queues.append(max(qt.values()))
 
-
-        ret =  round(sum(queues) / 60, 2)
+        ret =  round(max(queues), 2)
 
         return ret
 
