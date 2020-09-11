@@ -38,32 +38,6 @@ class TestGridWaitingTime(TestGridMDPSetUp):
                         velocity_threshold=0.1)
         return mdp_params
 
-    # @lazy_property
-    # def observation_space(self):
-    #     observation_space = State(self.network, self.mdp_params)
-    #     observation_space.reset()
-    #     # Fake environment interaction with state object.
-    #     timesteps = list(range(1,60)) + [0]
-
-    #     for t, data in zip(timesteps, self.kernel_data):
-    #         observation_space.update(t, data)
-
-    #     return observation_space
-
-    # @lazy_property
-    # def reward(self):
-    #     reward = build_rewards(self.mdp_params)
-    #     return reward
-
-    # @lazy_property
-    # def state(self):
-    #     # Get state.
-    #     state = self.observation_space.feature_map(
-    #         categorize=self.mdp_params.discretize_state_space,
-    #         flatten=True
-    #     )
-    #     return state
-
     def setUp(self):
         """Code here will run before every test"""
 
@@ -199,32 +173,6 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
                         velocity_threshold=0.1)
         return mdp_params
 
-    # @lazy_property
-    # def observation_space(self):
-    #     observation_space = State(self.network, self.mdp_params)
-    #     observation_space.reset()
-    #     # Fake environment interaction with state object.
-    #     timesteps = list(range(1,60)) + [0]
-
-    #     for t, data in zip(timesteps, self.kernel_data):
-    #         observation_space.update(t, data)
-
-    #     return observation_space
-
-    # @lazy_property
-    # def reward(self):
-    #     reward = build_rewards(self.mdp_params)
-    #     return reward
-
-    # @lazy_property
-    # def state(self):
-    #     # Get state.
-    #     state = self.observation_space.feature_map(
-    #         categorize=self.mdp_params.discretize_state_space,
-    #         flatten=True
-    #     )
-    #     return state
-
     def setUp(self):
         """Code here will run before every test"""
 
@@ -335,6 +283,7 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
 def process_waiting_time(kernel_data, node_id, phase_id, norm_vehs=False):
     """Processes batched waiting time computation"""
+    cycle_time = 60
 
     def fn(x):
         if (x / 13.89) < 0.1:
@@ -360,7 +309,7 @@ def process_waiting_time(kernel_data, node_id, phase_id, norm_vehs=False):
             else:
                 wait_times.append(sum(qt.values()))
 
-    ret =  round(sum(wait_times) / 60, 2)
+    ret =  round(sum(wait_times) / cycle_time, 2)
 
     return ret
 

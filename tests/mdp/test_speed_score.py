@@ -153,6 +153,7 @@ class TestGridSpeedScore(TestGridMDPSetUp):
 
 def process_speed_score(kernel_data, node_id, phase_id):
     """Processes batched speed score computation"""
+    cycle_time = 60
 
     values_count = []
     for t in kernel_data:
@@ -164,7 +165,7 @@ def process_speed_score(kernel_data, node_id, phase_id):
 
     vehs_speeds = np.array(vehs_speeds)
 
-    count = len(vehs_speeds) / 60
+    count = len(vehs_speeds) / cycle_time
     speed = np.sum(vehs_speeds) / (13.89 * len(vehs_speeds))
 
     return (round(speed, 2), round(count, 2))

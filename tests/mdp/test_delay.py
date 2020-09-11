@@ -440,6 +440,7 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
 
 def process_delay(kernel_data, node_id, phase_id):
     """Processes batched delay computation"""
+    cycle_time = 60
 
     def delay(x):
             return np.where(x >= 1, 0.0, np.exp(-5*x))
@@ -454,7 +455,7 @@ def process_delay(kernel_data, node_id, phase_id):
 
     vehs_speeds = np.array(vehs_speeds)
 
-    ret = np.sum(delay(vehs_speeds / 13.89)) / 60
+    ret = np.sum(delay(vehs_speeds / 13.89)) / cycle_time
     ret = round(ret, 2)
     return ret
 
