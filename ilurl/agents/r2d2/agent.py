@@ -63,9 +63,10 @@ class R2D2(AgentWorker,AgentInterface):
         tf.config.threading.set_intra_op_parallelism_threads(_TF_NUM_THREADS)
 
         if params.seed:
-            random.seed(params.seed)
-            np.random.seed(params.seed)
-            tf.random.set_seed(params.seed)
+            agent_seed = params.seed + sum([ord(c) for c in params.name])
+            random.seed(agent_seed)
+            np.random.seed(agent_seed)
+            tf.random.set_seed(agent_seed)
 
         # Internalize params.
         self._params = params

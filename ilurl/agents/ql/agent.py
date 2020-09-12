@@ -41,9 +41,10 @@ class QL(AgentWorker, AgentInterface):
         tf.config.set_visible_devices([], 'GPU')
 
         if ql_params.seed:
-            random.seed(ql_params.seed)
-            np.random.seed(ql_params.seed)
-            tf.random.set_seed(ql_params.seed)
+            agent_seed = ql_params.seed + sum([ord(c) for c in ql_params.name])
+            random.seed(agent_seed)
+            np.random.seed(agent_seed)
+            tf.random.set_seed(agent_seed)
 
         self._name = ql_params.name
 
