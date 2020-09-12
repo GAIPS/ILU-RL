@@ -7,7 +7,7 @@ from ilurl.envs.elements import build_vehicles
 from ilurl.params import MDPParams
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import (TestGridSetUp,
+from tests.unit.network.test_grid import (TestGridSetUp,
                                      MAX_VEHS, MAX_VEHS_OUT,
                                      INCOMING_247123161, OUTGOING_247123161,
                                      INCOMING_247123464, OUTGOING_247123464,

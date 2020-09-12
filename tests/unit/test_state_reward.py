@@ -46,7 +46,7 @@ class TestStateReward(unittest.TestCase):
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
 
-        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
 
         self.assertEqual(len(kernel_data), 60)
@@ -119,7 +119,7 @@ class TestStateReward(unittest.TestCase):
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
 
-        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
 
         self.assertEqual(len(kernel_data), 60)
@@ -201,7 +201,7 @@ class TestStateReward(unittest.TestCase):
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
     
-        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
 
         self.assertEqual(len(kernel_data), 60)
@@ -287,7 +287,7 @@ class TestStateReward(unittest.TestCase):
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
     
-        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
 
         self.assertEqual(len(kernel_data), 60)
@@ -391,12 +391,12 @@ class TestStateReward(unittest.TestCase):
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
     
-        with open('tests/data/grid_kernel_data_1.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data_1.dat', "rb") as f:
             kernel_data_1 = pickle.load(f)
 
         self.assertEqual(len(kernel_data_1), 60)
 
-        with open('tests/data/grid_kernel_data_2.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data_2.dat', "rb") as f:
             kernel_data_2 = pickle.load(f)
 
         self.assertEqual(len(kernel_data_2), 60)
@@ -540,7 +540,7 @@ class TestStateReward(unittest.TestCase):
         self.observation_space.reset()
         self.reward = build_rewards(mdp_params)
     
-        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
 
         self.assertEqual(len(kernel_data), 60)

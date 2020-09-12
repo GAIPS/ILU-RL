@@ -73,16 +73,16 @@ class TestGridSetUp(unittest.TestCase):
         }
         self.network = Network(**network_args)
 
-        with open('tests/data/grid_kernel_data.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data.dat', "rb") as f:
             kernel_data = pickle.load(f)
         self.kernel_data = kernel_data
 
-        with open('tests/data/grid_kernel_data_1.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data_1.dat', "rb") as f:
             kernel_data_1 = pickle.load(f)
         self.kernel_data_1 = kernel_data_1
 
 
-        with open('tests/data/grid_kernel_data_2.dat', "rb") as f:
+        with open('tests/unit/data/grid_kernel_data_2.dat', "rb") as f:
             kernel_data_2 = pickle.load(f)
         self.kernel_data_2 = kernel_data_2
 

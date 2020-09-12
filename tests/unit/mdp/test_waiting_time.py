@@ -10,8 +10,8 @@ from ilurl.params import MDPParams
 from ilurl.utils.aux import flatten
 from ilurl.utils.properties import lazy_property
 
-from tests.network.test_grid import MAX_VEHS_PER_LANE
-from tests.mdp.test_mdp_base import TestGridMDPSetUp
+from tests.unit.network.test_grid import MAX_VEHS_PER_LANE
+from tests.unit.mdp.test_mdp_base import TestGridMDPSetUp
 
 class TestGridWaitingTime(TestGridMDPSetUp):
     """

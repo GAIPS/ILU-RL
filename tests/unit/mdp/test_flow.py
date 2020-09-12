@@ -6,7 +6,7 @@ from ilurl.state import State
 from ilurl.params import MDPParams
 from ilurl.utils.properties import lazy_property
 
-from tests.mdp.test_mdp_base import TestGridMDPSetUp
+from tests.unit.mdp.test_mdp_base import TestGridMDPSetUp
 
 class TestGridMaxFlow(TestGridMDPSetUp):
     """
