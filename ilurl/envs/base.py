@@ -211,7 +211,7 @@ class TrafficLightEnv(Env):
         def fn(tid):
 
             if self.ts_type in ('rl', 'random') and \
-                (dur == 0 or self.time_counter == 1) and \
+                (dur == 1 or self.time_counter == 1) and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
