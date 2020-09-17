@@ -10,10 +10,10 @@ import json
 import xml.etree.ElementTree as ET
 import numpy as np
 
-ILURL_HOME = os.environ['ILURL_HOME']
+ALTRL_HOME = os.environ['ALTRL_HOME']
 
 DIR = \
-    f'{ILURL_HOME}/data/networks/'
+    f'{ALTRL_HOME}/data/networks/'
 
 def get_path(network_id, file_type):
     rel_path = f'{network_id}/'

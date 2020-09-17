@@ -5,12 +5,12 @@ import configparser
 
 from models.train import main as train
 
-ILURL_HOME = os.environ['ILURL_HOME']
+ALTRL_HOME = os.environ['ALTRL_HOME']
 CONFIG_PATH = \
-    f'{ILURL_HOME}/tests/system/config'
+    f'{ALTRL_HOME}/tests/system/config'
 
 OUTPUTS_PATH = \
-    f'{ILURL_HOME}/tests/system/outputs'
+    f'{ALTRL_HOME}/tests/system/outputs'
 
 SEED = 77
 

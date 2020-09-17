@@ -5,7 +5,7 @@ import json
 
 def get_demand(demand_type=None, network_id=None):
 
-    file = Path(f"{environ['ILURL_HOME']}/data/networks/{network_id}/demands.json")
+    file = Path(f"{environ['ALTRL_HOME']}/data/networks/{network_id}/demands.json")
 
     if file.exists ():
         # Custom file.
@@ -23,7 +23,7 @@ def get_demand(demand_type=None, network_id=None):
 
         print('WARNING: Custom demands.json file missing. Loading default file from ilurl/data/demands')
 
-        path = Path(f"{environ['ILURL_HOME']}/data/demands/")
+        path = Path(f"{environ['ALTRL_HOME']}/data/demands/")
 
         default_demand_path = path / 'demands.json'
         with default_demand_path.open(mode='r') as f:

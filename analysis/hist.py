@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 # current project dependencies
 from ilurl.envs.base import TrafficLightQLEnv
 
-ROOT_DIR = os.environ['ILURL_HOME']
+ROOT_DIR = os.environ['ALTRL_HOME']
 # EMISSION_DIR = f"{ROOT_DIR}/data/emissions/"
 EMISSION_DIR = f"{ROOT_DIR}/data/experiments/0x04/"
 # CONFIG_DIR = ('4545', '5040', '5434', '6030')

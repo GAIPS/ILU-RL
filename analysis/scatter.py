@@ -31,7 +31,7 @@ from ilurl.params import QLParams
 from ilurl.utils import TIMESTAMP_PROG
 
 
-ROOT_DIR = os.environ['ILURL_HOME']
+ROOT_DIR = os.environ['ALTRL_HOME']
 
 
 def get_arguments():
