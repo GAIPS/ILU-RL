@@ -11,14 +11,29 @@ def camelize(snake_case_name):
     Params:
     -------
     snake_case_name: str
-        a name to be converted
+        ThisIsASnakeCaseName
 
     Returns:
     -------
     camel_case_name: str
-        a name in `_' format
+        this_is_a_camel_case_name in `_' format
     """
     return PATTERN.sub('_', snake_case_name).lower()
+
+def snakefy(word):
+    """Converts from camel_case SnakeCase.
+
+    Params:
+    -------
+    word: str
+        this_is_a_camel_case_name in `_' format
+
+    Returns:
+    -------
+    word: str
+        ThisIsASnakeCaseName
+    """
+    return ''.join(w.title() for w in word.split('_'))
 
 def flatten(items, ignore_types=(str, bytes)):
     """
