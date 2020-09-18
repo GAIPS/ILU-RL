@@ -62,7 +62,7 @@ class State(Node):
     def labels(self):
         return self._labels
 
-    def update(self, duration, vehs, tls=None):
+    def update(self, duration, vehs, tls):
         """Update data structures with observation space
 
             * Broadcast it to intersections
@@ -77,19 +77,19 @@ class State(Node):
             * vehs: list<namedtuple<ilurl.envs.elements.Vehicles>>
                 Container for vehicle data (from VehicleKernel)
 
-            * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
+            * tls: list<namedtuple<ilurl.envs.elements.TrafficLight>>
                 Container for traffic light program representation
         """
         # 1) Update time.
         self._update_time(duration)
 
         # 2) Broadcast update to intersections.
-        for tls_id, tls in self.intersections.items():
-            tls.update(duration, vehs[tls_id], tls)
+        for tl_id, inter in self.intersections.items():
+            inter.update(duration, vehs[tl_id], tls[tl_id])
 
         # 3) Additional intersection commands
-        for tls_id, tls in self.intersections.items():
-            tls.after_update()
+        for inter in self.intersections.values():
+            inter.after_update()
 
 
     def reset(self):

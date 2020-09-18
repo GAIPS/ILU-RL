@@ -192,6 +192,7 @@ def reward_min_waiting_time(state, *args):
         filter_by=('waiting_time',)
     )
     ret = {}
+    print(wait_times)
     for tls_id, phase_obs in wait_times.items():
         ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
     return ret
@@ -370,4 +371,5 @@ def rescale_rewards(rewards, scale_factor):
 
 def diff(x, y):
     return np.array(x) - np.array(y)
+
 

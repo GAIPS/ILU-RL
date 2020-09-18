@@ -79,6 +79,7 @@ class Phase(Node):
         self._outgoing_ids = outgoing_ids
 
         self.cached_features = {}
+        self.green_states = phase_data['states']
         super(Phase, self).__init__(intersection, phase_id, lanes)
 
 
@@ -189,6 +190,11 @@ class Phase(Node):
         step_speed_score = 0
         self._update_cached_weight(duration)
 
+        # 3) 0 is green and 1 is red
+        ind = int(not tls in self.green_states)
+
+        
+
         for lane in self.lanes.values():
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(_vehs)
@@ -205,7 +211,7 @@ class Phase(Node):
         self._update_delay(step_delay)
         self._update_flow(step_flow)
         self._update_queue(step_queue)
-        self._update_waiting_time(step_waiting_time)
+        self._update_waiting_time(step_waiting_time, ind)
         self._update_speed(step_speed)
         self._update_speed_score(step_speed_score)
 
@@ -240,7 +246,7 @@ class Phase(Node):
         self._cached_step_flow = set({})
 
         self._cached_queue = 0
-        self._cached_waiting_time = 0
+        self._cached_waiting_time = [0, 0]
         self._cached_speed = 0
         self._cached_speed_score = 0
 
@@ -400,7 +406,11 @@ class Phase(Node):
 
         """
         w = self._cached_weight
-        return round(float(self._cached_waiting_time / (w + 1)), 2)
+        ret = [
+            round(float(self._cached_waiting_time[ind] / (w + 1)), 2)
+            for ind in range(2)
+        ]
+        return ret 
 
 
     @property
@@ -499,10 +509,14 @@ class Phase(Node):
             w = self._cached_weight
             self._cached_queue = max(step_queue, (w > 0) * self._cached_queue)
 
-    def _update_waiting_time(self, step_waiting_time):
+    def _update_waiting_time(self, step_waiting_time, ind):
         if 'waiting_time' in self.labels:
             w = self._cached_weight
-            self._cached_waiting_time = step_waiting_time + (w > 0) * self._cached_waiting_time
+            if (w == 0):
+                self._cached_waiting_time = [0, 0]
+
+            self._cached_waiting_time[ind] = \
+                step_waiting_time + (w > 0) * self._cached_waiting_time[ind]
 
     def _update_speed(self, step_speed):
         if 'speed' in self.labels:
@@ -541,6 +555,6 @@ class Phase(Node):
                 self._matcher.search(label).groups()[0]
         return derived_label or label
 
-    def _digitize(self, value, label):
+    def _digitize(self, values, label):
         _bins = self._bins[self._get_derived(label)]
-        return int(np.digitize(value, bins=_bins))
+        return [int(np.digitize(val, bins=_bins)) for val in values]
