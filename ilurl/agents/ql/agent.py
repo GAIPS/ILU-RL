@@ -66,7 +66,6 @@ class QL(AgentWorker, AgentInterface):
                          ql_params.actions.rank, ql_params.actions.depth,
                          ql_params.initial_value)
 
-
         # State-action counter (for learning rate decay).
         self.state_action_counter = dpq_tls(ql_params.states.rank,
                                             ql_params.states.depth,
@@ -106,6 +105,7 @@ class QL(AgentWorker, AgentInterface):
         self._stop = stop
 
     def act(self, s):
+        print(s)
         if self._stop:
             # Argmax greedy choice.
             actions, values = zip(*self.Q[s].items())
