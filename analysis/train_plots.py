@@ -72,10 +72,7 @@ def main(experiment_root_folder=None):
 
     print('Input files:')
     # Get all train_log.json files from experiment root folder.
-    train_files = []
-    for path in Path(experiment_root_folder).rglob('train_log.json'):
-        train_files.append(str(path))
-        print('{0}'.format(str(path)))
+    train_files = list(Path(experiment_root_folder).rglob('train_log.json'))
 
     # Prepare output folder.
     output_folder_path = os.path.join(experiment_root_folder, 'plots/train')
@@ -96,6 +93,8 @@ def main(experiment_root_folder=None):
 
     # Concatenate data for all runs.
     for run_name in train_files:
+
+        print('Processing JSON file: {0}'.format(run_name))
 
         # Load JSON data.
         with open(run_name) as f:
@@ -256,6 +255,7 @@ def main(experiment_root_folder=None):
     """
     if agent_type in ('DDPG', 'MPO'):
         # Continuous action-schema.
+
         # TODO: This only works for two-phased intersections.
         dfs_a = [pd.DataFrame([{i: a[0] for (i, a) in t.items()}
                                 for t in run])

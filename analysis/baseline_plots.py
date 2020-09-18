@@ -24,7 +24,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(
         description="""
             This script creates evaluation plots, given an experiment folder path.
-            (To be used with RL-algorithms)
+            (To be used with baselines)
         """
     )
     parser.add_argument('experiment_root_folder', type=str, nargs='?',
@@ -34,12 +34,12 @@ def get_arguments():
 
 def print_arguments(args):
 
-    print('Arguments (analysis/test_plots.py):')
+    print('Arguments (analysis/baseline_plots.py):')
     print('\tExperiment root folder: {0}\n'.format(args.experiment_root_folder))
 
 def main(experiment_root_folder=None):
 
-    print('\nRUNNING analysis/test_plots.py\n')
+    print('\nRUNNING analysis/baseline_plots.py\n')
 
     if not experiment_root_folder:
         args = get_arguments()
@@ -59,12 +59,6 @@ def main(experiment_root_folder=None):
 
     # Get all *.csv files from experiment root folder.
     csv_files = [str(p) for p in list(Path(experiment_root_folder).rglob('*-emission.csv'))]
-
-    # Get agent_type.
-    train_config_path = list(Path(experiment_root_folder).rglob('train.config'))[0]
-    train_config = configparser.ConfigParser()
-    train_config.read(train_config_path)
-    agent_type = train_config['agent_type']['agent_type']
     
     print('Number of csv files found: {0}'.format(len(csv_files)))
 
@@ -83,6 +77,7 @@ def main(experiment_root_folder=None):
         df_per_vehicle = get_vehicles(df_csv)
 
         df_per_vehicle_mean = df_per_vehicle.mean()
+
         mean_values_per_eval.append({'train_run': Path(csv_file).parts[-4],
                                      'speed': df_per_vehicle_mean['speed'],
                                      'waiting_time': df_per_vehicle_mean['waiting'],
@@ -92,6 +87,7 @@ def main(experiment_root_folder=None):
 
         df_throughput = get_throughput(df_csv)
         throughputs.append(df_throughput)
+
 
     df_vehicles_appended = pd.concat(vehicles_appended)
     df_throughputs_appended = pd.concat(throughputs)
@@ -290,142 +286,38 @@ def main(experiment_root_folder=None):
 
     plt.close()
 
-    # Get test eval json file from experiment root folder.
-    json_file = Path(experiment_root_folder) / 'rollouts_test.json'
-    print('JSON file path: {0}\n'.format(json_file))
+    # Get all train_log.json files from experiment root folder.
+    train_files = list(Path(experiment_root_folder).rglob('train_log.json'))
 
-    # Load JSON data.
-    with open(json_file) as f:
-        json_data = json.load(f)
+    vehicles = []
+    velocities = []
 
-    id = str(json_data['id'][0])
+    # Concatenate data for all runs.
+    for run_name in train_files:
 
-    """
-        Rewards per intersection (per cycle).
-    """
-    dfs_r = [pd.DataFrame(r) for r in json_data['rewards'][id]]
+        print('Processing JSON file: {0}'.format(run_name))
 
-    df_concat = pd.concat(dfs_r)
+        # Load JSON data.
+        with open(run_name) as f:
+            json_data = json.load(f)
 
-    by_row_index = df_concat.groupby(df_concat.index)
-    df_rewards = by_row_index.mean()
+        # Number of vehicles per time-step.
+        vehicles.append(json_data['vehicles'])
 
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-    for col in df_rewards.columns:
-        plt.plot(df_rewards[col].rolling(window=40).mean(), label=col)
-
-    plt.xlabel('Cycle')
-    plt.ylabel('Reward')
-    plt.title('Rewards per intersection')
-    plt.legend()
-
-    plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/rewards_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-
-    plt.close()
-
-    """
-        Total rewards (per cycle).
-    """
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y) 
-
-    plt.plot(df_rewards.sum(axis=1))
-
-    plt.xlabel('Cycle')
-    plt.ylabel('Reward')
-    plt.title('Cumulative reward')
-
-    plt.savefig('{0}/total_reward.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/total_reward.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    
-    plt.close()
-
-    total_reward = df_rewards.to_numpy().sum()
-
-    # Describe total system cumulative reward.
-    pd.DataFrame([total_reward]).to_csv('{0}/cumulative_reward.csv'.format(output_folder_path),
-                    float_format='%.3f', header=False)
-
-    """
-        Actions per intersection (per cycle).
-
-        WARNING: This might require different processing here. As an example,
-            the actions taken by the DQN actions (discrete action agent)
-            differ from the ones taken by the DDPG agent (continuous action
-            agent).
-    """
-    if agent_type in ('DDPG', 'MPO'):
-        # Continuous action-schema.
-        # TODO: This only works for two-phased intersections.
-        dfs_a = [pd.DataFrame([{i: round(a[0], 4) for (i, a) in t.items()}
-                                for t in run])
-                                    for run in json_data['actions'][id]]
-        df_concat = pd.concat(dfs_a)
-
-        by_row_index = df_concat.groupby(df_concat.index)
-        df_actions = by_row_index.mean()
-
-        fig = plt.figure()
-        fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-        # window_size = min(len(df_actions)-1, 40)
-
-        for col in df_actions.columns:
-            plt.plot(df_actions[col], label=col) # .rolling(window=window_size).mean()
-
-        plt.xlabel('Cycle')
-        plt.ylabel('Action (phase-0 allocation)')
-        plt.title('Actions per intersection')
-        plt.legend()
-
-        plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-        plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-
-        plt.close()
-
-    else:
-        # Discrete action-schema.
-        dfs_a = [pd.DataFrame(run) for run in json_data['actions'][id]]
-
-        df_concat = pd.concat(dfs_a)
-
-        by_row_index = df_concat.groupby(df_concat.index)
-        df_actions = by_row_index.mean()
-
-        fig = plt.figure()
-        fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-        for col in df_actions.columns:
-            plt.plot(df_actions[col].rolling(window=40).mean(), label=col)
-
-        plt.xlabel('Cycle')
-        plt.ylabel('Action')
-        plt.title('Actions per intersection')
-        plt.legend()
-
-        plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-        plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-
-        plt.close()
+        # Vehicles' velocity per time-step.
+        velocities.append(json_data['velocities'])
 
     """
         Number of vehicles per cycle.
     """
+    vehicles = np.array(vehicles)
+    vehicles = np.average(vehicles, axis=0)
+
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-    dfs_veh = [pd.DataFrame(r) for r in json_data['vehicles'][id]]
-
-    df_concat = pd.concat(dfs_veh)
-
-    by_row_index = df_concat.groupby(df_concat.index)
-    df_vehicles = by_row_index.mean()
     
-    X = np.arange(0, len(df_vehicles))
-    Y = df_vehicles
+    X = np.arange(0, len(vehicles))
+    Y = vehicles
 
     # Store data in dataframe for further materialization.
     vehicles_per_cycle = pd.DataFrame()
@@ -446,18 +338,14 @@ def main(experiment_root_folder=None):
     """
         Average vehicles' velocity per cycle.
     """
+    velocities = np.array(velocities)
+    velocities = np.average(velocities, axis=0)
+
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    dfs_vels = [pd.DataFrame(r) for r in json_data['velocities'][id]]
-
-    df_concat = pd.concat(dfs_vels)
-
-    by_row_index = df_concat.groupby(df_concat.index)
-    df_velocities = by_row_index.mean()
-
-    X = np.arange(0, len(df_velocities))
-    Y = df_velocities
+    X = np.arange(0, len(velocities))
+    Y = velocities
 
     # Store data in dataframe for further materialization.
     velocities_per_cycle = pd.DataFrame()
@@ -474,7 +362,6 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/velocities.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
     plt.close()
-
 
     # Materialize processed data.
     processed_data = pd.concat([waiting_time_hist_kde,
