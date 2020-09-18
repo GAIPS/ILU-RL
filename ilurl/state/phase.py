@@ -180,6 +180,9 @@ class Phase(Node):
         def _in(veh, lane):
             return (veh.edge_id, veh.lane) == lane.lane_id
 
+        # 3) 0 is green and 1 is red
+        ind = int(not tls in self.green_states)
+
         # 2) Update lanes
         step_count = 0
         step_delay = 0
@@ -188,12 +191,7 @@ class Phase(Node):
         step_waiting_time = 0
         step_speed = 0
         step_speed_score = 0
-        self._update_cached_weight(duration)
-
-        # 3) 0 is green and 1 is red
-        ind = int(not tls in self.green_states)
-
-        
+        self._update_cached_weight(ind)
 
         for lane in self.lanes.values():
             _vehs = [v for v in vehs if _in(v, lane)]
@@ -250,7 +248,8 @@ class Phase(Node):
         self._cached_speed = 0
         self._cached_speed_score = 0
 
-        self._cached_weight = 0
+        self._cached_weight = [0, 0]
+        self._last_index = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -405,12 +404,11 @@ class Phase(Node):
             The average number of cars under a given velocity threshold.
 
         """
-        w = self._cached_weight
-        ret = [
-            round(float(self._cached_waiting_time[ind] / (w + 1)), 2)
-            for ind in range(2)
-        ]
-        return ret 
+        waits = zip(self._cached_weight, self._cached_waiting_time)
+        ret = []
+        for w, wt in waits:
+            ret.append(round(float(wt / (w + 1)), 2))
+        return ret
 
 
     @property
@@ -477,10 +475,13 @@ class Phase(Node):
         else:
             return 0.0
 
-    def _update_cached_weight(self, duration):
-        """ If duration = 1 then history's weight must be zero i.e
-            all weight is given to the new sample"""
-        self._cached_weight = int(int(duration) != 1) * (self._cached_weight + 1)
+    def _update_cached_weight(self, ind):
+        # When it switches to another color resets current
+        self._cached_weight[ind] = int(self._last_index == ind) * (self._cached_weight[ind] + 1)
+
+        # When it switches to another color inc previous count by 1.
+        self._cached_weight[self._last_index] += int(self._last_index != ind)
+        self._last_index = ind
 
     def _update_count(self, step_count):
         if _check_count(self.labels):
@@ -511,10 +512,7 @@ class Phase(Node):
 
     def _update_waiting_time(self, step_waiting_time, ind):
         if 'waiting_time' in self.labels:
-            w = self._cached_weight
-            if (w == 0):
-                self._cached_waiting_time = [0, 0]
-
+            w = self._cached_weight[ind]
             self._cached_waiting_time[ind] = \
                 step_waiting_time + (w > 0) * self._cached_waiting_time[ind]
 

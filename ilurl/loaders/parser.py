@@ -184,7 +184,7 @@ class Parser(object):
                         replay_buffer_warm_up=int(ql_args['replay_buffer_warm_up']),
         )
 
-        # print(ql_params)
+        print(ql_params)
 
         return ql_params
 

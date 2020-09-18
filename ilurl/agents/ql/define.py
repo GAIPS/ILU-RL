@@ -29,7 +29,7 @@ def dpq_tls(state_rank, state_dim,
     are states and the inner keys are the actions
 
     """
-    state_space = catspace(state_rank * 2, state_dim)
+    state_space = catspace(state_rank, state_dim)
     num_actions = len(catspace(action_rank, action_dim))
     action_space = np.arange(0, num_actions)
     return dpq(state_space, action_space,

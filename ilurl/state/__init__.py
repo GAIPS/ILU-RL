@@ -1,3 +1,5 @@
+import numpy as np
+
 from ilurl.utils.aux import flatten as flat
 from ilurl.state.node import Node
 from ilurl.state.intersection import Intersection
