@@ -16,6 +16,7 @@ import json
 import argparse
 import numpy as np
 from pathlib import Path
+import configparser
 
 import pandas as pd
 
@@ -81,7 +82,13 @@ def main(experiment_root_folder=None):
     print('\nOutput folder:\n{0}\n'.format(output_folder_path))
     os.makedirs(output_folder_path, exist_ok=True)
 
-    # actions = []
+    # Get agent_type.
+    train_config_path = list(Path(experiment_root_folder).rglob('train.config'))[0]
+    train_config = configparser.ConfigParser()
+    train_config.read(train_config_path)
+    agent_type = train_config['agent_type']['agent_type']
+
+    actions = []
     rewards = []
     rewards_2 = []
     vehicles = []
@@ -108,7 +115,7 @@ def main(experiment_root_folder=None):
         velocities.append(json_data['velocities'])
 
         # Agent's actions.
-        # actions.append(json_data['actions'])
+        actions.append(json_data['actions'])
 
     """
         Rewards per cycle.
@@ -242,35 +249,68 @@ def main(experiment_root_folder=None):
     """ 
         Actions per intersection.
 
-        WARNING: This is commented due to the fact that different agents might
-                 require different processing here. As an example, the actions
-                 taken by the DQN actions (discrete action agent) differ from
-                 the ones taken by the DDPG agent (continuous action agent).
+        WARNING: This might require different processing here. As an example,
+                 the actions taken by the DQN actions (discrete action agent)
+                 differ from the ones taken by the DDPG agent (continuous action
+                 agent).
     """
-    """ dfs_a = [pd.DataFrame(a) for a in actions]
+    if agent_type in ('DDPG', 'MPO'):
+        # Continuous action-schema.
+        # TODO: This only works for two-phased intersections.
+        dfs_a = [pd.DataFrame([{i: a[0] for (i, a) in t.items()}
+                                for t in run])
+                                    for run in actions]
 
-    df_concat = pd.concat(dfs_a)
+        df_concat = pd.concat(dfs_a)
 
-    by_row_index = df_concat.groupby(df_concat.index)
-    df_actions = by_row_index.mean()
+        by_row_index = df_concat.groupby(df_concat.index)
+        df_actions = by_row_index.mean()
 
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+        fig = plt.figure()
+        fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    window_size = min(len(df_actions)-1, 40)
+        window_size = min(len(df_actions)-1, 40)
 
-    for col in df_actions.columns:
-        plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
+        for col in df_actions.columns:
+            plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
 
-    plt.xlabel('Cycle')
-    plt.ylabel('Action')
-    plt.title('Actions per intersection')
-    plt.legend()
+        plt.xlabel('Cycle')
+        plt.ylabel('Action (Phase-0 allocation)')
+        plt.title('Actions per intersection')
+        plt.legend()
 
-    plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
-    plt.close() """
+        plt.close()
+
+    else:
+        # Discrete action-schema.
+        dfs_a = [pd.DataFrame(run) for run in actions]
+
+        df_concat = pd.concat(dfs_a)
+
+        by_row_index = df_concat.groupby(df_concat.index)
+        df_actions = by_row_index.mean()
+
+        fig = plt.figure()
+        fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+        window_size = min(len(df_actions)-1, 40)
+
+        for col in df_actions.columns:
+            plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
+
+        plt.xlabel('Cycle')
+        plt.ylabel('Action')
+        plt.title('Actions per intersection')
+        plt.legend()
+
+        plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+        plt.close()
+        
 
 if __name__ == '__main__':
     main()

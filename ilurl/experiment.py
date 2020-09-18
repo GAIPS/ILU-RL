@@ -12,6 +12,8 @@ from tqdm import tqdm
 
 import numpy as np
 
+from ilurl.utils.precision import action_to_double_precision
+
 # TODO: Track those anoying warning
 warnings.filterwarnings('ignore')
 
@@ -178,7 +180,7 @@ class Experiment:
         info_dict["velocities"] = vels
         info_dict["vehicles"] = vehs
         info_dict["observation_spaces"] = observation_spaces
-        info_dict["actions"] = [a for a in self.env.actions_log.values()]
+        info_dict["actions"] = action_to_double_precision([a for a in self.env.actions_log.values()])
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
         if self.tls_type not in ('static', 'actuated'):

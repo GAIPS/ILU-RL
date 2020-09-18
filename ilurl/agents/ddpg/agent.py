@@ -158,10 +158,7 @@ class DDPG(AgentWorker,AgentInterface):
 
         self._obs_counter += 1
 
-        action = list(action.astype(float))
-        action = tuple([round(a, 4) for a in action]) # Round.
-
-        return action
+        return tuple(action)
 
     def update(self, _, a, r, s1):
 
