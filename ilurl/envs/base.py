@@ -19,7 +19,7 @@ import numpy as np
 
 from flow.envs.base import Env
 
-from ilurl.envs.elements import build_vehicles
+from ilurl.envs.elements import build_vehicles, build_traffic_light
 from ilurl.state import State
 from ilurl.rewards import build_rewards
 from ilurl.utils.properties import lazy_property
@@ -161,7 +161,8 @@ class TrafficLightEnv(Env):
                     for p, data in self.tls_phases[nid].items()}
                         for nid in self.tls_ids}
 
-        self.observation_space.update(self.duration, vehs)
+        tls = {tl: self.k.traffic_light.get_state(tl) for tl in self.tls_ids}
+        self.observation_space.update(self.duration, vehs, tls)
 
     def get_state(self):
         """ Return the state of the simulation as perceived by the RL agent(s).

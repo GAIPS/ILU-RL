@@ -4,7 +4,7 @@
 from collections import namedtuple
 
 Vehicle = namedtuple('Vehicle', 'id tls_id edge_id lane speed pos')
-TrafficLightSignal = namedtuple('TrafficLight', 'tls_id state')
+TrafficLight = namedtuple('TrafficLight', 'tls_id state')
 
 
 def build_vehicles(node_id, components, veh_kernel):
@@ -55,4 +55,6 @@ def build_vehicles(node_id, components, veh_kernel):
     return vehs
 
 
+def build_traffic_light(tls_states):
+    return [TrafficLight(*args) for args in tls_states.items()]
 
