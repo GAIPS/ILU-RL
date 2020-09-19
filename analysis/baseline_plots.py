@@ -137,7 +137,8 @@ def main(experiment_root_folder=None):
                                             Path(experiment_root_folder).parts[-1]
                                     ),
                                     float_format='%.3f',
-                                    columns=["train_run", "speed", "waiting_time", "travel_time"])
+                                    columns=["train_run", "speed", "waiting_time",
+                                            "travel_time", "throughput"])
 
     """
         Waiting time stats.
