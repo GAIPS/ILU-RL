@@ -24,7 +24,8 @@ def get_arguments():
             This script creates evaluation plots that allow comparisons between different experiments.
         """
     )
-    parser.add_argument("experiments_paths", nargs="+", help='List of paths to experiments.')
+    parser.add_argument('--experiments_paths', nargs="+", help='List of paths to experiments.', required=True)
+    parser.add_argument('--labels', nargs="+", help='List of experiments\' labels.', required=False)
 
     return parser.parse_args()
 
@@ -32,6 +33,7 @@ def print_arguments(args):
 
     print('Arguments (analysis/compare.py):')
     print('\tExperiments: {0}\n'.format(args.experiments_paths))
+    print('\tExperiments labels: {0}\n'.format(args.labels))
 
 def main():
 
@@ -64,16 +66,21 @@ def main():
             dfs[exp_name] = pd.read_csv('{0}/plots/test/processed_data.csv'.format(
                                             exp_path), header=[0, 1], index_col=0)
 
+    if args.labels:
+        lbls = args.labels # Custom labels.
+    else:
+        lbls = dfs.keys()  # Default labels.
+
     """
         waiting_time_hist_kde
     """
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['waiting_time_hist_kde', 'x'],
-                 df['waiting_time_hist_kde', 'y'],
-                 label=key, linewidth=3)
+                df['waiting_time_hist_kde', 'y'],
+                label=l, linewidth=3)
 
     plt.xlabel('Waiting time (s)')
     plt.legend()
@@ -91,10 +98,10 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['travel_time_hist_kde', 'x'],
                  df['travel_time_hist_kde', 'y'],
-                 label=key, linewidth=3)
+                 label=l, linewidth=3)
 
     plt.xlabel('Travel time (s)')
     plt.ylabel('Density')
@@ -112,10 +119,10 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['speed_hist_kde', 'x'],
                  df['speed_hist_kde', 'y'],
-                 label=key, linewidth=3)
+                 label=l, linewidth=3)
 
     plt.xlabel('Average speed (m/s)')
     plt.ylabel('Density')
@@ -133,10 +140,10 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['waiting_time_per_cycle', 'x'],
                  df['waiting_time_per_cycle', 'y'],
-                 label=key)
+                 label=l)
 
     plt.xlabel('Cycle')
     plt.ylabel('Average waiting time (s)')
@@ -154,10 +161,10 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['travel_time_per_cycle', 'x'],
                  df['travel_time_per_cycle', 'y'],
-                 label=key)
+                 label=l)
 
     plt.xlabel('Cycle')
     plt.ylabel('Average travel time (s)')
@@ -175,10 +182,10 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['throughput_per_cycle', 'x'],
                  df['throughput_per_cycle', 'y'],
-                 label=key)
+                 label=l)
 
     plt.xlabel('Cycle')
     plt.ylabel('#cars')
@@ -196,14 +203,15 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['vehicles_per_cycle', 'x'],
                  df['vehicles_per_cycle', 'y'],
-                 label=key)
+                 label=l)
 
     plt.xlabel('Cycle')
     plt.ylabel('# Vehicles')
     plt.title('Number of vehicles')
+    plt.legend()
 
     plt.savefig('analysis/plots/compare/vehicles.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/vehicles.png', bbox_inches='tight', pad_inches=0)
@@ -216,14 +224,15 @@ def main():
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for key, df in dfs.items():
+    for l, df in zip(lbls, dfs.values()):
         plt.plot(df['velocities_per_cycle', 'x'],
                  df['velocities_per_cycle', 'y'],
-                 label=key)
+                 label=l)
 
     plt.xlabel('Cycle')
     plt.ylabel('Average velocities')
     plt.title('Vehicles\' velocities')
+    plt.legend()
 
     plt.savefig('analysis/plots/compare/velocities.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/velocities.png', bbox_inches='tight', pad_inches=0)
