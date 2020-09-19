@@ -70,7 +70,7 @@ def main(experiment_root_folder=None):
     train_config.read(train_config_path)
     agent_type = train_config['agent_type']['agent_type']
     demand_type = train_config['train_args']['demand_type']
-    
+
     print('Number of csv files found: {0}'.format(len(csv_files)))
 
     vehicles_appended = []
@@ -90,12 +90,7 @@ def main(experiment_root_folder=None):
         df_per_vehicle_mean = df_per_vehicle.mean()
 
         if demand_type not in ('constant',):
-            mean_values_per_eval.append({'train_run': Path(csv_file).parts[-4],
-                                        'speed': df_per_vehicle_mean['speed'],
-                                        'waiting_time': df_per_vehicle_mean['waiting'],
-                                        'travel_time': df_per_vehicle_mean['total'],
-                                        'throughput': len(df_per_vehicle)})
-        else:
+
             # Congested regime.
             df_congested_period = df_per_vehicle[(df_per_vehicle['finish'] > CONGESTED_INTERVAL[0]) \
                                                     & (df_per_vehicle['finish'] < CONGESTED_INTERVAL[1])]
@@ -116,6 +111,13 @@ def main(experiment_root_folder=None):
                                         'speed_free_flow': df_free_flow_period_mean['speed'],
                                         'waiting_time_free_flow': df_free_flow_period_mean['waiting'],
                                         'travel_time_free_flow': df_free_flow_period_mean['total'],
+                                        'throughput': len(df_per_vehicle)})
+        else:
+
+            mean_values_per_eval.append({'train_run': Path(csv_file).parts[-4],
+                                        'speed': df_per_vehicle_mean['speed'],
+                                        'waiting_time': df_per_vehicle_mean['waiting'],
+                                        'travel_time': df_per_vehicle_mean['total'],
                                         'throughput': len(df_per_vehicle)})
 
         vehicles_appended.append(df_per_vehicle)
