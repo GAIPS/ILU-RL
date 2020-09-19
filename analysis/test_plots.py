@@ -63,6 +63,7 @@ def main(experiment_root_folder=None):
 
     # Get all *.csv files from experiment root folder.
     csv_files = [str(p) for p in list(Path(experiment_root_folder).rglob('*-emission.csv'))]
+    print('Number of csv files found: {0}'.format(len(csv_files)))
 
     # Get agent_type and demand_type.
     train_config_path = list(Path(experiment_root_folder).rglob('train.config'))[0]
@@ -71,7 +72,6 @@ def main(experiment_root_folder=None):
     agent_type = train_config['agent_type']['agent_type']
     demand_type = train_config['train_args']['demand_type']
 
-    print('Number of csv files found: {0}'.format(len(csv_files)))
 
     vehicles_appended = []
     throughputs = []
@@ -245,7 +245,7 @@ def main(experiment_root_folder=None):
 
 
     if demand_type not in ('constant',):
-        print('-'*25)
+
         # Filter data by congested hour interval.
         df_vehicles_appended_congested = df_vehicles_appended[(df_vehicles_appended['finish'] > CONGESTED_INTERVAL[0]) \
                                                             & (df_vehicles_appended['finish'] < CONGESTED_INTERVAL[1])]
@@ -254,6 +254,7 @@ def main(experiment_root_folder=None):
             Waiting time stats (congested).
         """
         # Describe waiting time.
+        print('-'*25)
         print('Waiting time (congested):')
         df_stats = df_vehicles_appended_congested['waiting'].describe()
         df_stats.to_csv('{0}/waiting_time_congested_stats.csv'.format(output_folder_path),
