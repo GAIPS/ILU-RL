@@ -72,9 +72,9 @@ def main(experiment_root_folder=None):
     agent_type = train_config['agent_type']['agent_type']
     demand_type = train_config['train_args']['demand_type']
 
-
     vehicles_appended = []
     throughputs = []
+    global_throughputs = []
 
     mean_values_per_eval = []
 
@@ -120,10 +120,12 @@ def main(experiment_root_folder=None):
                                         'travel_time': df_per_vehicle_mean['total'],
                                         'throughput': len(df_per_vehicle)})
 
+
         vehicles_appended.append(df_per_vehicle)
 
         df_throughput = get_throughput(df_csv)
         throughputs.append(df_throughput)
+        global_throughputs.append(len(df_per_vehicle))
 
     df_vehicles_appended = pd.concat(vehicles_appended)
     df_throughputs_appended = pd.concat(throughputs)
@@ -242,6 +244,17 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/speeds_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/speeds_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
+
+    """
+        Throughput stats.
+        (For the entire rollout)
+    """
+    print('Throughput:')
+    df_stats = pd.DataFrame(global_throughputs).describe()
+    df_stats.to_csv('{0}/throughput_stats.csv'.format(output_folder_path),
+                    float_format='%.3f', header=False)
+    print(df_stats)
+    print('\n')
 
 
     if demand_type not in ('constant',):
