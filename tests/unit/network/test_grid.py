@@ -86,7 +86,7 @@ class TestGridSetUp(unittest.TestCase):
             kernel_data_2 = pickle.load(f)
         self.kernel_data_2 = kernel_data_2
 
-class TestGridBase(TestGridSetUp):
+class TestGridData(TestGridSetUp):
     """
         * Place concrete network & data tests here
     """
@@ -99,6 +99,66 @@ class TestGridBase(TestGridSetUp):
 
     def test_kernel_data_2(self):
         self.assertEqual(len(self.kernel_data_2), 60)
+
+class TestGridTLS1(TestGridSetUp):
+    """
+        * Place concrete network & data tests here
+    """
+    def setUp(self):
+        super(TestGridTLS1, self).setUp()
+        self.ID = '247123161'
+        self.TLS_STATE = self.network.tls_states[self.ID]
+        self.TLS_GREEN_0 = self.network.tls_phases[self.ID][0]['states']
+        self.TLS_GREEN_1 = self.network.tls_phases[self.ID][1]['states']
+
+    def test_state(self):
+        self.assertEqual(self.TLS_STATE, ['rrrGGGrrrGGG', 'rrryyyrrryyy', 'GGGrrrGGGrrr', 'yyyrrryyyrrr'])
+
+    def test_green_0(self):
+        self.assertEqual(self.TLS_GREEN_0, ['rrrGGGrrrGGG', 'rrryyyrrryyy'])
+
+    def test_green_1(self):
+        self.assertEqual(self.TLS_GREEN_1, ['GGGrrrGGGrrr', 'yyyrrryyyrrr'])
+
+class TestGridTLS2(TestGridSetUp):
+    """
+        * Place concrete network & data tests here
+    """
+    def setUp(self):
+        super(TestGridTLS2, self).setUp()
+        self.ID = '247123464'
+        self.TLS_STATE = self.network.tls_states[self.ID]
+        self.TLS_GREEN_0 = self.network.tls_phases[self.ID][0]['states']
+        self.TLS_GREEN_1 = self.network.tls_phases[self.ID][1]['states']
+
+    def test_state(self):
+        self.assertEqual(self.TLS_STATE, ['GGGrrrrrGG', 'yyyrrrrryy', 'rrrGGGGGrr', 'rrryyyyyrr'])
+
+    def test_green_0(self):
+        self.assertEqual(self.TLS_GREEN_0, ['GGGrrrrrGG', 'yyyrrrrryy'])
+
+    def test_green_1(self):
+        self.assertEqual(self.TLS_GREEN_1, ['rrrGGGGGrr', 'rrryyyyyrr'])
+
+class TestGridTLS3(TestGridSetUp):
+    """
+        * Place concrete network & data tests here
+    """
+    def setUp(self):
+        super(TestGridTLS3, self).setUp()
+        self.ID = '247123468'
+        self.TLS_STATE = self.network.tls_states[self.ID]
+        self.TLS_GREEN_0 = self.network.tls_phases[self.ID][0]['states']
+        self.TLS_GREEN_1 = self.network.tls_phases[self.ID][1]['states']
+
+    def test_state(self):
+        self.assertEqual(self.TLS_STATE, ['rrrrrGGGGG', 'rrrrryyyyy', 'GGGGGrrrrr', 'yyyyyrrrrr'])
+
+    def test_green_0(self):
+        self.assertEqual(self.TLS_GREEN_0, ['rrrrrGGGGG', 'rrrrryyyyy'])
+
+    def test_green_1(self):
+        self.assertEqual(self.TLS_GREEN_1, ['GGGGGrrrrr', 'yyyyyrrrrr'])
 
 if __name__ == '__main__':
     unittest.main()

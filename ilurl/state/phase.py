@@ -1,4 +1,5 @@
 import re
+from collections import OrderedDict
 import numpy as np
 
 from ilurl.state.node import Node
@@ -11,6 +12,12 @@ COUNT_SET = {'average_pressure', 'count', 'speed_score', 'pressure'}
 def _check_count(labels):
     return bool(COUNT_SET & set(labels))
 
+def uniq(tl_state):
+    """Unique that preservers order"""
+    ret = [s for s in tl_state.upper()]
+    ret = OrderedDict.fromkeys(ret)
+    ret = [r for r in ret]
+    return ret
 
 class Phase(Node):
     """Represents a phase.
@@ -21,7 +28,7 @@ class Phase(Node):
         * Aggregates wrt time.
     """
 
-    def __init__(self, intersection, mdp_params, phase_id, phase_data, phase_capacity):
+    def __init__(self, intersection, mdp_params, phase_id, phase_order, phase_data, phase_capacity):
         """Builds phase
 
         Params:
@@ -52,6 +59,7 @@ class Phase(Node):
         self._lagged = any('lag' in lbl for lbl in mdp_params.features)
         self._normalize_velocities = mdp_params.normalize_velocities
         self._normalize_vehicles = mdp_params.normalize_vehicles
+        self._order = phase_order
 
         # 2) Get categorization bins.
         # fn: extracts category_<feature_name>s from mdp_params
@@ -79,7 +87,8 @@ class Phase(Node):
         self._outgoing_ids = outgoing_ids
 
         self.cached_features = {}
-        self.green_states = phase_data['states']
+        self._phase_order = phase_order
+        assert phase_order < 2
         super(Phase, self).__init__(intersection, phase_id, lanes)
 
 
@@ -94,6 +103,10 @@ class Phase(Node):
     @property
     def lagged(self):
         return self._lagged
+
+    @property
+    def order(self):
+        return self._phase_order
 
     @property
     def normalize_velocities(self):
@@ -158,6 +171,24 @@ class Phase(Node):
         """
         return sum([out.max_vehs for out in self.outgoing.values()])
 
+    def get_index(self, tls):
+        """Index within representation
+
+        zero for green and  one for red
+
+        Params:
+        -------
+        state_string: str
+            ex: 'GGGrrrrrGG','rrrrrGGGGG'
+
+        Returns:
+        --------
+        index: int {0, 1}
+            the state string
+        """
+        sig = uniq(tls)[self.order]
+        return int((sig == 'G') * 0 + (sig == 'R') * 1)
+
     def update(self, duration, vehs, tls):
         """Update data structures with observation space
 
@@ -181,7 +212,7 @@ class Phase(Node):
             return (veh.edge_id, veh.lane) == lane.lane_id
 
         # 3) 0 is green and 1 is red
-        ind = int(not tls in self.green_states)
+        ind = self.get_index(tls)
 
         # 2) Update lanes
         step_count = 0
@@ -212,6 +243,9 @@ class Phase(Node):
         self._update_waiting_time(step_waiting_time, ind)
         self._update_speed(step_speed)
         self._update_speed_score(step_speed_score)
+
+        if self.phase_id == '247123161#1':
+            print(ind, tls, self._cached_weight, self._cached_waiting_time)
 
         # 3) Stores previous cycle for lag labels.
         self._update_lag(duration)
@@ -244,12 +278,12 @@ class Phase(Node):
         self._cached_step_flow = set({})
 
         self._cached_queue = 0
-        self._cached_waiting_time = [0, 0]
+        self._cached_waiting_time = [0.0, 0.0]
         self._cached_speed = 0
         self._cached_speed_score = 0
 
-        self._cached_weight = [0, 0]
-        self._last_index = 0
+        self._cached_weight = [0.0, 0.0]
+        self._last_index = None
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -480,7 +514,7 @@ class Phase(Node):
         self._cached_weight[ind] = int(self._last_index == ind) * (self._cached_weight[ind] + 1)
 
         # When it switches to another color inc previous count by 1.
-        self._cached_weight[self._last_index] += int(self._last_index != ind)
+        # self._cached_weight[self._last_index] += int((not self.first) and self._last_index != ind)
         self._last_index = ind
 
     def _update_count(self, step_count):

@@ -45,6 +45,7 @@ class Intersection(Node):
         phases = {f'{tls_id}#{phase_id}': Phase(self,
                                                 mdp_params,
                                                 f'{tls_id}#{phase_id}',
+                                                phase_id,
                                                 phase_comp,
                                                 phase_capacity[phase_id])
                     for phase_id, phase_comp in phases.items()}
