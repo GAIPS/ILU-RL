@@ -138,7 +138,7 @@ def main(experiment_root_folder=None):
                 "speed_free_flow", "waiting_time_free_flow", "travel_time_free_flow"]
     else:
         cols = ["train_run", "speed", "waiting_time",
-                                            "travel_time", "throughput"]
+                "travel_time", "throughput"]
 
     df_mean_metrics_per_eval.to_csv('{0}/{1}_metrics.csv'.format(
                                             output_folder_path,
