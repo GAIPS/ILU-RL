@@ -244,9 +244,6 @@ class Phase(Node):
         self._update_speed(step_speed)
         self._update_speed_score(step_speed_score)
 
-        if self.phase_id == '247123161#1':
-            print(ind, tls, self._cached_weight, self._cached_waiting_time)
-
         # 3) Stores previous cycle for lag labels.
         self._update_lag(duration)
 

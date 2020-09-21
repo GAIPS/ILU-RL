@@ -103,8 +103,8 @@ class TestGridTLS1ObservationSpace(TestGridMDPSetUp):
         test = sorted([outid for outid in self.PHASE_1.outgoing])
         self.assertEqual(test, self.OUTGOING)
 
-    def test_tl1_0_green(self):
-        self.assertEqual(self.PHASE_0.green_states, [['R', 'G'], ['R', 'Y']])
+    def test_state(self):
+        self.assertEqual(self.STATE, (0.27, 0.0, 3.97, 2.73))
 
     def test_tl1_0_max_vehs(self):
         check = self.PHASE_0.max_vehs
@@ -123,9 +123,6 @@ class TestGridTLS1ObservationSpace(TestGridMDPSetUp):
         sol = MAX_VEHS_OUT[(self.ID, 0)]
         self.assertEqual(check, 16)
         self.assertEqual(check, sol)
-
-    def test_tl1_1_green(self):
-        self.assertEqual(self.PHASE_1.green_states, [['G', 'R'], ['Y', 'R']])
 
     def test_tl1_1_max_vehs_out(self):
         check = self.PHASE_1.max_vehs_out
@@ -170,6 +167,9 @@ class TestGridTLS2ObservationSpace(TestGridMDPSetUp):
     def test_num_phases(self):
         self.assertEqual(len(self.STATE), 4)
 
+    def test_state(self):
+        self.assertEqual(self.STATE, (0.19, 6.15, 0.09, 0.46))
+
     def test_outgoing_0(self):
         # internal outgoing edge for phase 0 
         test = sorted([outid for outid in self.PHASE_0.outgoing])
@@ -179,12 +179,6 @@ class TestGridTLS2ObservationSpace(TestGridMDPSetUp):
         # internal outgoing edge for phase 0 
         test = sorted([outid for outid in self.PHASE_1.outgoing])
         self.assertEqual(test, self.OUTGOING)
-
-    def test_tl2_0_green(self):
-        self.assertEqual(self.PHASE_0.green_states, [['G', 'R'], ['Y', 'R']])
-
-    def test_tl2_1_green(self):
-        self.assertEqual(self.PHASE_1.green_states, [['R', 'G'], ['R', 'Y']])
 
     def test_tl2_0_max_vehs(self):
         check = self.PHASE_0.max_vehs
@@ -247,6 +241,9 @@ class TestGridTLS3ObservationSpace(TestGridMDPSetUp):
     def test_num_phases(self):
         self.assertEqual(len(self.STATE), 4)
 
+    def test_state(self):
+        self.assertEqual(self.STATE, (4.9, 0.13, 0.6, 0.17))
+
     def test_outgoing_0(self):
         # internal outgoing edge for phase 0 
         test = sorted([outid for outid in self.PHASE_0.outgoing])
@@ -259,12 +256,6 @@ class TestGridTLS3ObservationSpace(TestGridMDPSetUp):
         sol = OUTGOING_247123468
         self.assertEqual(test, sol)
 
-
-    def test_tl3_1_green(self):
-        self.assertEqual(self.PHASE_1.green_states, [['G', 'R'], ['Y', 'R']])
-
-    def test_tl3_0_green(self):
-        self.assertEqual(self.PHASE_0.green_states, [['R', 'G'], ['R', 'Y']])
 
     def test_tl3_0_max_vehs(self):
         check = self.PHASE_0.max_vehs

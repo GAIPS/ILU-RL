@@ -92,6 +92,7 @@ class TestGridTLS1WaitingTime(TestGridTLS1WaitingTimeSetUp):
 
         self.PHASE_1 = 1
         self.STATE_1 = self.state[self.ID][self.PHASE_1][0]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
 
     def test_0(self):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_0)
@@ -108,276 +109,126 @@ class TestGridTLS1WaitingTime(TestGridTLS1WaitingTimeSetUp):
         self.assertEqual(self.STATE_1, [3.97, 2.73]) # wait_t, phase 0
         self.assertEqual(self.STATE_1, sol) # wait_t, phase 0
 
-# class TestGridTLS1WaitingTime(TestGridMDPSetUp):
-#     """
-#         * Tests waiting time wrt Grid network
-# 
-#         * Set of tests that target the implemented
-#           problem formulations, i.e. state and reward
-#           function definitions.
-# 
-#         * Use lazy_properties to compute once and use
-#           as many times as you want -- it's a cached
-#           property
-#     """
-#     @lazy_property
-#     def mdp_params(self):
-#         mdp_params = MDPParams(
-#                         features=('waiting_time',),
-#                         reward='reward_min_waiting_time',
-#                         normalize_velocities=True,
-#                         normalize_vehicles=False,
-#                         discretize_state_space=False,
-#                         reward_rescale=0.01,
-#                         time_period=None,
-#                         velocity_threshold=0.1)
-#         return mdp_params
-# 
-#     def setUp(self):
-#         """Code here will run before every test"""
-# 
-#         super(TestGridTLS1WaitingTime, self).setUp()
-#         self.ID = '247123161'
-#         self.PHASE_0 = 0
-#         self.PHASE_1 = 1
-# 
-# 
-#     def test_wait_tl1ph0Green(self):
-#         # 1) Define constraints
-#         phase_id = 0
-#         is_green = True
-# 
-#         # 2) Define state & solution
-#         # check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, is_green, phase_id)
-# 
-#         # 3) Assert 247123161
-#         self.assertEqual(check, 0.0) # wait_t, phase 0
-#         self.assertEqual(check, sol) # wait_t, phase 0
-# 
-    # def test_wait_t_tl1ph1(self):
-    #     # 1) Define constraints
-    #     node_id ='247123161'
-    #     phase_id = 1
+    def test_reward(self):
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.27 + 0.0 + 3.97 + 2.73))
 
-    #     # 2) Define state & solution
-    #     check = self.state[node_id][phase_id]
-    #     sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+class TestGridTLS2WaitingTimeSetUp(TestGridWaitingTimeSetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-    #     # 3) Assert 247123161
-    #     self.assertEqual(check, 1.18) # wait_t, phase 1
-    #     self.assertEqual(check, sol) # wait_t, phase 1
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-    # def test_min_wait_t_tl1(self):
-    #     node_id ='247123161'
-    #     reward = self.reward(self.observation_space)
-    #     self.assertEqual(reward[node_id], -0.01*(2.85 + 1.18))
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-    # def test_wait_t_tl2ph0(self):
-    #     # 1) Define constraints
-    #     node_id ='247123464'
-    #     phase_id = 0
+        super(TestGridTLS2WaitingTimeSetUp, self).setUp()
+        self.ID = '247123464'
 
-    #     # 2) Define state & solution
-    #     check = self.state[node_id][phase_id]
-    #     sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+class TestGridTLS2WaitingTime(TestGridTLS2WaitingTimeSetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-    #     # 3) Assert 247123464
-    #     self.assertEqual(check, 0.00) # wait_t, phase 0
-    #     self.assertEqual(check, sol) # wait_t, phase 0
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-    # def test_wait_t_tl2ph1(self):
-    #     # 1) Define constraints
-    #     node_id ='247123464'
-    #     phase_id = 1
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-    #     # 2) Define state & solution
-    #     check = self.state[node_id][phase_id]
-    #     sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        super(TestGridTLS2WaitingTime, self).setUp()
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0][0]
 
-    #     # 3) Assert 247123464
-    #     self.assertEqual(check, 0.08) # wait_t, phase 1
-    #     self.assertEqual(check, sol) # wait_t, phase 1
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1][0]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
 
-    # def test_min_wait_t_tl2(self):
-    #     node_id ='247123464'
-    #     reward = self.reward(self.observation_space)
-    #     self.assertEqual(reward[node_id], -0.01*(0.0 + 0.08))
+    def test_0(self):
+        sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_0)
 
+        # 3) Assert 247123464
+        self.assertEqual(self.STATE_0, [0.19, 6.15]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
 
-    # def test_wait_t_tl3ph0(self):
-    #     # 1) Define constraints
-    #     node_id ='247123468'
-    #     phase_id = 0
+    def test_1(self):
+        # 2) Define state & solution
+        sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_1)
 
-    #     # 2) Define state & solution
-    #     check = self.state[node_id][phase_id]
-    #     sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        # 3) Assert 247123464
+        self.assertEqual(self.STATE_1, [0.09, 0.46]) # wait_t, phase 1
+        self.assertEqual(self.STATE_1, sol) # wait_t, phase 1
 
-    #     # 3) Assert 247123468
-    #     self.assertEqual(check,  0.58) # wait_t, phase 0
-    #     self.assertEqual(check, sol) # wait_t, phase 0
+    def test_reward(self):
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.19 + 6.15 + 0.09 + 0.46))
 
-    # def test_wait_t_tl3ph1(self):
-    #     # 1) Define constraints
-    #     node_id ='247123468'
-    #     phase_id = 1
+class TestGridTLS3WaitingTimeSetUp(TestGridWaitingTimeSetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-    #     # 2) Define state & solution
-    #     check = self.state[node_id][phase_id]
-    #     sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-    #     # 3) Assert 247123468
-    #     self.assertEqual(check, 0.27) # wait_t, phase 1
-    #     self.assertEqual(check, sol) # wait_t, phase 1
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-    # def test_min_wait_t_tl3(self):
-    #     node_id ='247123468'
-    #     reward = self.reward(self.observation_space)
-    #     self.assertEqual(reward[node_id], -0.01*(0.58 + 0.27))
+        super(TestGridTLS3WaitingTimeSetUp, self).setUp()
+        self.ID = '247123468'
 
-    # def tearDown(self):
-    #     pass
+class TestGridTLS3WaitingTime(TestGridTLS3WaitingTimeSetUp):
+    """
+        * Tests waiting time wrt Grid network
 
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-# class TestGridWaitingTimeNorm(TestGridMDPSetUp):
-#     """
-#         * Tests waiting time wrt Grid network
-# 
-#         * Normalize vehicles count
-# 
-#         * Set of tests that target the implemented
-#           problem formulations, i.e. state and reward
-#           function definitions.
-# 
-#         * Use lazy_properties to compute once and use
-#           as many times as you want -- it's a cached
-#           property
-#     """
-#     @property
-#     def norm_vehs(self):
-#         return True
-# 
-#     @lazy_property
-#     def mdp_params(self):
-#         mdp_params = MDPParams(
-#                         features=('waiting_time',),
-#                         reward='reward_min_waiting_time',
-#                         normalize_velocities=True,
-#                         normalize_vehicles=self.norm_vehs,
-#                         discretize_state_space=False,
-#                         reward_rescale=0.01,
-#                         time_period=None,
-#                         velocity_threshold=0.1)
-#         return mdp_params
-# 
-#     def setUp(self):
-#         """Code here will run before every test"""
-# 
-#         super(TestGridWaitingTimeNorm, self).setUp()
-# 
-#     def test_wait_t_tl1ph0(self):
-#         # 1) Define constraints
-#         node_id ='247123161'
-#         phase_id = 0
-# 
-#         # 2) Define state & solution
-#         check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, phase_id, norm_vehs=self.norm_vehs)
-# 
-#         # 3) Assert 247123161
-#         self.assertEqual(check, 0.32) # wait_t, phase 0
-#         self.assertEqual(check, sol) # wait_t, phase 0
-# 
-#     def test_wait_t_tl1ph1(self):
-#         # 1) Define constraints
-#         node_id ='247123161'
-#         phase_id = 1
-# 
-#         # 2) Define state & solution
-#         check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, phase_id,
-#                             norm_vehs=self.norm_vehs)
-# 
-#         # 3) Assert 247123161
-#         self.assertEqual(check, 0.15) # wait_t, phase 1
-#         self.assertEqual(check, sol) # wait_t, phase 1
-# 
-#     def test_min_wait_t_tl1(self):
-#         node_id ='247123161'
-#         reward = self.reward(self.observation_space)
-#         self.assertEqual(reward[node_id], -0.01*(0.32 + 0.15))
-# 
-#     def test_wait_t_tl2ph0(self):
-#         # 1) Define constraints
-#         node_id ='247123464'
-#         phase_id = 0
-# 
-#         # 2) Define state & solution
-#         check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, phase_id,
-#                         norm_vehs=self.norm_vehs)
-# 
-#         # 3) Assert 247123464
-#         self.assertEqual(check, 0.00) # wait_t, phase 0
-#         self.assertEqual(check, sol) # wait_t, phase 0
-# 
-#     def test_wait_t_tl2ph1(self):
-#         # 1) Define constraints
-#         node_id ='247123464'
-#         phase_id = 1
-# 
-#         # 2) Define state & solution
-#         check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, phase_id,
-#                             norm_vehs=self.norm_vehs)
-# 
-#         # 3) Assert 247123464
-#         self.assertEqual(check, 0.01) # wait_t, phase 1
-#         self.assertEqual(check, sol) # wait_t, phase 1
-# 
-#     def test_min_wait_t_tl2(self):
-#         node_id ='247123464'
-#         reward = self.reward(self.observation_space)
-#         self.assertEqual(reward[node_id], -0.01*(0.0 + 0.01))
-# 
-# 
-#     def test_wait_t_tl3ph0(self):
-#         # 1) Define constraints
-#         node_id ='247123468'
-#         phase_id = 0
-# 
-#         # 2) Define state & solution
-#         check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, phase_id,
-#                             norm_vehs=self.norm_vehs)
-# 
-#         # 3) Assert 247123468
-#         self.assertEqual(check,  0.07) # wait_t, phase 0
-#         self.assertEqual(check, sol) # wait_t, phase 0
-# 
-#     def test_wait_t_tl3ph1(self):
-#         # 1) Define constraints
-#         node_id ='247123468'
-#         phase_id = 1
-# 
-#         # 2) Define state & solution
-#         check = self.state[node_id][phase_id]
-#         sol = process_waiting_time(self.kernel_data, node_id, phase_id,
-#                             norm_vehs=self.norm_vehs)
-# 
-#         # 3) Assert 247123468
-#         self.assertEqual(check, 0.03) # wait_t, phase 1
-#         self.assertEqual(check, sol) # wait_t, phase 1
-# 
-#     def test_min_wait_t_tl3(self):
-#         node_id ='247123468'
-#         reward = self.reward(self.observation_space)
-#         self.assertEqual(reward[node_id], -0.01*(0.07 + 0.03))
-# 
-#     def tearDown(self):
-#         pass
-# 
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS3WaitingTime, self).setUp()
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0][0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1][0]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+    def test_0(self):
+        sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_0)
+
+        # 3) Assert 247123468
+        self.assertEqual(self.STATE_0, [4.9, 0.13]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
+
+    def test_1(self):
+        # 2) Define state & solution
+        sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_1)
+
+        # 3) Assert 247123468
+        self.assertEqual(self.STATE_1, [0.6, 0.17]) # wait_t, phase 1
+        self.assertEqual(self.STATE_1, sol) # wait_t, phase 1
+
+    def test_reward(self):
+        self.assertAlmostEqual(self.REWARD, -0.01 * (4.9 + 0.13 + 0.6 + 0.17))
 
 def process_waiting_time(kernel_data, node_id, phase_id, norm_vehs=False):
     """Processes batched waiting time computation"""
@@ -415,8 +266,6 @@ def process_waiting_time(kernel_data, node_id, phase_id, norm_vehs=False):
             key = (veh.edge_id, veh.lane)
             qt[key][index] += fn(veh.speed)
 
-        if phase_id == 1:
-            print(t, tl, index, qt)
         if len(qt) == 0:
             wait_times.append([0.0, 0.0])
         else:
