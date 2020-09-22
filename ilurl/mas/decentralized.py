@@ -44,7 +44,7 @@ class DecentralizedMAS(MASInterface):
             # Period is a "Global" state space
             has_period = mdp_params.time_period is not None
             num_phases = mdp_params.phases_per_traffic_light[tid]
-            states_rank = num_phases * num_variables + int(has_period)
+            states_rank = num_phases * ( 2 * num_variables) + int(has_period)
             states_depth = len(mdp_params.category_counts) + 1
             agent_params_.states = Bounds(states_rank, states_depth)
 

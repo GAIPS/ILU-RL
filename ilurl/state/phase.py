@@ -207,6 +207,7 @@ class Phase(Node):
             * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
                 Container for traffic light program representation
         """
+        self._num_updates += 1
         # 1) Define a helpful filtering function.
         def _in(veh, lane):
             return (veh.edge_id, veh.lane) == lane.lane_id
@@ -281,6 +282,8 @@ class Phase(Node):
 
         self._cached_weight = [0.0, 0.0]
         self._last_index = None
+        # TODO: ERASE
+        self._num_updates = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features

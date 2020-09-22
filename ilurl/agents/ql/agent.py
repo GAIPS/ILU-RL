@@ -63,16 +63,12 @@ class QL(AgentWorker, AgentInterface):
 
         # Q-table.
         # FIXME:
-        self.Q = dpq_tls(4, ql_params.states.depth,
+        self.Q = dpq_tls(ql_params.states.rank, ql_params.states.depth,
                          ql_params.actions.rank, ql_params.actions.depth,
                          ql_params.initial_value)
-        # self.Q = dpq_tls(ql_params.states.rank, ql_params.states.depth,
-        #                  ql_params.actions.rank, ql_params.actions.depth,
-        #                  ql_params.initial_value)
-        print(self.Q.keys())
 
         # State-action counter (for learning rate decay).
-        self.state_action_counter = dpq_tls(4,
+        self.state_action_counter = dpq_tls(ql_params.states.rank,
                                             ql_params.states.depth,
                                             ql_params.actions.rank,
                                             ql_params.actions.depth,
