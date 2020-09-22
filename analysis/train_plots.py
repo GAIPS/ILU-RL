@@ -279,6 +279,22 @@ def main(experiment_root_folder=None):
         plt.title('Actions per intersection')
         plt.legend()
 
+        plt.savefig('{0}/actions_per_intersection_smoothed.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions_per_intersection_smoothed.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+        plt.close()
+
+        fig = plt.figure()
+        fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+        for col in df_actions.columns:
+            plt.plot(df_actions[col], label=col)
+
+        plt.xlabel('Cycle')
+        plt.ylabel('Action (Phase-0 allocation)')
+        plt.title('Actions per intersection')
+        plt.legend()
+
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
