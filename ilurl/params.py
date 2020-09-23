@@ -549,6 +549,7 @@ class InFlows(flow_params.InFlows,Printable):
             edges_distribution = initial_config.edges_distribution
         else:
             edges_distribution = None
+
         edges = get_edges(network_id)
 
         # Get demand data.
@@ -562,7 +563,7 @@ class InFlows(flow_params.InFlows,Printable):
                (edges_distribution and eid in edges_distribution)):
                 edge = [e for e in edges if e['id'] == eid][0]
 
-                num_lanes = edge['numLanes'] if 'numLanes' in edge else 1
+                num_lanes = len(edge['lanes'])
 
                 args = (eid, 'human')
 
