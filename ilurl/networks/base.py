@@ -11,7 +11,7 @@ from flow.core.params import InitialConfig, TrafficLightParams
 from flow.core.params import (VehicleParams, SumoCarFollowingParams,
                             SumoLaneChangeParams)
 from flow.core.params import NetParams
-import flow.networks.base as flownet
+import flow.networks.base as base
 
 from ilurl.utils.properties import lazy_property
 from ilurl.params import InFlows
@@ -20,7 +20,7 @@ from ilurl.loaders.nets import (get_routes, get_edges, get_path,
                                 get_types, get_tls_custom)
 
 
-class Network(flownet.Network):
+class Network(base.Network):
     """This class leverages on specs created by SUMO."""
 
     def __init__(self,
@@ -160,163 +160,6 @@ class Network(flownet.Network):
         """Dict version from connections"""
         conns = deepcopy(self.connections)
         return {conn.pop('via'): conn for conn in conns if 'via' in conn}
-
-    @lazy_property
-    def next_edges(self):
-        """Uses links which map current edge, lane to a list
-            of all next possible edge, lane pairs.
-
-        Returns:
-        -------
-        * next_edges: dict<tuple<str,int>, list<tuple<str, int>>>
-            keys --> (edge_id, lane_num)
-            values --> [(edge_id, lane_num), (edge_id, lane_num), ...]
-
-        Usage:
-        ------
-        > network.next_edges[('-238059324', 0)]
-        > [('-309265401', 0), ('-309265401', 1), ('-383432312', 0)]
-
-        """
-        links = deepcopy(self.links)
-
-        # 1) Converts into list of tuples
-        # As some edges might have more than one outlet.
-        # [(('-238059324', 0), {...}), (('-238059328', 1), {...}), ...]
-        data =  [((data.pop('from'), int(data.pop('fromLane'))), data)
-                 for data in links.values()]
-
-        # 2) Unique keys: edges & lanes
-        # keys --> set of tuples {('-238059324', 0), ('-238059328', 1), ...}
-        keys = {el for el, _ in data}
-
-        # 3) Generates a dictionary
-        # key --> tuple, val --> list of edges
-        ret = {k: [(keyval[1].pop('to'), int(keyval[1].pop('toLane')))
-                    for keyval in data if keyval[0] == k]
-               for k in keys}
-        return ret
-
-    @lazy_property
-    def edges2(self):
-        """Edges as dictionary instead of a list"""
-        return {data['id']: {k:v for k, v in data.items() if k != 'id'}
-                for data in self.edges}
-
-    @lazy_property
-    def routes2(self):
-        """Sinks to routes dictionary --  no prob. emissions
-
-          Returns:
-            routes: dict<<str>, list<str>>
-                key: str .: edge_id routes' sink
-                values: list .: edge_ids
-        """
-        routes2 = defaultdict(list)
-        for src, routes_weights in get_routes(self.network_id).items():
-            for route, weights in routes_weights:
-                routes2[route[-1]].append(route)
-        return routes2
-
-    @lazy_property
-    def neighbours_sinks(self):
-        """Sinks to routes dictionary --  no prob. emissions
-
-          Returns:
-            routes: dict<<str>, list<str>>
-                key: str .: edge_id routes' sink
-                values: list .: edge_ids
-        """
-        edges = self.edges2
-        nodes = self.nodes
-        sinks = self.routes2.keys()
-        neighbours = {}
-
-        for sink in sinks:
-            sink_node = edges[sink]['from']
-
-            # those neightbours share the same junction
-            neighbours[sink] = [eid for eid, data in edges.items()
-                                 if data['from'] == sink_node and
-                                    eid != sink and eid in sinks]
-
-            # those neighbours are on adjacent junctions
-            adjacent_nodes = [node['id'] for node in nodes for data in edges.values()
-                              if data['from'] == node['id'] and data['to'] == sink_node]
-
-            neighbours[sink] += [eid for eid in sinks
-                                     if edges[eid]['from'] in adjacent_nodes]
-        return neighbours
-
-    @lazy_property
-    def tls_incoming(self):
-        """Returns the incoming approaches for a traffic light junction
-
-        Params:
-        ------
-        * nodeid: string
-            a valid nodeid in self.nodes
-
-        Returns:
-        ------
-        * approaches: dict<string, list<string>>
-            list of mappings from node_id -> incoming edge ids
-
-        Usage:
-        -----
-         > network.tls_incoming
-         > {'247123161': ['-238059324', '-238059328', '309265401', '383432312']}
-
-        DEF:
-        ---
-        A roadway meeting at an intersection is referred to as an approach.
-        At any general intersection, there are two kinds of approaches:
-        incoming approaches and outgoing approaches.
-
-        An incoming approach is one on which cars can enter the intersection.
-
-        REF:
-        ---
-            * Wei et al., 2019
-            http://arxiv.org/abs/1904.08117
-        """
-        return {nid: [e['id'] for e in self.edges if e['to'] == nid]
-                for nid in self.tls_ids}
-
-    @lazy_property
-    def tls_outgoing(self):
-        """Returns the outgoing approaches for a traffic light junction
-
-        Params:
-        ------
-        * nodeid: string
-            a valid nodeid in self.nodes
-
-        Returns:
-        ------
-        * approaches: dict<string, list<string>>
-            list of mappings from node_id -> outgoing edge ids
-
-        Usage:
-        -----
-         > network.tls_outgoing
-         > {'247123161': ['-238059324', '-238059328', '309265401', '383432312']}
-
-        DEF:
-        ---
-        A roadway meeting at an intersection is referred to as an approach.
-        At any general intersection, there are two kinds of approaches:
-        incoming approaches and outgoing approaches.
-
-        An outgoing approach is one on which cars can exit the intersection.
-
-        REF:
-        ---
-            * Wei et al., 2019
-            http://arxiv.org/abs/1904.08117
-        """
-        return {nid: [e['id'] for e in self.edges if e['from'] == nid]
-                for nid in self.tls_ids}
 
     @lazy_property
     def tls_phases(self):
