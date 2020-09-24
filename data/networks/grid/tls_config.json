@@ -39,18 +39,18 @@
 				"duration": "31",      
 				"minDur": "12",
 				"maxDur": "54",
-				"state": "rrrGGGrrrGGG"
-				}, {
-				"duration": "6",
-				"state": "rrryyyrrryyy"
-				}, {
-				"duration": "31",
-				"minDur": "12",
-				"maxDur": "54",
 				"state": "GGGrrrGGGrrr"
 				}, {
 				"duration": "6",
 				"state": "yyyrrryyyrrr"
+				}, {
+				"duration": "31",
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rrrGGGrrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rrryyyrrryyy"
 			}]
 		},
 		"247123464": {
@@ -61,18 +61,18 @@
 				"duration": "31",      
 				"minDur": "12",
 				"maxDur": "54",
-				"state": "GGGrrrrrGG"
-				}, {
-				"duration": "6",
-				"state": "yyyrrrrryy"
-				}, {
-				"duration": "31",
-				"minDur": "12",
-				"maxDur": "54",
 				"state": "rrrGGGGGrr"
 				}, {
 				"duration": "6",
 				"state": "rrryyyyyrr"
+				}, {
+				"duration": "31",
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GGGrrrrrGG"
+				}, {
+				"duration": "6",
+				"state": "yyyrrrrryy"
 			}]
 		},
 		"247123468": {
@@ -83,18 +83,18 @@
 				"duration": "31",      
 				"minDur": "12",
 				"maxDur": "54",
-				"state": "rrrrrGGGGG"
-				}, {
-				"duration": "6",
-				"state": "rrrrryyyyy"
-				}, {
-				"duration": "31",
-				"minDur": "12",
-				"maxDur": "54",
 				"state": "GGGGGrrrrr"
 				}, {
 				"duration": "6",
 				"state": "yyyyyrrrrr"
+				}, {
+				"duration": "31",
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rrrrrGGGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrryyyyy"
 			}]
 		}
 	}
