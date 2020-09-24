@@ -3,7 +3,7 @@ import re
 from collections import Iterable
 
 PATTERN = re.compile(r'(?<!^)(?=[A-Z])')
-
+TIMESTAMP = re.compile(r'\d{8}-\d{8,16}.\d{1,7}')
 
 def camelize(snake_case_name):
     """Converts from SnakeCase to camel_case.
