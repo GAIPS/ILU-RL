@@ -73,8 +73,25 @@ def plot_times(times, series, series_labels, xy_labels, title):
     plt.show()
 
 def scatter_phases(series, label, categories={}, save_path=None):
-    """Scatter phases"""
+    """Scatter e.g delay 0 vs delay 1
 
+        * Given a feature plot phases
+    Params:
+        series: dict<tuple<dict<str,dict<int, <list<float>>>>>
+            nested dictionary
+            ('delay', 'delay') --> '247123161' --> 0 --> [0.0, ...]
+
+        label: str
+            e.g 'delay', 'count'
+
+        category: dict<str, list<float>>
+            {'delay': [0.0, 0.06, 0.4, 0.82, 1.31]}
+
+        save_path: str
+            20200923143127.894361/
+                intersection_20200923-1431271600867887.8995893/
+                    log_plots
+    """
     data = []
     for labels, tls in series.items():
         labelid = labels.index(label)
@@ -122,9 +139,25 @@ def scatter_phases(series, label, categories={}, save_path=None):
 
 
 def scatter_states(series, categories={}, save_path=None):
-    """Scatter phases"""
-    # xlabel, ylabel = xylabels
+    """States e.g delay 0 vs delay 1
 
+        * Given a dual plot of phases 0-1 two different 
+
+    Params:
+        series: dict<tuple<dict<str,dict<int, <list<float>>>>>
+            ('speed', 'count') --> '247123161' --> 0 --> [[0.81, 0.92], ..]
+
+        label: str
+            e.g 'delay', 'count'
+
+        category: dict<str, list<float>>
+            {'delay': [0.0, 0.06, 0.4, 0.82, 1.31]}
+
+        save_path: str
+            20200923143127.894361/
+                intersection_20200923-1431271600867887.8995893/
+                    log_plots
+    """
     for labels, tls in series.items():
         xlabel, ylabel = labels
         for tl, phases in tls.items():
