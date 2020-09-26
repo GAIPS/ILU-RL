@@ -1,28 +1,27 @@
-"""This script makes a scatter plot state vs state
+"""This script makes a scatter plot 
+
+    * phase vs phase for a given feature.
+    * feature vs feature for a given state.
+    * Relaxed (but untested for multiple tls).
 
     TODO:
     -----
-    1) Segregate phases: 1 axis => two phases.
-    4) Relax speed and count to any features.
-    5) Consolidate tls signals
-    2) Label category digits
-    3) Reward vs state space observations
-    
+    1) Consolidate tls signals.
+    2) Reward vs observation.
 
     USAGE:
     -----
-
     From directory
     > python analysis/scatter.py 20200923143127.894361/intersection_20200923-1431271600867887.8995893/
 
 """
 # core packages
+import ipdb
 import re
 from pathlib import Path
 from collections import defaultdict
 import json
 from os import environ
-from glob import glob
 import argparse
 
 # third-party libs
@@ -30,7 +29,63 @@ import configparser
 import matplotlib.pyplot as plt
 
 # project dependencies
-from ilurl.utils.aux import TIMESTAMP
+from ilurl.utils.aux import TIMESTAMP, snakefy
+from ilurl.utils.plots import (scatter_states, scatter_phases)
+
+
+def get_categories(train_config, labels):
+    """Gets features' categories"""
+    categories = {}
+    for label in labels:
+        catkey = f'category_{label}s'
+        train_args = ('mdp_args', catkey)
+        categories[label] = eval(train_config.get(*train_args))
+    return categories
+    
+def get_series(observation_space, labels, xylabels=[], xyphases=[]):
+    """Gets series"""
+    if len(xylabels) == 0:
+        xylabels = list(range(len(labels)))
+    else:
+        if not set(xylabels).issubset(range(len(labels))):
+            raise ValueError('Must xylabels must be in 0, 1, ..., len(labels)')
+        else:
+            xylabels = sorted(xylabels)
+
+    if len(xyphases) == 0:
+        if not set(xyphases).issubset({0, 1}):
+            raise ValueError('Must xyphases must be in {0,1}')
+    else:
+        xyphases = range(2)
+
+
+    if len(xylabels) == 1:
+        xys = [(x, x) for x in xylabels]
+    else:
+        # Make all combinations 2x2
+        xys = [(x, y)
+               for x in xylabels
+               for y in xylabels if y > x]
+
+    ret = {} # Phase 1
+    for x, y in xys:
+        # Cross labels.
+        x_labels = (labels[x], labels[y])
+        ret[x_labels] = {}
+        for observation_space in observation_spaces:
+            for tl, intersection_space in observation_space.items():
+                if tl not in ret[x_labels]:
+                    ret[x_labels][tl] = defaultdict(list)
+
+                for num, phase in enumerate(intersection_space):
+                    # feature vs feature e.g Speed vs Count
+                    point = [feat for i, feat in enumerate(phase) if i in (x, y)]
+                    if x != y:
+                        ret[x_labels][tl][num].append(point)
+                    else:
+                        ret[x_labels][tl][num] += point
+
+    return ret
 
 def get_arguments():
     parser = argparse.ArgumentParser(
@@ -61,6 +116,8 @@ if __name__ == '__main__':
     experiment_path = Path(args.experiment_dir)
     train_log_path = experiment_path / 'logs' / 'train_log.json'
     config_path = experiment_path / 'config' / 'train.config'
+    target_path = experiment_path / 'log_plots'
+    target_path.mkdir(mode=0o777, exist_ok=True)
 
     phases = defaultdict(list)
     with train_log_path.open('r') as f:
@@ -70,52 +127,17 @@ if __name__ == '__main__':
     train_config = configparser.ConfigParser()
     train_config.read(config_path.as_posix())
     # TODO: Use the features to get the categories
-    labels = eval(train_config.get('mdp_args', 'features'))
     network_id = train_config.get('train_args', 'network')
+    labels = eval(train_config.get('mdp_args', 'features'))
+    
+    categories = get_categories(train_config, labels)
+        
+    # Scatter from phase 0 vs phase 1
+    for j, label in enumerate(labels):
+        feature_series = get_series(observation_spaces, labels, xylabels=[j])
+        scatter_phases(feature_series, label, categories, target_path)
 
+    if len(labels) > 1:
+        states_series = get_series(observation_spaces, labels)
+        scatter_states(states_series, categories, target_path)
 
-
-    category_speeds = eval(train_config.get('mdp_args', 'category_speeds'))
-    category_counts = eval(train_config.get('mdp_args', 'category_counts'))
-    for observation_space in observation_spaces:
-        # TODO: Relax constraints for multiple tls
-        for intersection_space in observation_space.values():
-            for num, phase_space in enumerate(intersection_space):
-                phases[num].append(phase_space)
-
-    _, ax = plt.subplots()
-    for i, label in enumerate(labels):
-        if i == 0:
-            ax.set_xlabel(label)
-        elif i == 1:
-            ax.set_ylabel(label)
-
-
-    ax.vlines(category_speeds, 0, 1,
-              transform=ax.get_xaxis_transform(),
-              colors='tab:gray')
-
-    ax.hlines(category_counts, 0, 1,
-              transform=ax.get_yaxis_transform(),
-              colors='tab:gray',
-              label='states')
-
-    colors = ['tab:blue', 'tab:red']
-    N = 0
-    for i, phase in phases.items():
-        x, y = zip(*phase)
-        N += len(x)
-        ax.scatter(x, y, c=colors[i], label=f'phase#{i}')
-
-    expid = experiment_path.parts[-1]
-    result = re.search(TIMESTAMP, expid)
-
-    if result:
-        timestamp = result.group(0,)
-    else:
-        timetamp = expid
-    ax.legend()
-    ax.grid(True)
-    plt.title(f'{network_id}\n{timestamp}:\nobservation space (N={N})')
-    plt.savefig(experiment_path / 'scatter.png')
-    plt.show()

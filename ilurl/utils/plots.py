@@ -1,10 +1,12 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2019-10-24'
-
+import re
 from datetime import datetime
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+
+from ilurl.utils.aux import TIMESTAMP, snakefy
 
 def plot_times(times, series, series_labels, xy_labels, title):
     """ Makes an hourly plot of series
@@ -69,3 +71,100 @@ def plot_times(times, series, series_labels, xy_labels, title):
     fig.autofmt_xdate()
     plt.legend()
     plt.show()
+
+def scatter_phases(series, label, categories={}, save_path=None):
+    """Scatter phases"""
+
+    data = []
+    for labels, tls in series.items():
+        labelid = labels.index(label)
+
+        for tl, phases in tls.items():
+            title_label = snakefy(label)
+
+            for n, points in phases.items():
+                # filter data
+                data.append(points)
+
+            fig, ax = plt.subplots()
+            # Phase iterations
+            clr = 'tab:blue'
+            ax.set_xlabel(f'{title_label} 0')
+            ax.set_ylabel(f'{title_label} 1')
+            if any(categories):
+                ax.vlines(categories[label], 0, 1,
+                          transform=ax.get_xaxis_transform(),
+                          colors='tab:green', label=f'Category {title_label}')
+
+                ax.hlines(categories[label], 0, 1,
+                          transform=ax.get_yaxis_transform(),
+                          colors='tab:cyan', label=f'Category {title_label}')
+
+            ax.scatter(*data, c=clr, label=f'{title_label} 0 x {title_label} 1')
+            ax.legend()
+            ax.grid(True)
+            filename = f'{title_label}x{title_label}'
+            suptitle = filename
+            if save_path is not None:
+                expid = save_path.parts[-2]
+                result = re.search(TIMESTAMP, expid)
+                if result:
+                    timestamp = result.group(0,)
+                else:
+                    timetamp = expid
+
+                suptitle = f'{filename}\n{timestamp}'
+                fig.suptitle(suptitle)
+                plt.savefig(save_path / f'{tl}-{filename}-Scatter.png')
+            else:
+                fig.suptitle(suptitle)
+            plt.show()
+
+
+def scatter_states(series, categories={}, save_path=None):
+    """Scatter phases"""
+    # xlabel, ylabel = xylabels
+
+    for labels, tls in series.items():
+        xlabel, ylabel = labels
+        for tl, phases in tls.items():
+            fig, axs = plt.subplots(1, 2)
+            colors = ['tab:blue', 'tab:red']
+            # Phase iterations
+            for n, points in phases.items():
+                ax = axs[n]
+                clr = colors[n]
+                ax.set_xlabel(snakefy(xlabel))
+                ax.set_ylabel(snakefy(ylabel))
+
+
+                ax.vlines(categories[xlabel], 0, 1,
+                          transform=ax.get_xaxis_transform(),
+                          colors='tab:green', label=snakefy(xlabel))
+
+                ax.hlines(categories[ylabel], 0, 1,
+                          transform=ax.get_yaxis_transform(),
+                          colors='tab:cyan', label=snakefy(ylabel))
+
+                x, y = zip(*points)
+                ax.scatter(x, y, c=clr, label=f'Phase {n}')
+
+                ax.legend()
+                ax.grid(True)
+
+        filename = f'{snakefy(xlabel)}x{snakefy(ylabel)}'
+        suptitle = f'{filename}\n{tl}'
+
+        fig.suptitle(suptitle)
+        if save_path is not None:
+            plt.savefig(save_path / f'{tl}-{filename}-Scatter.png')
+        plt.show()
+
+def get_timestamp(save_path):
+    timestamp = ''
+    if save_path is not None:
+        expid = save_path.parts[-1]
+        result = re.search(TIMESTAMP, expid)
+        if result:
+            timestamp = result.group(0,)
+    return timestamp
