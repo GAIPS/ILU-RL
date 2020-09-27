@@ -11,6 +11,7 @@ from ilurl.params import (QLParams,
                           DQNParams,
                           R2D2Params,
                           DDPGParams,
+                          D4PGParams,
                           MDPParams,
                           TrainParams)
 
@@ -160,6 +161,8 @@ class Parser(object):
             agent_params = self._parse_r2d2_params(train_config)
         elif agent_type == 'DDPG':
             agent_params = self._parse_ddpg_params(train_config)
+        elif agent_type == 'D4PG':
+            agent_params = self._parse_d4pg_params(train_config)
         else:
             raise ValueError('Unkown agent type.')
 
@@ -283,5 +286,36 @@ class Parser(object):
 
         return ddpg_params
 
+    def _parse_d4pg_params(self, train_config):
+        """
+            Parses D4PG parameters (d4pg_args) from config file located
+            at self.config_path and returns a ilurl.params.D4PGParams
+            object with the parsed parameters.
+        """
+
+        d4pg_args = train_config['d4pg_args']
+
+        d4pg_params = D4PGParams(
+                        batch_size=int(d4pg_args['batch_size']),
+                        prefetch_size=int(d4pg_args['prefetch_size']),
+                        target_update_period=int(d4pg_args['target_update_period']),
+                        min_replay_size=int(d4pg_args['min_replay_size']),
+                        max_replay_size=int(d4pg_args['max_replay_size']),
+                        samples_per_insert=float(d4pg_args['samples_per_insert']),
+                        n_step=int(d4pg_args['n_step']),
+                        sigma_init=float(d4pg_args['sigma_init']),
+                        sigma_final=float(d4pg_args['sigma_final']),
+                        sigma_schedule_timesteps=int(d4pg_args['sigma_schedule_timesteps']),
+                        clipping=str2bool(d4pg_args['clipping']),
+                        policy_layers=json.loads(d4pg_args['policy_layers']),
+                        critic_layers=json.loads(d4pg_args['critic_layers']),
+                        vmin=float(d4pg_args['vmin']),
+                        vmax=float(d4pg_args['vmax']),
+                        num_atoms=int(d4pg_args['num_atoms']),
+        )
+
+        # print(d4pg_params)
+
+        return d4pg_params
 
 config_parser = Parser()

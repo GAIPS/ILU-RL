@@ -253,7 +253,7 @@ def main(experiment_root_folder=None):
                  differ from the ones taken by the DDPG agent (continuous action
                  agent).
     """
-    if agent_type in ('DDPG', 'MPO'):
+    if agent_type in ('DDPG', 'D4PG', 'MPO'):
         # Continuous action-schema.
 
         # TODO: This only works for two-phased intersections.

@@ -454,6 +454,45 @@ class DDPGParams(Printable):
             if attr not in ('self'):
                 setattr(self, attr, value)
 
+class D4PGParams(Printable):
+    """
+        Base D4PG parameters.
+    """
+
+    def __init__(
+            self,
+            batch_size: int = 100,
+            prefetch_size: int = 1,
+            target_update_period: int = 100,
+            min_replay_size: int = 1000,
+            max_replay_size: int = 30000,
+            samples_per_insert: float = 50.0,
+            n_step: int = 5,
+            sigma_init: float = 0.3,
+            sigma_final: float = 0.01,
+            sigma_schedule_timesteps: float = 45000,
+            clipping: bool = True,
+            policy_layers: list = [5, 5],
+            critic_layers: list = [5, 5],
+            vmin: float = -100.,
+            vmax: float = 100.,
+            num_atoms: int = 51,
+        ):
+        """Instantiate D4PG parameters.
+
+        Parameters:
+        ----------
+        * (See acme.agents.tf.d4pg.agent.py file for more info).
+
+         """
+        kwargs = locals()
+
+        # TODO: Add arguments restrictions.
+
+        for attr, value in kwargs.items():
+            if attr not in ('self'):
+                setattr(self, attr, value)
+
 
 class TrainParams(Printable):
     """
