@@ -1,13 +1,13 @@
 """This script makes a scatter plot 
 
-    * phase vs phase for a given feature.
-    * feature vs feature for a given state.
-    * Relaxed (but untested for multiple tls).
+    * Phase vs phase for a given feature.
+    * Feature vs feature for a given state.
+    * Handles multiple intersections.
+    * Reward vs state for single feature states.
 
     TODO:
     -----
-    1) Consolidate tls signals.
-    2) Reward vs observation.
+    1) Reward vs state for multiple feature states.
 
     USAGE:
     -----
@@ -16,7 +16,6 @@
 
 """
 # core packages
-import ipdb
 import re
 from pathlib import Path
 from collections import defaultdict
@@ -123,21 +122,27 @@ if __name__ == '__main__':
     with train_log_path.open('r') as f:
         output = json.load(f)
     observation_spaces = output['observation_spaces']
+    rewards = output['rewards']
 
     train_config = configparser.ConfigParser()
     train_config.read(config_path.as_posix())
     # TODO: Use the features to get the categories
     network_id = train_config.get('train_args', 'network')
     labels = eval(train_config.get('mdp_args', 'features'))
+    is_min_mdp = '_min_' in train_config.get('mdp_args', 'reward')
     
     categories = get_categories(train_config, labels)
         
     # Scatter from phase 0 vs phase 1
     for j, label in enumerate(labels):
         feature_series = get_series(observation_spaces, labels, xylabels=[j])
-        scatter_phases(feature_series, label, categories, target_path)
+        _rewards = rewards if len(labels) == 1 else []
+        scatter_phases(feature_series, label, categories,
+                       network=network_id, save_path=target_path,
+                       rewards=_rewards, is_min_mdp=is_min_mdp)
 
     if len(labels) > 1:
         states_series = get_series(observation_spaces, labels)
-        scatter_states(states_series, categories, target_path)
+        scatter_states(states_series, categories,
+                       network=network_id, save_path=target_path)
 
