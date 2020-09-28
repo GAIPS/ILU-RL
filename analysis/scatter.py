@@ -4,10 +4,7 @@
     * Feature vs feature for a given state.
     * Handles multiple intersections.
     * Reward vs state for single feature states.
-
-    TODO:
-    -----
-    1) Reward vs state for multiple feature states.
+    * Reward vs state for multiple feature states.
 
     USAGE:
     -----
@@ -18,7 +15,8 @@
 # core packages
 import re
 from pathlib import Path
-from collections import defaultdict
+from importlib import import_module
+from collections import defaultdict, namedtuple
 import json
 from os import environ
 import argparse
@@ -30,7 +28,9 @@ import matplotlib.pyplot as plt
 # project dependencies
 from ilurl.utils.aux import TIMESTAMP, snakefy
 from ilurl.utils.plots import (scatter_states, scatter_phases)
+import ilurl.rewards as rew
 
+MockMDP = namedtuple('MockMDP', 'reward reward_rescale')
 
 def get_categories(train_config, labels):
     """Gets features' categories"""
@@ -86,6 +86,18 @@ def get_series(observation_space, labels, xylabels=[], xyphases=[]):
 
     return ret
 
+def get_reward_function(train_config):
+    # 1) Get build rewards
+    rewards_module = import_module('.rewards', package='ilurl')
+    build_rewards = getattr(rewards_module, 'build_rewards')
+
+    # 2) Parse train config
+    reward = eval(train_config.get('mdp_args', 'reward'))
+    reward_rescale = eval(train_config.get('mdp_args', 'reward_rescale'))
+    mock_params = MockMDP(reward=reward, reward_rescale=reward_rescale)
+
+    return build_rewards(mock_params)
+
 def get_arguments():
     parser = argparse.ArgumentParser(
         description="""
@@ -129,7 +141,9 @@ if __name__ == '__main__':
     # TODO: Use the features to get the categories
     network_id = train_config.get('train_args', 'network')
     labels = eval(train_config.get('mdp_args', 'features'))
-    is_min_mdp = '_min_' in train_config.get('mdp_args', 'reward')
+
+    reward_function = get_reward_function(train_config)
+    reward_is_penalty = '_min_' in train_config.get('mdp_args', 'reward')
     
     categories = get_categories(train_config, labels)
         
@@ -139,10 +153,12 @@ if __name__ == '__main__':
         _rewards = rewards if len(labels) == 1 else []
         scatter_phases(feature_series, label, categories,
                        network=network_id, save_path=target_path,
-                       rewards=_rewards, is_min_mdp=is_min_mdp)
+                       rewards=_rewards, reward_is_penalty=reward_is_penalty)
 
     if len(labels) > 1:
         states_series = get_series(observation_spaces, labels)
         scatter_states(states_series, categories,
-                       network=network_id, save_path=target_path)
+                       network=network_id, save_path=target_path,
+                       rewards=rewards, reward_is_penalty=reward_is_penalty,
+                       reward_function=reward_function)
 

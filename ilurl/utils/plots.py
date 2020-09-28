@@ -74,7 +74,7 @@ def plot_times(times, series, series_labels, xy_labels, title):
     plt.show()
 
 def scatter_phases(series, label, categories={}, save_path=None,
-                    network=None, rewards=[], is_min_mdp=False):
+                    network=None, rewards=[], reward_is_penalty=False):
     """Scatter e.g delay 0 vs delay 1
 
         * Given a feature plot phases
@@ -119,7 +119,7 @@ def scatter_phases(series, label, categories={}, save_path=None,
             set_categories(ax, [label], categories)
 
             # Plot the gradient colors
-            clr = make_colors(ax, data, _rewards, is_min_mdp)
+            clr = make_colors(ax, data, _rewards, reward_is_penalty)
 
             ax.scatter(*data, c=clr, label=f'{title_label} 0 x {title_label} 1')
             ax.legend()
@@ -129,7 +129,8 @@ def scatter_phases(series, label, categories={}, save_path=None,
             plt.show()
 
 
-def scatter_states(series, categories={}, save_path=None, network=None):
+def scatter_states(series, categories={}, save_path=None, network=None,
+                   rewards=[], reward_is_penalty=False, reward_function=None):
     """States e.g delay 0 vs delay 1
 
         * Given a dual plot of phases 0-1 two different 
@@ -149,6 +150,9 @@ def scatter_states(series, categories={}, save_path=None, network=None):
         network: str
             e.g intersection, grid, grid_6
     """
+    fnc = reward_function
+    absolutes = []
+    partials = []
     for labels, tls in series.items():
         xlabel, ylabel = labels
         for tl, phases in tls.items():
@@ -157,17 +161,25 @@ def scatter_states(series, categories={}, save_path=None, network=None):
             # Phase iterations
             for n, points in phases.items():
                 ax = axs[n]
-                clr = colors[n]
+                x, y = zip(*points)
+                data = [x, y]
+                pr, ar = partial_rewards(fnc, tl, rewards, points)
+                partials += pr
+                absolutes += ar
+                clr = make_colors(ax, data, pr, reward_is_penalty=reward_is_penalty)
                 ax.set_xlabel(snakefy(xlabel))
                 ax.set_ylabel(snakefy(ylabel))
-
+                
                 set_categories(ax, labels, categories)
 
-                x, y = zip(*points)
-                ax.scatter(x, y, c=clr, label=f'Phase {n}')
+                ax.scatter(*data, c=clr, label=f'Phase {n}')
 
                 ax.legend()
                 ax.grid(True)
+
+            totr = sum([rr[tl] for rr in rewards])
+            assert abs(sum(absolutes) - totr) / totr < 1e-3
+            assert abs(sum(partials) - len(rewards)) / len(rewards) < 1e-2
             save_scatter(fig, tl, labels, network=network, save_path=save_path)
         plt.show()
 
@@ -194,7 +206,7 @@ def set_categories(ax, labels, categories):
                   transform=ax.get_yaxis_transform(),
                   colors='tab:cyan', label=f'category {snakefy(ylabel)}')
 
-def make_colors(ax, data, rewards, is_min_mdp=False):
+def make_colors(ax, data, rewards, reward_is_penalty=False):
     """Applies gradient coloring for rewards
         Params:
             * ax: matplotlib.axes._subplots.AxesSubplot
@@ -206,7 +218,7 @@ def make_colors(ax, data, rewards, is_min_mdp=False):
             * rewards: array-like
                 List with either rewards or penalties.
 
-            * is_min_mdp: bool
+            * reward_is_penalty: bool
                 if True then rewards are actually a penalty  
 
         Returns:
@@ -214,7 +226,7 @@ def make_colors(ax, data, rewards, is_min_mdp=False):
                 'tab:blue' or array of gradient
     """
     if any(rewards):
-        rnorm = normalize_rewards(rewards, is_min_mdp)
+        rnorm = normalize_rewards(rewards, reward_is_penalty)
         cmap = plt.get_cmap('RdPu')
         cnorm = mcolors.Normalize(vmin=min(rnorm), vmax=max(rnorm))
         smap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
@@ -279,7 +291,43 @@ def get_timestamp(save_path):
             timestamp = result.group(0,)
     return timestamp
 
-def normalize_rewards(rewards, is_min_mdp=False):
+def partial_rewards(reward_function, tl, total_rewards, phase_states):
+    """Computes the reward with respect to 1 phase of the state
+    
+    Params:
+        * reward_function: function
+            Reward used during training.
+
+        * tl: str
+            Id for traffic light agents.
+
+        * total_rewards: list<dict<str, list<float>>>
+            Rewards saved during training.
+
+        * phase_states: list<list<float>>
+            Phase states each element of the outer list
+            is the phase state.
+
+    Returns:
+
+        * partials: list<float> 
+            List of the fraction of the reward due to phase.
+
+        * absolutes: list<float>
+            List of the reward function evaluated on the phase.
+    """
+    partials = []
+    absolutes = []
+    if any(total_rewards):
+        for state, reward in zip(phase_states, total_rewards):
+            pr = reward_function({tl: state})
+            absolutes.append(pr[tl])
+            partials.append(pr[tl] / reward[tl] if bool(reward[tl]) else 0)
+    return partials, absolutes
+        
+    
+
+def normalize_rewards(rewards, reward_is_penalty=False):
     """Corrects rewards to be in the interval 0-1
    
         * If reward is actually a penalty it inverts 
@@ -288,12 +336,12 @@ def normalize_rewards(rewards, is_min_mdp=False):
             list with the rewards from a tls
  
     Returns:
-        * is_min_mdp: bool
+        * reward_is_penalty: bool
             If True then the reward is actually a penalty 
             default False
     """
     # Switch signals
-    if is_min_mdp:
+    if reward_is_penalty:
         _rewards = [-r for r in rewards]
     else:
         _rewards = rewards
