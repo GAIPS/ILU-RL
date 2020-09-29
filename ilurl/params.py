@@ -59,7 +59,7 @@ class MDPParams(Printable):
                 category_average_pressures: List[int] = [1, 10],
                 category_flows: List[int] = [1, 10],
                 category_speed_scores: List[int] = [1, 10],
-                reward: str = 'reward_max_speed_count',
+                reward: str = 'reward_min_speed_delta',
                 reward_rescale: float = 1.0,
                 time_period: int = None,
                 velocity_threshold = None,

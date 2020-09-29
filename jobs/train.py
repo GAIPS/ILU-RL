@@ -124,7 +124,7 @@ def train_batch():
         # Run.
         # rvs: directories' names holding experiment data
         if num_processors > 1:
-            pool = NonDaemonicPool(num_processors)
+            pool = NonDaemonicPool(num_processors, maxtasksperchild=1)
             rvs = pool.map(delay_train, [(delay, cfg)
                             for (delay, cfg) in zip(range(len(train_configs)), train_configs)])
             pool.close()

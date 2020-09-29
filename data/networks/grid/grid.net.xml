@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Sáb 19 Set 2020 02:00:50 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
+<!-- generated on Qui 24 Set 2020 12:41:11 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
@@ -216,22 +216,22 @@
     </edge>
 
     <tlLogic id="247123161" type="static" programID="0" offset="0">
-        <phase duration="22" state="rrrGGGrrrGGG"/>
-        <phase duration="6"  state="rrryyyrrryyy"/>
-        <phase duration="26" state="GGGrrrGGGrrr"/>
+        <phase duration="20" state="GGGrrrGGGrrr"/>
         <phase duration="6"  state="yyyrrryyyrrr"/>
+        <phase duration="28" state="rrrGGGrrrGGG"/>
+        <phase duration="6"  state="rrryyyrrryyy"/>
     </tlLogic>
     <tlLogic id="247123464" type="static" programID="0" offset="0">
-        <phase duration="24" state="GGGrrrrrGG"/>
-        <phase duration="6"  state="yyyrrrrryy"/>
-        <phase duration="24" state="rrrGGGGGrr"/>
+        <phase duration="19" state="rrrGGGGGrr"/>
         <phase duration="6"  state="rrryyyyyrr"/>
+        <phase duration="29" state="GGGrrrrrGG"/>
+        <phase duration="6"  state="yyyrrrrryy"/>
     </tlLogic>
     <tlLogic id="247123468" type="static" programID="0" offset="0">
-        <phase duration="22" state="rrrrrGGGGG"/>
-        <phase duration="6"  state="rrrrryyyyy"/>
-        <phase duration="26" state="GGGGGrrrrr"/>
+        <phase duration="20" state="GGGGGrrrrr"/>
         <phase duration="6"  state="yyyyyrrrrr"/>
+        <phase duration="28" state="rrrrrGGGGG"/>
+        <phase duration="6"  state="rrrrryyyyy"/>
     </tlLogic>
 
     <junction id="-142632" type="dead_end" x="95.97" y="158.49" incLanes="-383432312_0" intLanes="" shape="95.97,158.49 99.11,157.88 95.97,158.49"/>
