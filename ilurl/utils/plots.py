@@ -100,12 +100,12 @@ def scatter_phases(series, label, categories={}, save_path=None,
                 intersection_20200923-1431271600867887.8995893/
                     log_plots
     """
-    data = []
     for labels, tls in series.items():
         labelid = labels.index(label)
 
         for tl, phases in tls.items():
             title_label = snakefy(label)
+            data = []
             for n, points in phases.items():
                 # filter data
                 data.append(points)
@@ -178,8 +178,11 @@ def scatter_states(series, categories={}, save_path=None, network=None,
                 ax.grid(True)
 
             totr = sum([rr[tl] for rr in rewards])
-            assert abs(sum(absolutes) - totr) / totr < 1e-3
-            assert abs(sum(partials) - len(rewards)) / len(rewards) < 1e-2
+            try:
+                assert abs(sum(absolutes) - totr) / totr < 1e-3
+                assert abs(sum(partials) - len(rewards)) / len(rewards) < 1e-3
+            except AssertionError:
+                print('Warning: Assertion Error: Rounding errors overflow')
             save_scatter(fig, tl, labels, network=network, save_path=save_path)
         plt.show()
 
