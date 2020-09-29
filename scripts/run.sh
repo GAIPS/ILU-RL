@@ -9,7 +9,7 @@ python jobs/run.py
 
 # B) EXPERIMENT: GRID, DELAY
 sed -i "s/features = ('speed', 'count')/# features = ('speed', 'count')/"  config/train.config
-sed -i "s/reward = 'reward_max_speed_count'/# reward = 'reward_max_speed_count'/"  config/train.config
+sed -i "s/reward = 'reward_min_speed_delta'/# reward = 'reward_min_speed_delta'/"  config/train.config
 
 sed -i "s/# features = ('delay',)/features = ('delay',)/"  config/train.config
 sed -i "s/# reward = 'reward_min_delay'/reward = 'reward_min_delay'/"  config/train.config
