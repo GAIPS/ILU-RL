@@ -24,9 +24,9 @@ def get_rewards():
     -----
     > names, objs = get_rewards()
     > names
-    > ('reward_max_speed_count', reward_min_delay')
+    > ('reward_min_speed_delta', reward_min_delay')
     > objs
-    > (<function ilurl.rewards.reward_max_speed_count(state, *args)>,
+    > (<function ilurl.rewards.reward_min_speed_delta(state, *args)>,
        <function ilurl.rewards.reward_min_delay(state, *args)>)
     """
     this = modules[__name__]
@@ -72,8 +72,8 @@ def build_rewards(mdp_params):
     return ret
 
 
-def reward_max_speed_count(state, *args):
-    """Max. Speed and Count
+def reward_min_speed_delta(state, *args):
+    """Min. speed distance to max_speed
 
     Params:
     ------

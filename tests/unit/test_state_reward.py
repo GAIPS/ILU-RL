@@ -109,7 +109,7 @@ class TestStateReward(unittest.TestCase):
         """
         mdp_params = MDPParams(
                         features=('speed', 'count'),
-                        reward='reward_max_speed_count',
+                        reward='reward_min_speed_delta',
                         normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,
