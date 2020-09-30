@@ -106,7 +106,7 @@ if __name__ == '__main__':
         # ignore lower and higher values
         quantiles = np.percentile(values, percentile_separators)
         print(f"#########{label}##########")
-        print(f"min:\t{np.round(min(quantiles) * sigma + mu, 2)}")
+        print(f"min:\t{np.round(min(quantiles), 2)}")
         for i, q in enumerate(quantiles):
             # color = perceptile_colors[i]
             color = 'tab:purple'
@@ -117,8 +117,8 @@ if __name__ == '__main__':
                         label=legend)
 
             # Tweak spacing to prevent clipping of ylabel
-            print(f"{p}%\t{np.round(q * sigma + mu, 2)}")
-        print(f"max:\t{np.round(max(quantiles) * sigma + mu, 2)}")
+            print(f"{p}%\t{np.round(q, 2)}")
+        print(f"max:\t{np.round(max(quantiles), 2)}")
 
         n, bins, patches = ax.hist(
             values,

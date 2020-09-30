@@ -1,11 +1,11 @@
 {
-    "category_average_pressures": [-1.08, -0.37, 0.00, 0.48, 1.02],
+    "category_average_pressures": [0.01, 0.74, 1.92, 3.84, 6.80],
     "category_counts": [0.27, 1.0, 3.0, 5.0, 10.0, 15.0],
-    "category_delays": [0.0, 0.06, 0.4, 0.82, 1.31],
-    "category_flows": [1.0, 2.0, 3.0, 5.0, 6.0],
-    "category_queues": [0.0, 0.03, 0.35, 0.63, 0.97],
-    "category_waiting_times":[0.0, 0.03, 0.77, 1.23],
-    "category_pressures":[-5, -3, 0, 3, 5, 10],
-    "category_speeds": [0.475, 0.6, 0.7, 0.8, 0.9],
-    "category_speed_scores":[0.14, 0.30, 0.48, 0.77, 0.92]
+    "category_delays": [0.1, 0.73, 1.77, 2.0, 5.0, 7.15],
+    "category_flows": [1.0, 3.0, 5.0, 9.0, 15.0],
+    "category_queues": [0.5, 1.5, 2.5, 3.5, 5.5],
+    "category_waiting_times":[0.01, 1.68, 2.58, 4.28, 6.18, 8.03],
+    "category_pressures": [0.5, 1.0, 2.0, 3.0, 4.0, 5.0],
+    "category_speeds": [0.475, 0.6, 0.7, 0.8, 0.85, 0.9],
+    "category_speed_scores":[0.05, 0.1, 0.26, 0.3, 0.468]
 }
