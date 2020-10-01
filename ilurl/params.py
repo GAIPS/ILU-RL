@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import numpy as np
 
-import flow.core.params as flow_params
+import flow.core.params
 
 from ilurl.rewards import get_rewards
 from ilurl.agents.ql.choice import CHOICE_TYPES
@@ -34,7 +34,8 @@ TLS_TYPES = ('rl', 'static', 'webster',
              'actuated', 'random', 'max_pressure')
 
 # Traffic demand types (flows).
-DEMAND_TYPES = ('constant', 'variable') # TODO: Add 'switch' demand type.
+DEMAND_TYPES = ('constant', 'variable')
+DEMAND_MODES = ('step', 'cyclical')
 
 
 class MDPParams(Printable):
@@ -471,6 +472,7 @@ class TrainParams(Printable):
             sumo_emission: bool = False,
             tls_type: str = 'rl',
             demand_type: str = 'constant',
+            demand_mode: str = 'step',
         ):
         """Instantiate train parameters.
 
@@ -508,31 +510,42 @@ class TrainParams(Printable):
             variable - realistic demand that varies throught 24 hours
                     (resembling realistic traffic variations, e.g. peak hours)
 
+        * demand_mode: ('step' or 'cyclical') 
+            step -  uses demand_types as the magnitude.
+            cyclical - uses demand_types as amplitude, switches demands 
+                between two sets of perpendicular edges.
         """
         kwargs = locals()
 
         if experiment_time <= 0:
-            raise ValueError('''The ineq 0 < experiment_time must hold.
-                    Got experiment_time = {}.'''.format(experiment_time))
+            raise ValueError(f'''
+                The ineq 0 < experiment_time must hold.
+                Got experiment_time = {experiment_time}.''')
 
         if experiment_save_agent_interval <= 0:
-            raise ValueError('''The ineq 0 < experiment_save_agent_interval < 1 must hold.
-                    Got experiment_save_agent_interval = {}.'''.format(experiment_save_agent_interval))
+            raise ValueError(f'''
+            The ineq 0 < experiment_save_agent_interval < 1 must hold.
+            Got experiment_save_agent_interval = {experiment_save_agent_interval}.''')
 
         if tls_type not in TLS_TYPES:
-            raise ValueError('''The tls_type must be in ('rl', 'webster', 'static', 'random', 'actuated' or 'max-pressure').
-                    Got tls_type = {}.'''.format(tls_type))
+            raise ValueError(f'''
+                The tls_type must be in ('rl', 'webster', 'static', 'random', 'actuated' or 'max-pressure'). Got tls_type = {tls_type}.''')
 
         if demand_type not in DEMAND_TYPES:
-            raise ValueError('''The demand_type must be in ('constant' or 'variable').
-                    Got demand_type = {}.'''.format(demand_type))
+            raise ValueError(f'''
+                The demand_type must be in ('constant' or 'variable').
+                    Got demand_type = {demand_type}.''')
+
+        if demand_mode not in DEMAND_MODES:
+            raise ValueError(f'''
+                The demand_mode must be in ('step' or 'cyclical').
+                Got demand_mode = {(demand_mode)}.''')
 
         for attr, value in kwargs.items():
             if attr not in ('self'):
                 setattr(self, attr, value)
 
-
-class InFlows(flow_params.InFlows,Printable):
+class InFlows(flow.core.params.InFlows, Printable):
     """
         InFlows.
     """
@@ -541,6 +554,7 @@ class InFlows(flow_params.InFlows,Printable):
                  network_id,
                  horizon,
                  demand_type,
+                 demand_mode='step',
                  initial_config=None):
 
         super(InFlows, self).__init__()
@@ -554,6 +568,8 @@ class InFlows(flow_params.InFlows,Printable):
 
         # Get demand data.
         demand = get_demand(demand_type, network_id)
+        self.demand_type = demand_type
+        self.demand_mode = demand_mode
 
         # an array of kwargs
         params = []
@@ -567,89 +583,154 @@ class InFlows(flow_params.InFlows,Printable):
 
                 args = (eid, 'human')
 
-                # Uniform flows.
-                if demand_type == 'constant':
+                if demand_mode == 'step':
+                    # Uniform flows.
+                    if demand_type == 'constant':
 
-                    insertion_probability = demand[str(num_lanes)]
-
-                    kwargs = {
-                        'probability': insertion_probability,
-                        'depart_lane': 'best',
-                        'depart_speed': 'random',
-                        'name': f'uniform_{eid}',
-                        'begin': 1,
-                        'end': horizon
-                    }
-
-                    params.append((args, kwargs))
-
-                # 24 hours variable flows.
-                elif demand_type == 'variable':
-
-                    peak_distribution = demand['peak']
-
-                    num_days = horizon // (24*3600) + 1
-
-                    for day in range(num_days):
-
-                        for hour in range(24):
-
-                            hour_factor = demand['hours'][str(hour)]
-
-                            insertion_probability = hour_factor * \
-                                        peak_distribution[str(num_lanes)]
-
-                            begin_t = 1 + (hour * 3600) + (24*3600) * day
-                            end_t = (hour * 3600) + (24*3600) * day + 3600
-
-                            # print('-'*10)
-                            # print('num_lanes:', num_lanes)
-                            # print('begin_t:', begin_t)
-                            # print('end_t:', end_t)
-                            # print('insertion_probability:', insertion_probability)
-                            # print('\n')
-
-                            if end_t > horizon:
-                                break
-
-                            kwargs = {
-                                'probability': insertion_probability,
-                                'depart_lane': 'best',
-                                'depart_speed': 'random',
-                                'name': f'variable_{eid}',
-                                'begin': begin_t,
-                                'end': end_t
-                            }
-
-                            params.append((args, kwargs))
-
-                elif demand_type == 'switch':
-                    raise NotImplementedError('Switch demand')
-
-                    """ switch = additional_params['switch']
-                    num_flows = max(math.ceil(horizon / switch), 1)
-                    for hr in range(num_flows):
-                        step = min(horizon - hr * switch, switch)
-                        # switches in accordance to the number of lanes
-                        if (hr + num_lanes) % 2 == 1:
-                            insertion_probability = insertion_probability \
-                                                    + 0.2 * num_lanes
+                        insertion_probability = demand[str(num_lanes)]
 
                         kwargs = {
-                            'probability': round(insertion_probability, 2),
+                            'probability': insertion_probability,
                             'depart_lane': 'best',
                             'depart_speed': 'random',
-                            'name': f'switch_{eid}',
-                            'begin': 1 + hr * switch,
-                            'end': step + hr * switch
+                            'name': f'uniform_{eid}',
+                            'begin': 1,
+                            'end': horizon
                         }
 
-                        params.append((args, kwargs)) """
+                        params.append((args, kwargs))
+
+                    # 24 hours variable flows.
+                    elif demand_type == 'variable':
+
+                        peak_distribution = demand['peak']
+
+                        num_days = horizon // (24*3600) + 1
+
+                        for day in range(num_days):
+
+                            for hour in range(24):
+
+                                hour_factor = demand['hours'][str(hour)]
+
+                                insertion_probability = hour_factor * \
+                                            peak_distribution[str(num_lanes)]
+
+                                begin_t = 1 + (hour * 3600) + (24*3600) * day
+                                end_t = (hour * 3600) + (24*3600) * day + 3600
+
+                                # print('-'*10)
+                                # print('num_lanes:', num_lanes)
+                                # print('begin_t:', begin_t)
+                                # print('end_t:', end_t)
+                                # print('insertion_probability:', insertion_probability)
+                                # print('\n')
+
+                                if end_t > horizon:
+                                    break
+
+                                kwargs = {
+                                    'probability': insertion_probability,
+                                    'depart_lane': 'best',
+                                    'depart_speed': 'random',
+                                    'name': f'variable_{eid}',
+                                    'begin': begin_t,
+                                    'end': end_t
+                                }
+
+                                params.append((args, kwargs))
+
+                elif demand_mode == 'cyclical':
+                    # Get demand data.
+                    self.mode = get_demand(demand_mode, network_id)
+                    
+                    # Uniform flows.
+                    if demand_type == 'constant':
+                        insertion_probability = demand[str(num_lanes)]
+                        for qh in range(0, horizon, 900):
+                            
+                            fct = self.cyclical_factor(qh, eid)
+                            if fct > 0:
+                                begin_t = qh + 1
+                                end_t = (qh + 1) * 900
+                                kwargs = {
+                                    'probability': fct * insertion_probability,
+                                    'depart_lane': 'best',
+                                    'depart_speed': 'random',
+                                    'name': f'cyclical_{eid}',
+                                    'begin': qh + 1,
+                                    'end': qh + 900
+                                }
+
+                                params.append((args, kwargs))
+
+                    # 24 hours variable flows.
+                    elif demand_type == 'variable':
+
+                        peak_distribution = demand['peak']
+
+                        num_days = horizon // (24*3600) + 1
+
+                        for day in range(num_days):
+
+                            for hour in range(24):
+
+                                hour_factor = demand['hours'][str(hour)]
+
+                                insertion_probability = hour_factor * \
+                                            peak_distribution[str(num_lanes)]
+
+                                for qh in range(0, 3600, 900):
+                                    
+                                    begin_t = 1 + qh + \
+                                            (hour * 3600) + (24*3600) * day
+                                    end_t = (qh + 900) + \
+                                            (hour * 3600) + (24*3600) * day
+
+                                    fct = self.cyclical_factor(begin_t, eid)
+                                    kwargs = {
+                                        'probability': fct * insertion_probability,
+                                        'depart_lane': 'best',
+                                        'depart_speed': 'random',
+                                        'name': f'cyclical_{eid}',
+                                        'begin': begin_t,
+                                        'end': end_t
+                                    }
+
+                                    params.append((args, kwargs))
+                                
                 else:
-                    raise ValueError(f'Unknown demand_type {demand_type}')
+                    raise ValueError(
+                        f'Unknown demand_type {demand_type}\t demand_mode {demand_mode}')
 
         # Sort params flows will be consecutive
         params = sorted(params, key=lambda x: x[1]['end'])
         params = sorted(params, key=lambda x: x[1]['begin'])
         for args, kwargs in params:
             self.add(*args, **kwargs)
+
+    def cyclical_factor(self, t, edge_id):
+        fct = 1
+
+        if self.demand_mode == 'step':
+            return fct
+        else:
+            if edge_id in self.mode['U']['edges']:
+                T = self.mode['U']['T']
+                omega = 2 * (math.pi / T)
+                omega_0 =  omega * self.mode['U']['K0']
+                
+                fct = round(
+                    0.45 * math.cos(omega * t + omega_0) + 0.5, 6
+                )
+            elif edge_id in self.mode['V']['edges']:
+                T = self.mode['V']['T']
+                omega = 2 * (math.pi / T)
+                omega_0 =  omega * self.mode['V']['K0']
+                
+                fct = round(
+                    0.45 * math.sin(omega * t + omega_0) + 0.5, 6
+                )
+            else:
+                raise ValueError(f'{edge_id} should be in initial_config')
+        return fct
