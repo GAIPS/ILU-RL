@@ -71,15 +71,16 @@ class Parser(object):
         seed = int(train_args['experiment_seed']) if not isNone(train_args['experiment_seed']) else None
 
         train_params = TrainParams(
-                        network=train_args['network'],
-                        experiment_time=int(train_args['experiment_time']),
-                        experiment_save_agent=str2bool(train_args['experiment_save_agent']),
-                        experiment_save_agent_interval=int(train_args['experiment_save_agent_interval']),
-                        experiment_seed=seed,
-                        sumo_render=str2bool(train_args['sumo_render']),
-                        sumo_emission=str2bool(train_args['sumo_emission']),
-                        tls_type=train_args['tls_type'],
-                        demand_type=train_args['demand_type'],
+            network=train_args['network'],
+            experiment_time=int(train_args['experiment_time']),
+            experiment_save_agent=str2bool(train_args['experiment_save_agent']),
+            experiment_save_agent_interval=int(train_args['experiment_save_agent_interval']),
+            experiment_seed=seed,
+            sumo_render=str2bool(train_args['sumo_render']),
+            sumo_emission=str2bool(train_args['sumo_emission']),
+            tls_type=train_args['tls_type'],
+            demand_type=train_args['demand_type'],
+            demand_mode=train_args['demand_mode'],
         )
 
         if print_params:
