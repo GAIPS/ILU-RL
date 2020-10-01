@@ -5,104 +5,124 @@
     USAGE:
     -----
     From root directory with files saved on root
-    > python analysis/hist.py
+    > python analysis/hist.py 20200929124206.116251/intersection_20200929-1242061601379726.138305/
 
     UPDATE:
     -------
     2019-12-11
         * update normpdf function
         * deprecate TrafficLightQLGridEnv in favor of TrafficQLEnv
+
     2020-02-20
         * swap filename for pattern matching uniting many files at once
+
+    2020-09-28
+        * change to argument for histogram
 """
-__author__ = 'Guilherme Varela'
-__date__ = '2019-09-27'
 # core packages
 from collections import defaultdict
+from pathlib import Path
 import json
-import os
-from glob import glob
+from os import environ
+import argparse
 
 
 # third-party libs
+import configparser
 import dill
 import numpy as np
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 
-# current project dependencies
-from ilurl.envs.base import TrafficLightQLEnv
+def get_arguments():
+    parser = argparse.ArgumentParser(
+        description="""
+        This script plots the state space (variables) w.r.t the phases
+        seem by each agent.
+        """
+    )
+    parser.add_argument('experiment_dir', type=str, nargs='?',
+                        help='Directory to the experiment')
 
-ROOT_DIR = os.environ['ILURL_HOME']
-# EMISSION_DIR = f"{ROOT_DIR}/data/emissions/"
-EMISSION_DIR = f"{ROOT_DIR}/data/experiments/0x04/"
-# CONFIG_DIR = ('4545', '5040', '5434', '6030')
-CONFIG_DIR = ('6030',)
+    return parser.parse_args()
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 if __name__ == '__main__':
+    args = get_arguments()
+    experiment_path = Path(args.experiment_dir)
+    train_log_path = experiment_path / 'logs' / 'train_log.json'
+    config_path = experiment_path / 'config' / 'train.config'
+    target_path = experiment_path / 'log_plots'
+    target_path.mkdir(mode=0o777, exist_ok=True)
+
+    # Retrieves features
+    train_config = configparser.ConfigParser()
+    train_config.read(config_path.as_posix())
+    labels = eval(train_config.get('mdp_args', 'features'))
 
     # this loop acumulates experiments
-    ext = '.9000.l.info.json'
     states = defaultdict(list)
 
-    for config_dir in CONFIG_DIR:
-        lookup_jsons = f'{EMISSION_DIR}{config_dir}/*{ext}'
-        for jf in glob(lookup_jsons):
-            # file_path = f"{path}/{filename}.9000.w.info.json"
-            # Retrieves output data
-            with open(jf, 'r') as f:
-                output = json.load(f)
+    # Retrieves output data
+    with train_log_path.open('r') as f:
+        output = json.load(f)
+    observation_spaces = output['observation_spaces']
+    rewards = output['rewards']
 
-            filename = jf.replace(ext,'')
-            # Retrieves agent data
-            env = TrafficLightQLEnv.load(f"{filename}.pickle")
+    # Agregages by feature
+    for observation_space in observation_spaces:
+        for phase_space in observation_space.values():
+            for features in phase_space:
+                for label, val in zip(labels, features):
+                    states[label].append(val)
 
-            # observation spaces
-            if 'cycle' not in output:
-                # 0x00, 0x01, 0x02, 0x03
-                # deprecate
-                observation_spaces = [output['observation_spaces']]
-            else:
-                observation_spaces = output['observation_spaces']
- 
-            for observation_space in observation_spaces:
-                variables = \
-                   env.ql_params.split_space(observation_space)
-                for i, values in enumerate(variables):
-
-                    ()
-                    label = env.ql_params.states_labels[i]
-                    states[label] += \
-                        [val for value in values for val in value]
-
+    import ipdb; ipdb.set_trace()
     # plot building
-    num_bins = 50
+    num_bins = 100
     # percentile separators: low, medium and high
-    percentile_separators = (0.0, 25.0, 75.0, 100.0)
-    perceptile_colors = ('yellow', 'green')
+    percentile_separators = range(10, 100, 10)
+    # perceptile_colors = ('yellow', 'green')
     for label, values in states.items():
-        plt.figure()
+        fig, ax = plt.subplots()
 
         # mean and standard deviation of the distribution
         mu = np.mean(values)
         sigma = np.std(values)
         # the histogram of the data
-        values_normalized = [
-            round((v - mu) / sigma, 2) for v in values
-        ]
+        # values_normalized = [
+        #     round((v - mu) / sigma, 2) for v in values
+        # ]
         # Define quantiles for the histogram
         # ignore lower and higher values
-        quantiles = np.percentile(values_normalized, percentile_separators)
-        for i, q in enumerate(quantiles[1:-1]):
-            color = perceptile_colors[i]
+        quantiles = np.percentile(values, percentile_separators)
+        print(f"#########{label}##########")
+        print(f"min:\t{np.round(min(values), 2)}")
+        for i, q in enumerate(quantiles):
+            # color = perceptile_colors[i]
+            color = 'tab:purple'
             p = percentile_separators[i]
             legend = f'p {int(p)} %'
-            plt.axvline(x=float(q),
+            ax.axvline(x=float(q),
                         markerfacecoloralt=color,
                         label=legend)
 
-        n, bins, patches = plt.hist(
-            values_normalized,
+            # Tweak spacing to prevent clipping of ylabel
+            print(f"{p}%\t{np.round(q, 2)}")
+        print(f"max:\t{np.round(max(values), 2)}")
+
+        n, bins, patches = ax.hist(
+            values,
             num_bins,
             density=mu,
             facecolor='blue',
@@ -111,20 +131,25 @@ if __name__ == '__main__':
 
         # add a 'best fit' line
         y = norm.pdf(bins, mu, sigma)
-        plt.plot(bins, y, 'r--')
-        plt.xlabel(label)
-        plt.ylabel('Probability')
+        ax.plot(bins, y, 'r--')
+        ax.set_xlabel(label)
+        ax.set_ylabel('Probability')
         title = f"Histogram of {label}"
         title = f"{title}\n$\mu$={round(mu, 2)},"
         title = f"{title}$\sigma$={round(sigma,2)}"
-        plt.title(title)
+        ax.set_title(title)
 
+        plt.subplots_adjust(left=0.15)
+        plt.savefig(target_path / f'{label}.png')
+        plt.show()
 
         # Tweak spacing to prevent clipping of ylabel
-        plt.subplots_adjust(left=0.15)
-        print(f"#########{label}##########")
-        print(f"min:\t{np.round(quantiles[0] * sigma + mu, 2)}")
-        print(f"{percentile_separators[1]}\%\t{np.round(quantiles[1] * sigma + mu, 2)}")
-        print(f"{percentile_separators[2]}\%\t{np.round(quantiles[2] * sigma + mu, 2)}")
-        print(f"max:\t{np.round(quantiles[-1] * sigma + mu, 2)}")
-    plt.show()
+        # plt.subplots_adjust(left=0.15)
+        # print(f"#########{label}##########")
+        # print(f"min:\t{np.round(quantiles[0] * sigma + mu, 2)}")
+        # print(f"{percentile_separators[1]}%\t{np.round(quantiles[1] * sigma + mu, 2)}")
+        # print(f"{percentile_separators[2]}%\t{np.round(quantiles[2] * sigma + mu, 2)}")
+        # print(f"max:\t{np.round(quantiles[-1] * sigma + mu, 2)}")
+
+        # plt.show()
+        # plt.savefig(target_path / f'{label}.png')

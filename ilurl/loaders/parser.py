@@ -1,3 +1,4 @@
+from collections import UserDict, ChainMap
 import json
 import configparser
 from os import environ
@@ -16,7 +17,14 @@ from ilurl.params import (QLParams,
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
 TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
+NETWORK_PATH = ILURL_PATH / 'data' / 'networks'
 
+class ConfigDict(UserDict):
+    def __init__(self, train_config, *args, **kwargs):
+        base = train_config._sections['mdp_args']
+        base = {k: eval(v) for k, v in base.items() if 'category' in k}
+        super(ConfigDict, self).__init__(base, *args, **kwargs)
+    
 def str2bool(v, exception=None):
     if isinstance(v, bool):
         return v
@@ -70,6 +78,7 @@ class Parser(object):
 
         seed = int(train_args['experiment_seed']) if not isNone(train_args['experiment_seed']) else None
 
+
         train_params = TrainParams(
             network=train_args['network'],
             experiment_time=int(train_args['experiment_time']),
@@ -103,20 +112,25 @@ class Parser(object):
 
         time_period = int(mdp_args['time_period']) if not isNone(mdp_args['time_period']) else None
 
+
+        # Fetch custom categories
+        try:
+            categories = {}
+            category_path =  NETWORK_PATH / train_config.get('train_args', 'network') / 'categories.json'
+            with category_path.open('r') as f:
+                categories = json.load(f)
+        except FileNotFoundError:
+            # Throws FileNotFoundError only for QL agent
+            agent_type = train_config.get('agent_type', 'agent_type')
+            if agent_type == 'QL':
+                raise FileNotFoundError
+
+        # Merge custom categories and default categories
+        categories = ChainMap(categories, ConfigDict(train_config))
         mdp_params = MDPParams(
             discount_factor=float(mdp_args['discount_factor']),
             action_space=literal_eval(mdp_args['action_space']),
             features=literal_eval(mdp_args['features']),
-            category_average_pressures=json.loads(mdp_args['category_average_pressures']),
-            category_counts=json.loads(mdp_args['category_counts']),
-            category_delays=json.loads(mdp_args['category_delays']),
-            category_flows=json.loads(mdp_args['category_flows']),
-            category_queues=json.loads(mdp_args['category_queues']),
-            category_waiting_times=json.loads(mdp_args['category_waiting_times']),
-            category_pressures=json.loads(mdp_args['category_pressures']),
-            category_speeds=json.loads(mdp_args['category_speeds']),
-            category_speed_scores=json.loads(mdp_args['category_speed_scores']),
-            category_times=json.loads(mdp_args['category_times']),
             normalize_velocities=str2bool(mdp_args['normalize_velocities']),
             normalize_vehicles=str2bool(mdp_args['normalize_vehicles']),
             discretize_state_space=str2bool(mdp_args['discretize_state_space']),
@@ -124,6 +138,7 @@ class Parser(object):
             reward_rescale=float(mdp_args['reward_rescale']),
             velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
             time_period=time_period,
+            **categories
         )
 
         return mdp_params

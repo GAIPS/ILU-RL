@@ -2,7 +2,6 @@
 #
 # This scripts switches features and state spaces
 #
-
 # A) EXPERIMENT: GRID, SPEED & COUNT
 git commit -a -m 'Set config GRID, DQN, 50k, 60s, 30, SPEED.COUNT' 
 python jobs/run.py
@@ -66,3 +65,4 @@ sed -i "s/features = ('average_pressure',)/# features = ('average_pressure',)/" 
 sed -i "s/reward = 'reward_min_average_pressure'/# reward = 'reward_min_average_pressure'/"  config/train.config
 git commit -a -m 'Set config GRID, DQN, 50k, 60s, 30, FLOW' 
 python jobs/run.py
+
