@@ -688,6 +688,7 @@ class InFlows(flow.core.params.InFlows, Printable):
                                             (hour * 3600) + (24*3600) * day
 
                                     fct = self.cyclical_factor(begin_t, eid)
+
                                     kwargs = {
                                         'probability': fct * insertion_probability,
                                         'depart_lane': 'best',
@@ -710,6 +711,19 @@ class InFlows(flow.core.params.InFlows, Printable):
             self.add(*args, **kwargs)
 
     def cyclical_factor(self, t, edge_id):
+        """Computes a factor which oscilates during the day
+        
+        Params:
+            * t: int
+                Simulation time in seconds
+            * edge_id: str
+                Label for the source edge
+            
+
+        Returns:
+            * fct: float
+            Factor between 0 and 1 
+        """
         fct = 1
 
         if self.demand_mode == 'step':
@@ -721,7 +735,7 @@ class InFlows(flow.core.params.InFlows, Printable):
                 omega_0 =  omega * self.mode['U']['K0']
                 
                 fct = round(
-                    0.45 * math.cos(omega * t + omega_0) + 0.5, 6
+                    0.2 * math.cos(omega * t + omega_0) + 1.0, 6
                 )
             elif edge_id in self.mode['V']['edges']:
                 T = self.mode['V']['T']
@@ -729,7 +743,7 @@ class InFlows(flow.core.params.InFlows, Printable):
                 omega_0 =  omega * self.mode['V']['K0']
                 
                 fct = round(
-                    0.45 * math.sin(omega * t + omega_0) + 0.5, 6
+                    0.2 * math.sin(omega * t + omega_0) + 1.0, 6
                 )
             else:
                 raise ValueError(f'{edge_id} should be in initial_config')
