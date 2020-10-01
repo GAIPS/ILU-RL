@@ -39,15 +39,6 @@ class TestGridWaitingTimeSetUp(TestGridMDPSetUp):
                         velocity_threshold=0.1)
         return mdp_params
 
-    # TODO: Move up inheritance chain
-    @lazy_property
-    def state(self):
-        # Get state.
-        state = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=False
-        )
-        return state
     def setUp(self):
         """Code here will run before every test"""
 
