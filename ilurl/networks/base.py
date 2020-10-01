@@ -29,6 +29,7 @@ class Network(base.Network):
                  net_params=None,
                  vehicles=None,
                  demand_type='constant',
+                 demand_mode='step',
                  initial_config=None,
                  tls_type='rl'):
 
@@ -60,10 +61,8 @@ class Network(base.Network):
                     )
                 )
 
-            inflows = InFlows(network_id,
-                              horizon,
-                              demand_type,
-                              initial_config=initial_config)
+            inflows = InFlows(network_id, horizon, demand_type,
+                              demand_mode=demand_mode, initial_config=initial_config)
 
             net_params = NetParams(inflows,
                                    template=get_path(network_id, 'net'))

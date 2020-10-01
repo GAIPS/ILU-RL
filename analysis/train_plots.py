@@ -138,9 +138,9 @@ def main(experiment_root_folder=None):
     if rewards.shape[0] > 1:
         plt.fill_between(X, Y-Y_std, Y+Y_std, color=STD_CURVE_COLOR, label='Std')
 
-    plt.xlabel('Train cycle')
+    plt.xlabel('Cycle')
     plt.ylabel('Reward')
-    plt.title('Train rewards ({0} runs)'.format(len(train_files)))
+    # plt.title('Train rewards ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
     file_name = '{0}/rewards.pdf'.format(output_folder_path)
@@ -170,7 +170,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Cycle')
     plt.ylabel('Reward')
-    plt.title('Rewards per intersection')
+    # plt.title('Rewards per intersection')
     plt.legend()
 
     plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -197,9 +197,9 @@ def main(experiment_root_folder=None):
     if vehicles.shape[0] > 1:
         plt.fill_between(X, Y-Y_std, Y+Y_std, color=STD_CURVE_COLOR, label='Std')
 
-    plt.xlabel('Train cycle')
-    plt.ylabel('Train: #Vehicles')
-    plt.title('Number of vehicles ({0} runs)'.format(len(train_files)))
+    plt.xlabel('Cycle')
+    plt.ylabel('Number of vehicles')
+    # plt.title('Number of vehicles ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
     file_name = '{0}/vehicles.pdf'.format(output_folder_path)
@@ -233,9 +233,9 @@ def main(experiment_root_folder=None):
     if velocities.shape[0] > 1:
         plt.fill_between(X, Y-Y_std, Y+Y_std, color=STD_CURVE_COLOR, label='Std')
 
-    plt.xlabel('Train cycle')
-    plt.ylabel('Velocity')
-    plt.title('Train: Velocity of the vehicles ({0} runs)'.format(len(train_files)))
+    plt.xlabel('Cycle')
+    plt.ylabel('Velocity (m/s)')
+    # plt.title('Train: Velocity of the vehicles ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
     file_name = '{0}/velocities.pdf'.format(output_folder_path)
@@ -276,7 +276,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action (Phase-0 allocation)')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection_smoothed.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -292,7 +292,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action (Phase-0 allocation)')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -319,7 +319,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)

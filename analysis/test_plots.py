@@ -179,7 +179,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Waiting time (s)')
     plt.ylabel('Density')
-    plt.title('Waiting time')
+    # plt.title('Waiting time')
     plt.savefig('{0}/waiting_time_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/waiting_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
@@ -213,7 +213,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Travel time (s)')
     plt.ylabel('Density')
-    plt.title('Travel time')
+    # plt.title('Travel time')
     plt.savefig('{0}/travel_time_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/travel_time_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
@@ -245,9 +245,9 @@ def main(experiment_root_folder=None):
     speed_hist_kde['x'] = kde_x
     speed_hist_kde['y'] = kde_y
 
-    plt.xlabel('Average speed (m/s)')
+    plt.xlabel('Speed (m/s)')
     plt.ylabel('Density')
-    plt.title('Vehicles\' speed')
+    # plt.title('Vehicles\' speed')
     plt.savefig('{0}/speeds_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/speeds_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
@@ -299,7 +299,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Waiting time (s)')
         plt.ylabel('Density')
-        plt.title('Waiting time (congested)')
+        # plt.title('Waiting time (congested)')
         plt.savefig('{0}/waiting_time_congested_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/waiting_time_congested_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -332,7 +332,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Travel time (s)')
         plt.ylabel('Density')
-        plt.title('Travel time (congested)')
+        # plt.title('Travel time (congested)')
         plt.savefig('{0}/travel_time_congested_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/travel_time_congested_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -363,9 +363,9 @@ def main(experiment_root_folder=None):
         speed_congested_hist_kde['x'] = kde_x
         speed_congested_hist_kde['y'] = kde_y
 
-        plt.xlabel('Average speed (m/s)')
+        plt.xlabel('Speed (m/s)')
         plt.ylabel('Density')
-        plt.title('Vehicles\' speed (congested)')
+        # plt.title('Vehicles\' speed (congested)')
         plt.savefig('{0}/speeds_congested_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/speeds_congested_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -404,7 +404,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Waiting time (s)')
         plt.ylabel('Density')
-        plt.title('Waiting time (Free-flow)')
+        # plt.title('Waiting time (Free-flow)')
         plt.savefig('{0}/waiting_time_free_flow_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/waiting_time_free_flow_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -437,7 +437,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Travel time (s)')
         plt.ylabel('Density')
-        plt.title('Travel time (Free-flow)')
+        # plt.title('Travel time (Free-flow)')
         plt.savefig('{0}/travel_time_free_flow_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/travel_time_free_flow_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -468,9 +468,9 @@ def main(experiment_root_folder=None):
         speed_free_flow_hist_kde['x'] = kde_x
         speed_free_flow_hist_kde['y'] = kde_y
 
-        plt.xlabel('Average speed (m/s)')
+        plt.xlabel('Speed (m/s)')
         plt.ylabel('Density')
-        plt.title('Vehicles\' speed (Free-flow)')
+        # plt.title('Vehicles\' speed (Free-flow)')
         plt.savefig('{0}/speeds_free_flow_hist.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/speeds_free_flow_hist.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -498,7 +498,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Cycle')
     plt.ylabel('Average waiting time (s)')
-    plt.title('Waiting time')
+    # plt.title('Waiting time')
     plt.savefig('{0}/waiting_time.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/waiting_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
@@ -521,7 +521,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Cycle')
     plt.ylabel('Average travel time (s)')
-    plt.title('Travel time')
+    # plt.title('Travel time')
     plt.savefig('{0}/travel_time.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/travel_time.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.close()
@@ -547,8 +547,8 @@ def main(experiment_root_folder=None):
     plt.plot(X,Y)
 
     plt.xlabel('Cycle')
-    plt.ylabel('#cars')
-    plt.title('Throughput')
+    plt.ylabel('Number of vehicles')
+    # plt.title('Throughput')
 
     plt.savefig('{0}/throughput.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/throughput.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -583,7 +583,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Cycle')
     plt.ylabel('Reward')
-    plt.title('Rewards per intersection')
+    # plt.title('Rewards per intersection')
     plt.legend()
 
     plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -601,7 +601,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Cycle')
     plt.ylabel('Reward')
-    plt.title('Cumulative reward')
+    # plt.title('Cumulative reward')
 
     plt.savefig('{0}/total_reward.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/total_reward.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -643,7 +643,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action (phase-0 allocation)')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -668,7 +668,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -700,8 +700,8 @@ def main(experiment_root_folder=None):
     plt.plot(X,Y)
 
     plt.xlabel('Cycle')
-    plt.ylabel('# Vehicles')
-    plt.title('Number of vehicles')
+    plt.ylabel('Number of vehicles')
+    # plt.title('Number of vehicles')
 
     plt.savefig('{0}/vehicles.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/vehicles.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -732,8 +732,8 @@ def main(experiment_root_folder=None):
     plt.plot(X,Y)
 
     plt.xlabel('Cycle')
-    plt.ylabel('Average velocities')
-    plt.title('Vehicles\' velocities')
+    plt.ylabel('Average velocity (m/s)')
+    # plt.title('Vehicles\' velocities')
 
     plt.savefig('{0}/velocities.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/velocities.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)

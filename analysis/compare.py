@@ -85,7 +85,7 @@ def main():
     plt.xlabel('Waiting time (s)')
     plt.legend()
     plt.ylabel('Density')
-    plt.title('Waiting time')
+    # plt.title('Waiting time')
     
     plt.savefig('analysis/plots/compare/waiting_time_hist.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/waiting_time_hist.png', bbox_inches='tight', pad_inches=0)
@@ -106,7 +106,7 @@ def main():
     plt.xlabel('Travel time (s)')
     plt.ylabel('Density')
     plt.legend()
-    plt.title('Travel time')
+    # plt.title('Travel time')
     
     plt.savefig('analysis/plots/compare/travel_time_hist.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/travel_time_hist.png', bbox_inches='tight', pad_inches=0)
@@ -127,7 +127,7 @@ def main():
     plt.xlabel('Average speed (m/s)')
     plt.ylabel('Density')
     plt.legend()
-    plt.title('Vehicles\' speed')
+    # plt.title('Vehicles\' speed')
     
     plt.savefig('analysis/plots/compare/speeds_hist.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/speeds_hist.png', bbox_inches='tight', pad_inches=0)
@@ -148,7 +148,7 @@ def main():
     plt.xlabel('Cycle')
     plt.ylabel('Average waiting time (s)')
     plt.legend()
-    plt.title('Waiting time')
+    # plt.title('Waiting time')
     
     plt.savefig('analysis/plots/compare/waiting_time.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/waiting_time.png', bbox_inches='tight', pad_inches=0)
@@ -169,7 +169,7 @@ def main():
     plt.xlabel('Cycle')
     plt.ylabel('Average travel time (s)')
     plt.legend()
-    plt.title('Travel time')
+    # plt.title('Travel time')
 
     plt.savefig('analysis/plots/compare/travel_time.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/travel_time.png', bbox_inches='tight', pad_inches=0)
@@ -188,9 +188,9 @@ def main():
                  label=l)
 
     plt.xlabel('Cycle')
-    plt.ylabel('#cars')
+    plt.ylabel('Number of vehicles')
     plt.legend()
-    plt.title('Throughput')
+    # plt.title('Throughput')
 
     plt.savefig('analysis/plots/compare/throughput.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/compare/throughput.png', bbox_inches='tight', pad_inches=0)
@@ -209,8 +209,8 @@ def main():
                  label=l)
 
     plt.xlabel('Cycle')
-    plt.ylabel('# Vehicles')
-    plt.title('Number of vehicles')
+    plt.ylabel('Number of vehicles')
+    # plt.title('Number of vehicles')
     plt.legend()
 
     plt.savefig('analysis/plots/compare/vehicles.pdf', bbox_inches='tight', pad_inches=0)
@@ -230,8 +230,8 @@ def main():
                  label=l)
 
     plt.xlabel('Cycle')
-    plt.ylabel('Average velocities')
-    plt.title('Vehicles\' velocities')
+    plt.ylabel('Average velocity (m/s)')
+    # plt.title('Vehicles\' velocities')
     plt.legend()
 
     plt.savefig('analysis/plots/compare/velocities.pdf', bbox_inches='tight', pad_inches=0)
