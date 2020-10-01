@@ -87,6 +87,7 @@ if __name__ == '__main__':
                 for label, val in zip(labels, features):
                     states[label].append(val)
 
+    import ipdb; ipdb.set_trace()
     # plot building
     num_bins = 100
     # percentile separators: low, medium and high
@@ -106,7 +107,7 @@ if __name__ == '__main__':
         # ignore lower and higher values
         quantiles = np.percentile(values, percentile_separators)
         print(f"#########{label}##########")
-        print(f"min:\t{np.round(min(quantiles), 2)}")
+        print(f"min:\t{np.round(min(values), 2)}")
         for i, q in enumerate(quantiles):
             # color = perceptile_colors[i]
             color = 'tab:purple'
@@ -118,7 +119,7 @@ if __name__ == '__main__':
 
             # Tweak spacing to prevent clipping of ylabel
             print(f"{p}%\t{np.round(q, 2)}")
-        print(f"max:\t{np.round(max(quantiles), 2)}")
+        print(f"max:\t{np.round(max(values), 2)}")
 
         n, bins, patches = ax.hist(
             values,
