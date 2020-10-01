@@ -207,7 +207,6 @@ class Phase(Node):
             * tls: list<namedtuple<ilurl.envs.elements.TrafficLightSignal>>
                 Container for traffic light program representation
         """
-        self._num_updates += 1
         # 1) Define a helpful filtering function.
         def _in(veh, lane):
             return (veh.edge_id, veh.lane) == lane.lane_id
@@ -238,7 +237,7 @@ class Phase(Node):
             step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
 
         self._update_count(step_count)
-        self._update_delay(step_delay)
+        self._update_delay(step_delay, ind)
         self._update_flow(step_flow)
         self._update_queue(step_queue)
         self._update_waiting_time(step_waiting_time, ind)
@@ -271,7 +270,7 @@ class Phase(Node):
         # 3) Defines or erases history
         self._cached_average_pressure = 0
         self._cached_count = 0
-        self._cached_delay = 0
+        self._cached_delay = [0.0, 0.0]
         self._cached_flow = set({})
         self._cached_step_flow = set({})
 
@@ -282,8 +281,6 @@ class Phase(Node):
 
         self._cached_weight = [0.0, 0.0]
         self._last_index = None
-        # TODO: ERASE
-        self._num_updates = 0
 
     def feature_map(self, filter_by=None, categorize=False):
         """Computes phases' features
@@ -383,8 +380,11 @@ class Phase(Node):
         * Wiering, 2000
             "Multi-agent reinforcement learning for traffic light control."
         """
-        w = self._cached_weight
-        return round(float(self._cached_delay / (w + 1)), 2)
+        weights_delays = zip(self._cached_weight, self._cached_delay)
+        ret = []
+        for w, dly in weights_delays:
+            ret.append(round(float(dly / (w + 1)), 2))
+        return ret
 
     @property
     def flow(self):
@@ -511,10 +511,9 @@ class Phase(Node):
 
     def _update_cached_weight(self, ind):
         # When it switches to another color resets current
-        self._cached_weight[ind] = int(self._last_index == ind) * (self._cached_weight[ind] + 1)
+        self._cached_weight[ind] = \
+            int(self._last_index == ind) * (self._cached_weight[ind] + 1)
 
-        # When it switches to another color inc previous count by 1.
-        # self._cached_weight[self._last_index] += int((not self.first) and self._last_index != ind)
         self._last_index = ind
 
     def _update_count(self, step_count):
@@ -522,10 +521,11 @@ class Phase(Node):
             w = self._cached_weight
             self._cached_count = step_count + (w > 0) * self._cached_count
 
-    def _update_delay(self, step_delay):
+    def _update_delay(self, step_delay, ind):
         if 'delay' in self.labels:
-            w = self._cached_weight
-            self._cached_delay = step_delay + (w > 0) * self._cached_delay
+            w = self._cached_weight[ind]
+            self._cached_delay[ind] = \
+                step_delay + (w > 0) * self._cached_delay[ind]
 
     def _update_flow(self, step_flow):
         if 'flow' in self.labels:

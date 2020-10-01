@@ -172,8 +172,8 @@ def reward_min_delay(state, *args):
         filter_by=('delay',)
     )
     ret = {}
-    for tls_id, phase_obs in delays.items():
-        ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    for tls_id, values in delays.items():
+        ret[tls_id] = -sum(flatten(values))
     return ret
 
 def reward_min_waiting_time(state, *args):
