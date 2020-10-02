@@ -89,7 +89,7 @@ class TestGridTLS1WaitingTime(TestGridTLS1WaitingTimeSetUp):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_0)
 
         # 3) Assert 247123161
-        self.assertEqual(self.STATE_0, [0.27, 0.0]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, [0.0, 3.16]) # wait_t, phase 0
         self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
 
     def test_1(self):
@@ -97,11 +97,11 @@ class TestGridTLS1WaitingTime(TestGridTLS1WaitingTimeSetUp):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_1)
 
         # 3) Assert 247123161
-        self.assertEqual(self.STATE_1, [3.97, 2.73]) # wait_t, phase 0
+        self.assertEqual(self.STATE_1, [0.03, 1.23]) # wait_t, phase 0
         self.assertEqual(self.STATE_1, sol) # wait_t, phase 0
 
     def test_reward(self):
-        self.assertAlmostEqual(self.REWARD, -0.01 * (0.27 + 0.0 + 3.97 + 2.73))
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.0 + 3.16 + 0.03 + 1.23))
 
 class TestGridTLS2WaitingTimeSetUp(TestGridWaitingTimeSetUp):
     """
@@ -148,7 +148,7 @@ class TestGridTLS2WaitingTime(TestGridTLS2WaitingTimeSetUp):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_0)
 
         # 3) Assert 247123464
-        self.assertEqual(self.STATE_0, [0.19, 6.15]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, [0.73, 0.0]) # wait_t, phase 0
         self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
 
     def test_1(self):
@@ -156,11 +156,11 @@ class TestGridTLS2WaitingTime(TestGridTLS2WaitingTimeSetUp):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_1)
 
         # 3) Assert 247123464
-        self.assertEqual(self.STATE_1, [0.09, 0.46]) # wait_t, phase 1
+        self.assertEqual(self.STATE_1, [0.79, 0.0]) # wait_t, phase 1
         self.assertEqual(self.STATE_1, sol) # wait_t, phase 1
 
     def test_reward(self):
-        self.assertAlmostEqual(self.REWARD, -0.01 * (0.19 + 6.15 + 0.09 + 0.46))
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.73 + 0.0 + 0.79 + 0.0))
 
 class TestGridTLS3WaitingTimeSetUp(TestGridWaitingTimeSetUp):
     """
@@ -207,7 +207,7 @@ class TestGridTLS3WaitingTime(TestGridTLS3WaitingTimeSetUp):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_0)
 
         # 3) Assert 247123468
-        self.assertEqual(self.STATE_0, [4.9, 0.13]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, [0.05, 1.05]) # wait_t, phase 0
         self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
 
     def test_1(self):
@@ -215,11 +215,11 @@ class TestGridTLS3WaitingTime(TestGridTLS3WaitingTimeSetUp):
         sol = process_waiting_time(self.kernel_data, self.ID, self.PHASE_1)
 
         # 3) Assert 247123468
-        self.assertEqual(self.STATE_1, [0.6, 0.17]) # wait_t, phase 1
+        self.assertEqual(self.STATE_1, [0.05, 0.71]) # wait_t, phase 1
         self.assertEqual(self.STATE_1, sol) # wait_t, phase 1
 
     def test_reward(self):
-        self.assertAlmostEqual(self.REWARD, -0.01 * (4.9 + 0.13 + 0.6 + 0.17))
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.05 + 1.05 + 0.05 + 0.71))
 
 def process_waiting_time(kernel_data, node_id, phase_id, norm_vehs=False):
     """Processes batched waiting time computation"""
@@ -244,8 +244,7 @@ def process_waiting_time(kernel_data, node_id, phase_id, norm_vehs=False):
 
     wait_times = []
     weight = [0.0, 0.0]
-    timesteps = list(range(1, 60)) + [0]
-    vehs, tls = zip(*kernel_data)
+    timesteps, vehs, tls = zip(*kernel_data)
     for t, vehicles, tls in zip(timesteps, vehs, tls):
 
         qt = defaultdict(lambda : [0.0, 0.0])

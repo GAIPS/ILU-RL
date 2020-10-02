@@ -16,6 +16,7 @@
 
 """
 import numpy as np
+import dill
 
 from flow.envs.base import Env
 
@@ -91,6 +92,7 @@ class TrafficLightEnv(Env):
         self.signal_plans_continous = {}
 
         self._reset()
+        # self.data = []
 
     #ABCMeta
     def action_space(self):
@@ -162,6 +164,22 @@ class TrafficLightEnv(Env):
                         for nid in self.tls_ids}
 
         tls = {tl: self.k.traffic_light.get_state(tl) for tl in self.tls_ids}
+        # # cycles
+        # if self.time_counter > 36000:
+
+        #     self.data.append((self.duration, vehs, tls))
+        #     if self.duration == 0:
+        #         num = (self.time_counter - 1) // 60
+
+        #         if num == 0:
+        #             with open('kernel_data.dat', 'wb') as f:
+        #                 dill.dump(self.data, f)
+        #         else:
+        #             with open(f'kernel_data_{num}.dat', 'wb') as f:
+        #                 dill.dump(self.data, f)
+        #         self.data = []
+
+
         self.observation_space.update(self.duration, vehs, tls)
 
     def get_state(self):
