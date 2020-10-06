@@ -735,7 +735,7 @@ class InFlows(flow.core.params.InFlows, Printable):
                 omega_0 =  omega * self.mode['U']['K0']
                 
                 fct = round(
-                    0.2 * math.cos(omega * t + omega_0) + 1.0, 6
+                    0.5 * math.cos(omega * t + omega_0) + 1.0, 6
                 )
             elif edge_id in self.mode['V']['edges']:
                 T = self.mode['V']['T']
@@ -743,7 +743,7 @@ class InFlows(flow.core.params.InFlows, Printable):
                 omega_0 =  omega * self.mode['V']['K0']
                 
                 fct = round(
-                    0.2 * math.sin(omega * t + omega_0) + 1.0, 6
+                    0.5 * math.sin(omega * t + omega_0) + 1.0, 6
                 )
             else:
                 raise ValueError(f'{edge_id} should be in initial_config')
