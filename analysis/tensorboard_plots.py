@@ -32,7 +32,7 @@ def get_arguments():
 
 def print_arguments(args):
 
-    print('Arguments (analysis/compare.py):')
+    print('Arguments (analysis/tensorboard_plots.py):')
     print('\tExperiment root folder: {0}\n'.format(args.experiment_root_folder))
     print('\tNumber of samples: {0}\n'.format(args.num_samples))
 
