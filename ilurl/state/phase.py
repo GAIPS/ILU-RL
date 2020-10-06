@@ -223,7 +223,6 @@ class Phase(Node):
         step_speed = 0
         step_speed_score = 0
         self._update_cached_weight(ind)
-
         for lane in self.lanes.values():
             _vehs = [v for v in vehs if _in(v, lane)]
             lane.update(_vehs)
@@ -236,12 +235,12 @@ class Phase(Node):
             step_speed += lane.speed if 'speed' in self.labels else 0
             step_speed_score += lane.speed_score if 'speed_score' in self.labels else 0
 
-        self._update_count(step_count)
+        self._update_count(step_count, ind)
         self._update_delay(step_delay, ind)
         self._update_flow(step_flow)
         self._update_queue(step_queue)
         self._update_waiting_time(step_waiting_time, ind)
-        self._update_speed(step_speed)
+        self._update_speed(step_speed, ind)
         self._update_speed_score(step_speed_score)
 
         # 3) Stores previous cycle for lag labels.
@@ -269,14 +268,14 @@ class Phase(Node):
 
         # 3) Defines or erases history
         self._cached_average_pressure = 0
-        self._cached_count = 0
+        self._cached_count = [0.0, 0.0]
         self._cached_delay = [0.0, 0.0]
         self._cached_flow = set({})
         self._cached_step_flow = set({})
 
         self._cached_queue = 0
         self._cached_waiting_time = [0.0, 0.0]
-        self._cached_speed = 0
+        self._cached_speed = [0.0, 0.0]
         self._cached_speed_score = 0
 
         self._cached_weight = [0.0, 0.0]
@@ -348,8 +347,10 @@ class Phase(Node):
         * count: float
             The average number of vehicles in the approach
         """
-        w = self._cached_weight
-        ret = round(float(self._cached_count / (w + 1)), 2)
+        weights_counts = zip(self._cached_weight, self._cached_count)
+        ret = []
+        for weight, count in weights_counts:
+            ret.append(round(float(count / (weight + 1)), 2))
         return ret
 
     @property
@@ -488,11 +489,13 @@ class Phase(Node):
         * speed: float
             The average speed of all cars in the phase
         """
-        if self._cached_count > 0:
-            ret = float(self._cached_speed / self._cached_count)
-            return round(ret, 2)
-        else:
-            return 0.0
+
+        speeds_counts = zip(self._cached_speed, self._cached_count)
+        ret = []
+        for speed, count in speeds_counts:
+            ret.append(round(float(speed / count), 2)  if count > 0 else 0)
+
+        return ret
 
     @property
     def speed_score(self):
@@ -513,13 +516,12 @@ class Phase(Node):
         # When it switches to another color resets current
         self._cached_weight[ind] = \
             int(self._last_index == ind) * (self._cached_weight[ind] + 1)
-
         self._last_index = ind
 
-    def _update_count(self, step_count):
+    def _update_count(self, step_count, ind):
         if _check_count(self.labels):
-            w = self._cached_weight
-            self._cached_count = step_count + (w > 0) * self._cached_count
+            w = self._cached_weight[ind]
+            self._cached_count[ind] = step_count + (w > 0) * self._cached_count[ind]
 
     def _update_delay(self, step_delay, ind):
         if 'delay' in self.labels:
@@ -550,10 +552,10 @@ class Phase(Node):
             self._cached_waiting_time[ind] = \
                 step_waiting_time + (w > 0) * self._cached_waiting_time[ind]
 
-    def _update_speed(self, step_speed):
+    def _update_speed(self, step_speed, ind):
         if 'speed' in self.labels:
-            w = self._cached_weight
-            self._cached_speed = step_speed + (w > 0) * self._cached_speed
+            w = self._cached_weight[ind]
+            self._cached_speed[ind] = step_speed + (w > 0) * self._cached_speed[ind]
 
     def _update_speed_score(self, step_speed_score):
         if 'speed_score' in self.labels:

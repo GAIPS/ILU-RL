@@ -51,6 +51,7 @@ class Intersection(Node):
                     for phase_id, phase_comp in phases.items()}
 
         super(Intersection, self).__init__(state, tls_id, phases)
+        self.labels = mdp_params.features
 
 
     @property
@@ -113,6 +114,18 @@ class Intersection(Node):
               for phase in self.phases.values()]
 
         if split:
-           return tuple(zip(*ret))
+            ret = split_features(ret, len(self.labels))
         return ret
 
+def split_features(features, num_features):
+    """Splits the hierarchical into features"""
+    num_phases = len(features)
+    ret = []
+
+    for ff in range(num_features):
+        feats = []
+        for p in range(num_phases):
+            for gr in range(2):
+                feats.append(features[p][ff][gr])
+        ret.append(feats)
+    return ret
