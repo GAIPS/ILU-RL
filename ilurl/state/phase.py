@@ -578,7 +578,7 @@ class Phase(Node):
         if 'lag' in label:
             derived_feature = \
                 self._matcher.search(label).groups()[0]
-            return self._cached_apply.get(derived_feature, 0.0)
+            return self._cached_apply.get(derived_feature, [0.0, 0.0])
         return getattr(self, label)
 
     def _get_derived(self, label):
