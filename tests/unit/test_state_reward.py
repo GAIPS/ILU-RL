@@ -103,13 +103,13 @@ class TestStateReward(unittest.TestCase):
         self.assertEqual(reward['247123464'], round(0.01*(9.0  + 1.0), 4))
         self.assertEqual(reward['247123468'], round(0.01*(15.0 + 2.0), 4))
 
-    def test_max_speed_count(self):
+    def test_reward_min_speed_delta(self):
         """
-            Maximize weighted average speed.
+            Minimize weighted speed delta.
         """
         mdp_params = MDPParams(
                         features=('speed', 'count'),
-                        reward='reward_max_speed_count',
+                        reward='reward_min_speed_delta',
                         normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,

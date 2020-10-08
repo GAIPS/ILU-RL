@@ -11,7 +11,7 @@ from tests.unit.mdp.test_mdp_base import TestGridMDPSetUp
 
 class TestGridSpeedCountSetUp(TestGridMDPSetUp):
     """
-        * Tests speed_count wrt Grid network (reward_max_speed_count)
+        * Tests speed_count wrt Grid network (reward_min_speed_delta)
 
         * Set of tests that target the implemented
           problem formulations, i.e. state and reward
@@ -25,7 +25,7 @@ class TestGridSpeedCountSetUp(TestGridMDPSetUp):
     def mdp_params(self):
         mdp_params = MDPParams(
                         features=('speed', 'count'),
-                        reward='reward_max_speed_count',
+                        reward='reward_min_speed_delta',
                         normalize_velocities=True,
                         discretize_state_space=False,
                         reward_rescale=0.01,

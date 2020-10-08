@@ -72,10 +72,7 @@ def main(experiment_root_folder=None):
 
     print('Input files:')
     # Get all train_log.json files from experiment root folder.
-    train_files = []
-    for path in Path(experiment_root_folder).rglob('train_log.json'):
-        train_files.append(str(path))
-        print('{0}'.format(str(path)))
+    train_files = list(Path(experiment_root_folder).rglob('train_log.json'))
 
     # Prepare output folder.
     output_folder_path = os.path.join(experiment_root_folder, 'plots/train')
@@ -96,6 +93,8 @@ def main(experiment_root_folder=None):
 
     # Concatenate data for all runs.
     for run_name in train_files:
+
+        print('Processing JSON file: {0}'.format(run_name))
 
         # Load JSON data.
         with open(run_name) as f:
@@ -139,9 +138,9 @@ def main(experiment_root_folder=None):
     if rewards.shape[0] > 1:
         plt.fill_between(X, Y-Y_std, Y+Y_std, color=STD_CURVE_COLOR, label='Std')
 
-    plt.xlabel('Train cycle')
+    plt.xlabel('Cycle')
     plt.ylabel('Reward')
-    plt.title('Train rewards ({0} runs)'.format(len(train_files)))
+    # plt.title('Train rewards ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
     file_name = '{0}/rewards.pdf'.format(output_folder_path)
@@ -171,7 +170,7 @@ def main(experiment_root_folder=None):
 
     plt.xlabel('Cycle')
     plt.ylabel('Reward')
-    plt.title('Rewards per intersection')
+    # plt.title('Rewards per intersection')
     plt.legend()
 
     plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -198,9 +197,9 @@ def main(experiment_root_folder=None):
     if vehicles.shape[0] > 1:
         plt.fill_between(X, Y-Y_std, Y+Y_std, color=STD_CURVE_COLOR, label='Std')
 
-    plt.xlabel('Train cycle')
-    plt.ylabel('Train: #Vehicles')
-    plt.title('Number of vehicles ({0} runs)'.format(len(train_files)))
+    plt.xlabel('Cycle')
+    plt.ylabel('Number of vehicles')
+    # plt.title('Number of vehicles ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
     file_name = '{0}/vehicles.pdf'.format(output_folder_path)
@@ -234,9 +233,9 @@ def main(experiment_root_folder=None):
     if velocities.shape[0] > 1:
         plt.fill_between(X, Y-Y_std, Y+Y_std, color=STD_CURVE_COLOR, label='Std')
 
-    plt.xlabel('Train cycle')
-    plt.ylabel('Velocity')
-    plt.title('Train: Velocity of the vehicles ({0} runs)'.format(len(train_files)))
+    plt.xlabel('Cycle')
+    plt.ylabel('Velocity (m/s)')
+    # plt.title('Train: Velocity of the vehicles ({0} runs)'.format(len(train_files)))
     plt.legend(loc=4)
 
     file_name = '{0}/velocities.pdf'.format(output_folder_path)
@@ -256,6 +255,7 @@ def main(experiment_root_folder=None):
     """
     if agent_type in ('DDPG', 'MPO'):
         # Continuous action-schema.
+
         # TODO: This only works for two-phased intersections.
         dfs_a = [pd.DataFrame([{i: a[0] for (i, a) in t.items()}
                                 for t in run])
@@ -276,7 +276,23 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action (Phase-0 allocation)')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
+        plt.legend()
+
+        plt.savefig('{0}/actions_per_intersection_smoothed.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions_per_intersection_smoothed.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+        plt.close()
+
+        fig = plt.figure()
+        fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+        for col in df_actions.columns:
+            plt.plot(df_actions[col], label=col)
+
+        plt.xlabel('Cycle')
+        plt.ylabel('Action (Phase-0 allocation)')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
@@ -303,7 +319,7 @@ def main(experiment_root_folder=None):
 
         plt.xlabel('Cycle')
         plt.ylabel('Action')
-        plt.title('Actions per intersection')
+        # plt.title('Actions per intersection')
         plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)

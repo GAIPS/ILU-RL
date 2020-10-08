@@ -28,7 +28,7 @@ def _make_network(num_actions : int,
                   head_layers  : Sequence[int] = [5]):
     network = snt.Sequential([
         # Torso MLP.
-        snt.nets.MLP(torso_layers),
+        snt.nets.MLP(torso_layers, activate_final=True),
         # Dueling MLP head.
         networks.DuellingMLP(num_actions=num_actions,
                                       hidden_sizes=head_layers)  

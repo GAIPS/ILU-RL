@@ -26,9 +26,9 @@ def get_rewards():
     -----
     > names, objs = get_rewards()
     > names
-    > ('reward_max_speed_count', reward_min_delay')
+    > ('reward_min_speed_delta', reward_min_delay')
     > objs
-    > (<function ilurl.rewards.reward_max_speed_count(state, *args)>,
+    > (<function ilurl.rewards.reward_min_speed_delta(state, *args)>,
        <function ilurl.rewards.reward_min_delay(state, *args)>)
     """
     this = modules[__name__]
@@ -74,15 +74,12 @@ def build_rewards(mdp_params):
     return ret
 
 
-def reward_max_speed_count(state, *args):
-    """Max. Speed and Count
+def reward_min_speed_delta(state, *args):
+    """Min. speed distance to max_speed
 
     Params:
     ------
-    * state: ilurl.state.State
-        StateCollection containing --
-            ilurl.core.SpeedState and
-            ilurl.core.CountState
+    * state: ilurl.state.State or dict<str, tuple>
 
     Returns:
     --------
@@ -94,10 +91,13 @@ def reward_max_speed_count(state, *args):
 
     """
     # 1) Splits speed & count
-    speeds_counts = state.feature_map(
-        filter_by=('speed', 'count'),
-        split=True
-    )
+    try:
+        speeds_counts = state.feature_map(
+            filter_by=('speed', 'count'),
+            split=True
+        )
+    except AttributeError:
+        speeds_counts = state
 
     # 2) Iterate wrt agents:
     # Unpacks & performs -<speed, count>.
@@ -125,10 +125,13 @@ def reward_max_speed_score(state, *args):
 
     """
     # 1) Splits speed & count
-    speeds_counts = state.feature_map(
-        filter_by=('speed_score', 'count'),
-        split=True
-    )
+    try:
+        speeds_counts = state.feature_map(
+            filter_by=('speed_score', 'count'),
+            split=True
+        )
+    except AttributeError:
+        speeds_counts = state
 
     # 2) Iterate wrt agents:
     ret = {tlid:np.dot(*sc) for tlid, sc in speeds_counts.items()}
@@ -168,9 +171,13 @@ def reward_min_delay(state, *args):
         "Multi-agent reinforcement learning for traffic light control."
 
     """
-    delays = state.feature_map(
-        filter_by=('delay',)
-    )
+    try:
+        delays = state.feature_map(
+            filter_by=('delay',)
+        )
+    except AttributeError:
+        delays = state
+
     ret = {}
     for tls_id, values in delays.items():
         ret[tls_id] = -sum(flatten(values))
@@ -190,9 +197,13 @@ def reward_min_waiting_time(state, *args):
         keys: tls_ids, values: rewards
 
     """
-    wait_times = state.feature_map(
-        filter_by=('waiting_time',)
-    )
+    try:
+        wait_times = state.feature_map(
+            filter_by=('waiting_time',)
+        )
+    except AttributeError:
+        wait_times = state
+
     ret = {}
     for tl_id, values in wait_times.items():
         ret[tl_id] = -sum(flatten(values))
@@ -227,10 +238,14 @@ def reward_max_delay_reduction(state, *args):
         "Reinforcement learning-based multi-agent system for network traffic signal control"
 
     """
-    delay_lagdelay = state.feature_map(
-        filter_by=('lag[delay]', 'delay'),
-        split=True
-    )
+    try:
+        delay_lagdelay = state.feature_map(
+            filter_by=('lag[delay]', 'delay'),
+            split=True
+        )
+    except AttributeError:
+        delay_lagdelay = state
+
     ret = {tls_id: -np.sum(diff(*del_ldel))
            for tls_id, del_ldel in delay_lagdelay.items()}
     return ret
@@ -259,10 +274,14 @@ def reward_min_pressure(state, *args):
         An Open-Source Framework for Adaptative Traffic Signal Control
 
     """
-    pressure = state.feature_map(
-        filter_by=('pressure',),
-        split=True
-    )
+    try:
+        pressure = state.feature_map(
+            filter_by=('pressure',),
+            split=True
+        )
+    except AttributeError:
+        pressure = state
+
     ret = {tls_id: -np.sum(press)
            for tls_id, press in pressure.items()}
 
@@ -281,10 +300,13 @@ def reward_max_flow(state, *args):
         keys: tls_ids, values: -sum of pressures
 
     """
-    flow = state.feature_map(
-        filter_by=('flow',),
-        split=True
-    )
+    try:
+        flow = state.feature_map(
+            filter_by=('flow',),
+            split=True
+        )
+    except AttributeError:
+        flow = state
 
     ret = {tls_id: np.sum(flow)
            for tls_id, flow in flow.items()}
@@ -314,10 +336,14 @@ def reward_min_average_pressure(state, *args):
         An Open-Source Framework for Adaptative Traffic Signal Control
 
     """
-    pressure = state.feature_map(
-        filter_by=('average_pressure',),
-        split=True
-    )
+    try:
+        pressure = state.feature_map(
+            filter_by=('average_pressure',),
+            split=True
+        )
+    except AttributeError:
+        pressure = state
+
     ret = {tls_id: -np.sum(press)
            for tls_id, press in pressure.items()}
 
@@ -352,10 +378,13 @@ def reward_min_queue_squared(state):
     * Camponogara and Kraus, 2003
         "Distributed learning agents in urban traffic control."
     """
-    queue_lagqueue = state.feature_map(
-        filter_by=('queue', 'lag[queue]'),
-        split=True
-    )
+    try:
+        queue_lagqueue = state.feature_map(
+            filter_by=('queue', 'lag[queue]'),
+            split=True
+        )
+    except AttributeError:
+        queue_lagqueue = state
 
     ret = {}
     for tls_id, q_lq in queue_lagqueue.items():

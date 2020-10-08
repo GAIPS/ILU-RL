@@ -50,6 +50,7 @@ def main(train_config_path=None):
         'network_id': train_args.network,
         'horizon': train_args.experiment_time,
         'demand_type': train_args.demand_type,
+        'demand_mode': train_args.demand_mode,
         'tls_type': train_args.tls_type
     }
     network = Network(**network_args)
@@ -114,6 +115,10 @@ def main(train_config_path=None):
     # Store a copy of the tls_config.json file.
     tls_config_path = NETWORKS_PATH / train_args.network / 'tls_config.json'
     copyfile(tls_config_path, experiment_path / 'tls_config.json')
+
+    # Store a copy of the demands.json file.
+    demands_file_path = NETWORKS_PATH / train_args.network / 'demands.json'
+    copyfile(demands_file_path, experiment_path / 'demands.json')
 
     # Run the experiment.
     info_dict = exp.run(train_args.experiment_time)

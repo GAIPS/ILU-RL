@@ -1,38 +1,102 @@
-"""This script makes a scatter plot from observation spaces
+"""This script makes a scatter plot 
 
-    Use this script to determine a discretization scheme
+    * Phase vs phase for a given feature.
+    * Feature vs feature for a given state.
+    * Handles multiple intersections.
+    * Reward vs state for single feature states.
+    * Reward vs state for multiple feature states.
 
     USAGE:
     -----
-    From root directory with files saved on root
-    > python analysis/scatter.py
+    From directory
+    > python analysis/scatter.py 20200923143127.894361/intersection_20200923-1431271600867887.8995893/
 
 """
-__author__ = 'Guilherme Varela'
-__date__ = '2020-02-22'
 # core packages
-from collections import defaultdict
+import re
+from pathlib import Path
+from importlib import import_module
+from collections import defaultdict, namedtuple
 import json
-import os
-from glob import glob
+from os import environ
 import argparse
 
 # third-party libs
-import dill
-import numpy as np
-from scipy.stats import norm
+import configparser
 import matplotlib.pyplot as plt
 
 # project dependencies
-from flow.core.params import EnvParams
- 
-# ilurl dependencies
-from ilurl.params import QLParams
-from ilurl.utils import TIMESTAMP_PROG
+from ilurl.utils.aux import TIMESTAMP, snakefy
+from ilurl.utils.plots import (scatter_states, scatter_phases)
+import ilurl.rewards as rew
+
+MockMDP = namedtuple('MockMDP', 'reward reward_rescale')
+
+def get_categories(train_config, labels):
+    """Gets features' categories"""
+    categories = {}
+    for label in labels:
+        catkey = f'category_{label}s'
+        train_args = ('mdp_args', catkey)
+        categories[label] = eval(train_config.get(*train_args))
+    return categories
+    
+def get_series(observation_space, labels, xylabels=[], xyphases=[]):
+    """Gets series"""
+    if len(xylabels) == 0:
+        xylabels = list(range(len(labels)))
+    else:
+        if not set(xylabels).issubset(range(len(labels))):
+            raise ValueError('Must xylabels must be in 0, 1, ..., len(labels)')
+        else:
+            xylabels = sorted(xylabels)
+
+    if len(xyphases) == 0:
+        if not set(xyphases).issubset({0, 1}):
+            raise ValueError('Must xyphases must be in {0,1}')
+    else:
+        xyphases = range(2)
 
 
-ROOT_DIR = os.environ['ILURL_HOME']
+    if len(xylabels) == 1:
+        xys = [(x, x) for x in xylabels]
+    else:
+        # Make all combinations 2x2
+        xys = [(x, y)
+               for x in xylabels
+               for y in xylabels if y > x]
 
+    ret = {} # Phase 1
+    for x, y in xys:
+        # Cross labels.
+        x_labels = (labels[x], labels[y])
+        ret[x_labels] = {}
+        for observation_space in observation_spaces:
+            for tl, intersection_space in observation_space.items():
+                if tl not in ret[x_labels]:
+                    ret[x_labels][tl] = defaultdict(list)
+
+                for num, phase in enumerate(intersection_space):
+                    # feature vs feature e.g Speed vs Count
+                    point = [feat for i, feat in enumerate(phase) if i in (x, y)]
+                    if x != y:
+                        ret[x_labels][tl][num].append(point)
+                    else:
+                        ret[x_labels][tl][num] += point
+
+    return ret
+
+def get_reward_function(train_config):
+    # 1) Get build rewards
+    rewards_module = import_module('.rewards', package='ilurl')
+    build_rewards = getattr(rewards_module, 'build_rewards')
+
+    # 2) Parse train config
+    reward = eval(train_config.get('mdp_args', 'reward'))
+    reward_rescale = eval(train_config.get('mdp_args', 'reward_rescale'))
+    mock_params = MockMDP(reward=reward, reward_rescale=reward_rescale)
+
+    return build_rewards(mock_params)
 
 def get_arguments():
     parser = argparse.ArgumentParser(
@@ -43,11 +107,6 @@ def get_arguments():
     )
     parser.add_argument('experiment_dir', type=str, nargs='?',
                         help='Directory to the experiment')
-
-    parser.add_argument('--evaluation', '-e', dest='eval_db',
-                        type=str2bool, nargs='?', default=True,
-                        help='''Either `train` or `evaluation` 
-                            defaults to evaluation''')
 
     return parser.parse_args()
 
@@ -65,86 +124,41 @@ def str2bool(v):
 if __name__ == '__main__':
     # this loop acumulates experiments
     args = get_arguments()
-    exp_dir = args.experiment_dir
-    eval_db = args.eval_db
-
-    if eval_db:
-        ext = '.l.eval.info.json'
-    else:
-        ext = 'train.json'
+    experiment_path = Path(args.experiment_dir)
+    train_log_path = experiment_path / 'logs' / 'train_log.json'
+    config_path = experiment_path / 'config' / 'train.config'
+    target_path = experiment_path / 'log_plots'
+    target_path.mkdir(mode=0o777, exist_ok=True)
 
     phases = defaultdict(list)
-    labels = []
-    category_speeds = None
-    category_counts = None
-    output_json = glob(f'{exp_dir}*{ext}')[0]
-    params_json = glob(f'{exp_dir}*params.json')[0]
-
-    with open(output_json, 'r') as f:
+    with train_log_path.open('r') as f:
         output = json.load(f)
     observation_spaces = output['observation_spaces']
+    rewards = output['rewards']
 
-    # on evaluation observation states are bound to
-    # the iteration Q was saved.
-    if eval_db and isinstance(observation_spaces, dict):
-        key = max([int(k) for k in observation_spaces])
-        observation_spaces = observation_spaces[str(key)]
-    elif not eval_db:
-        observation_spaces = [observation_spaces]
+    train_config = configparser.ConfigParser()
+    train_config.read(config_path.as_posix())
+    # TODO: Use the features to get the categories
+    network_id = train_config.get('train_args', 'network')
+    labels = eval(train_config.get('mdp_args', 'features'))
 
+    reward_function = get_reward_function(train_config)
+    reward_is_penalty = '_min_' in train_config.get('mdp_args', 'reward')
+    
+    categories = get_categories(train_config, labels)
+        
+    # Scatter from phase 0 vs phase 1
+    for j, label in enumerate(labels):
+        feature_series = get_series(observation_spaces, labels, xylabels=[j])
+        _rewards = rewards if len(labels) == 1 else []
+        scatter_phases(feature_series, label, categories,
+                       network=network_id, save_path=target_path,
+                       rewards=_rewards, reward_is_penalty=reward_is_penalty)
 
-    with open(params_json, 'r') as f:
-        params = json.load(f)
-    ql_params = QLParams(**params['ql_args'])
-    env_params = EnvParams(**params['env_args'])
+    if len(labels) > 1:
+        states_series = get_series(observation_spaces, labels)
+        scatter_states(states_series, categories,
+                       network=network_id, save_path=target_path,
+                       rewards=rewards, reward_is_penalty=reward_is_penalty,
+                       reward_function=reward_function)
 
-    labels = ql_params.states_labels
-
-    additional_params = env_params.additional_params
-
-    category_speeds = ql_params.category_speeds
-
-    category_counts = ql_params.category_counts
-
-    for observation_space in observation_spaces:
-        for intersection_space in observation_space:
-            for phase_space in intersection_space:
-                for i, phase in enumerate(phase_space):
-                    phases[i] += [phase]
-
-    _, ax = plt.subplots()
-    for i, label in enumerate(labels):
-        if i == 0:
-            ax.set_xlabel(label)
-        elif i == 1:
-            ax.set_ylabel(label)
-
-
-    ax.vlines(category_speeds, 0, 1,
-              transform=ax.get_xaxis_transform(),
-              colors='tab:gray')
-
-    ax.hlines(category_counts, 0, 1,
-              transform=ax.get_yaxis_transform(),
-              colors='tab:gray',
-              label='states')
-
-    colors = ['tab:blue', 'tab:red']
-    N = 0
-    for i, phase in phases.items():
-        x, y = zip(*phase)
-        N += len(x)
-        ax.scatter(x, y, c=colors[i], label=f'phase#{i}')
-
-    filename = os.path.basename(output_json)
-    filename = filename.replace(ext, '')
-
-    result = TIMESTAMP_PROG.search(filename)
-    if result:
-        timestamp = f'_{result.group(0,)}'
-        filename = filename.replace(timestamp, '')
-    ax.legend()
-    ax.grid(True)
-    plt.title(f'{filename}:\nobservation space (N={N})')
-    plt.savefig(f'{exp_dir}/scatter.png')
-    plt.show()

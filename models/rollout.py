@@ -108,6 +108,7 @@ def main(config_file_path=None):
         'network_id': train_args.network,
         'horizon': args.rollout_time,
         'demand_type': train_args.demand_type,
+        'demand_mode': train_args.demand_mode,
         'tls_type': train_args.tls_type
     }
 

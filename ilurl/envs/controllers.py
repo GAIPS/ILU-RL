@@ -123,7 +123,7 @@ class Webster:
         self._cycle_time = cycle_time
         self._tls_phases = tls_phases
 
-        # initialise vehicles counts data structure.
+        # Initialise vehicles counts data structure.
         self._vehicles_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
                                 for e in data['incoming']}
                                     for p, data in self._tls_phases[nid].items()}
@@ -187,7 +187,7 @@ class Webster:
                             max_count = max(max_count, lane_count)
                     max_counts.append(max_count)
 
-                if min(max_counts) < 10:
+                if min(max_counts) < 2:
                     self._next_signal_plan[tls_id] = self._uniform_timings[tls_id] # Uniform timings.
 
                 else:

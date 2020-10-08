@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Seg 20 Jul 2020 13:24:55 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
+<!-- generated on Sáb 19 Set 2020 01:57:00 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/pedro/ILU/scenarios/grid_6/grid_6.net.xml"/>
+        <sumo-net-file value="/home/ppsantos/ILU/ILU-RL/data/networks/grid_6/grid_6.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/pedro/ILU/scenarios/grid_6/grid_6.net.xml"/>
+        <output-file value="/home/ppsantos/ILU/ILU-RL/data/networks/grid_6/grid_6.net.xml"/>
         <output.street-names value="true"/>
     </output>
 
@@ -28,6 +28,10 @@
     <pedestrian>
         <walkingareas value="false"/>
     </pedestrian>
+
+    <visualisation>
+        <registry-viewport value="true"/>
+    </visualisation>
 
 </configuration>
 -->
@@ -381,39 +385,39 @@
     </edge>
 
     <tlLogic id="gneJ0" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrGGgrrrGGg"/>
+        <phase duration="21" state="rrGGgrrrGGg"/>
         <phase duration="6"  state="rryyyrrryyy"/>
-        <phase duration="39" state="GGrrrGGgrrr"/>
+        <phase duration="27" state="GGrrrGGgrrr"/>
         <phase duration="6"  state="yyrrryyyrrr"/>
     </tlLogic>
     <tlLogic id="gneJ1" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrGGGgrrGGG"/>
+        <phase duration="22" state="rrGGGgrrGGG"/>
         <phase duration="6"  state="rryyyyrryyy"/>
-        <phase duration="39" state="GGrrrrGGrrr"/>
+        <phase duration="26" state="GGrrrrGGrrr"/>
         <phase duration="6"  state="yyrrrryyrrr"/>
     </tlLogic>
     <tlLogic id="gneJ4" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrrGGgrrGG"/>
+        <phase duration="27" state="rrrGGgrrGG"/>
         <phase duration="6"  state="rrryyyrryy"/>
-        <phase duration="39" state="GGgrrrGGrr"/>
+        <phase duration="21" state="GGgrrrGGrr"/>
         <phase duration="6"  state="yyyrrryyrr"/>
     </tlLogic>
     <tlLogic id="gneJ5" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrGGGrrrGGG"/>
+        <phase duration="21" state="rrGGGrrrGGG"/>
         <phase duration="6"  state="rryyyrrryyy"/>
-        <phase duration="39" state="GGrrrGGgrrr"/>
+        <phase duration="27" state="GGrrrGGgrrr"/>
         <phase duration="6"  state="yyrrryyyrrr"/>
     </tlLogic>
     <tlLogic id="gneJ8" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrrrrGGGGG"/>
+        <phase duration="28" state="rrrrrGGGGG"/>
         <phase duration="6"  state="rrrrryyyyy"/>
-        <phase duration="39" state="GGGGGrrrrr"/>
+        <phase duration="20" state="GGGGGrrrrr"/>
         <phase duration="6"  state="yyyyyrrrrr"/>
     </tlLogic>
     <tlLogic id="gneJ9" type="static" programID="0" offset="0">
-        <phase duration="39" state="rrrrrrrGGGGGGG"/>
+        <phase duration="28" state="rrrrrrrGGGGGGG"/>
         <phase duration="6"  state="rrrrrrryyyyyyy"/>
-        <phase duration="39" state="GGGGGGGrrrrrrr"/>
+        <phase duration="20" state="GGGGGGGrrrrrrr"/>
         <phase duration="6"  state="yyyyyyyrrrrrrr"/>
     </tlLogic>
 

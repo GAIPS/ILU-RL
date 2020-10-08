@@ -27,11 +27,11 @@ from ilurl.utils import str2bool
 
 # Pipeline components.
 from jobs.convert2csv import xml2csv
-from analysis.test_plots import main as test_plots
+from analysis.baseline_plots import main as baseline_plots
 from ilurl.utils.decorators import safe_run
 _ERROR_MESSAGE_TEST = ("ERROR: Caught an exception while "
-                    "executing analysis/test_plots.py script.")
-test_plots = safe_run(test_plots, error_message=_ERROR_MESSAGE_TEST)
+                    "executing analysis/baseline_plots.py script.")
+test_plots = safe_run(baseline_plots, error_message=_ERROR_MESSAGE_TEST)
 
 
 ILURL_PATH = Path(os.environ['ILURL_HOME'])
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     xml2csv(experiment_root_path=experiment_root_path)
 
     # 3) Create plots with metrics plots for final agent.
-    test_plots(experiment_root_path)
+    baseline_plots(experiment_root_path)
 
     # 4) Clean up and compress files in order
     #    to optimize disk space.

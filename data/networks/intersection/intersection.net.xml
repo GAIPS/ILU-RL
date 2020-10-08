@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Qui 14 Mai 2020 02:16:38 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
+<!-- generated on Qui 24 Set 2020 11:37:16 WEST by Eclipse SUMO netedit Version v1_1_0+0000-2147d15
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/pedro/ILU/ILU-RL/data/networks/intersection/intersection.net.xml"/>
+        <sumo-net-file value="/home/ppsantos/ILU/ILU-RL/data/networks/intersection/intersection.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/pedro/ILU/ILU-RL/data/networks/intersection/intersection.net.xml"/>
+        <output-file value="/home/ppsantos/ILU/ILU-RL/data/networks/intersection/intersection.net.xml"/>
     </output>
 
     <processing>
@@ -27,6 +27,10 @@
     <pedestrian>
         <walkingareas value="false"/>
     </pedestrian>
+
+    <visualisation>
+        <registry-viewport value="true"/>
+    </visualisation>
 
 </configuration>
 -->
@@ -126,9 +130,9 @@
     </edge>
 
     <tlLogic id="247123161" type="static" programID="0" offset="0">
-        <phase duration="39" state="GGrrrGGrrr"/>
+        <phase duration="20" state="GGrrrGGrrr"/>
         <phase duration="6"  state="yyrrryyrrr"/>
-        <phase duration="39" state="rrGGGrrGGG"/>
+        <phase duration="28" state="rrGGGrrGGG"/>
         <phase duration="6"  state="rryyyrryyy"/>
     </tlLogic>
 

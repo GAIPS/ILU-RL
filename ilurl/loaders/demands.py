@@ -7,7 +7,7 @@ def get_demand(demand_type=None, network_id=None):
 
     file = Path(f"{environ['ILURL_HOME']}/data/networks/{network_id}/demands.json")
 
-    if file.exists ():
+    if file.exists():
         # Custom file.
 
         with file.open(mode='r') as f:
