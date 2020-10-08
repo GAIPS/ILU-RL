@@ -6,6 +6,7 @@ import pandas as pd
 import argparse
 import numpy as np
 from pathlib import Path
+import configparser
 
 import matplotlib
 matplotlib.use('agg')
@@ -46,9 +47,7 @@ def main():
     if Path(args.experiment_root_folder).suffix == '.gz':
         raise ValueError('Please uncompress folder first.')
 
-    chkpt_pattern = '*-learning.csv'
-
-    experiment_names = list(p for p in Path(args.experiment_root_folder).rglob(chkpt_pattern))
+    experiment_names = list(p for p in Path(args.experiment_root_folder).rglob('*-learning.csv'))
 
     if len(experiment_names) < args.num_samples:
         raise ValueError('num_samples argument should be <= than the number of training runs.')
@@ -56,6 +55,12 @@ def main():
     # Create output directory.
     OUTPUTS_FOLDER = args.experiment_root_folder + '/tensorboard_plots/'
     os.makedirs(OUTPUTS_FOLDER, exist_ok=True)
+
+    # Get agent_type from config file.
+    config_path = list(c for c in Path(args.experiment_root_folder).rglob('train.config'))[0]
+    train_config = configparser.ConfigParser()
+    train_config.read(config_path)
+    agent_type = train_config['agent_type']['agent_type']
 
     # Randomly sample train runs.
     experiment_names = random.sample(experiment_names, k=args.num_samples)
@@ -68,7 +73,7 @@ def main():
 
     for col in cols:
 
-        if col in ('steps', 'walltime'):
+        if col in ('steps', 'walltime', 'step'):
             continue
 
         print(f'Creating plot for column "{col}":')
@@ -81,8 +86,13 @@ def main():
             # Read data.
             df = pd.read_csv(exp)
 
-            # Values are tensor as strings so we need to convert them to floats.
-            df[col] = df[col].apply(get_float_from_tensor)
+            if agent_type in ('QL',): 
+                # Non-tensor data: QL data is already in pythonic
+                # format so nothing needs to be done here.
+                pass
+            else:
+                # Values are tensor as strings so we need to convert them to floats.
+                df[col] = df[col].apply(get_float_from_tensor)
 
             plt.plot(df[col], label=f'Train sample {idx}')
 
