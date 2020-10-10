@@ -51,11 +51,15 @@ from matplotlib import cm
 #
 #
 
-DATA_PATH = '/home/ppsantos/ILU/ILU-RL/q_vals.pickle'
+# DQN setup.
+# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/q_vals.pickle'
+# OUTPUT_DIR = 'analysis/plots/policies/'
+# AGENT_TYPE = 'DQN'
 
+# DDPG setup.
+DATA_PATH = '/home/ppsantos/ILU/ILU-RL/ddpg_actions.pickle'
 OUTPUT_DIR = 'analysis/plots/policies/'
-
-AGENT_TYPE = 'DQN'
+AGENT_TYPE = 'DDPG'
 
 def main():
 
@@ -64,14 +68,15 @@ def main():
     with open(DATA_PATH, 'rb') as handle:
         data = pickle.load(handle)
 
-    X = data['X']
-    Y = data['Y']
-    Zs_array = data['Zs_array']
-    NUM_ACTIONS = Zs_array.shape[0]
-
-    X, Y = np.meshgrid(X, Y, indexing='ij')
-
     if AGENT_TYPE == 'DQN':
+
+        # Unpack data.
+        X = data['X']
+        Y = data['Y']
+        Zs_array = data['Zs_array']
+        NUM_ACTIONS = Zs_array.shape[0]
+
+        X, Y = np.meshgrid(X, Y, indexing='ij')
 
         # Q-values plot.
         fig, axes = plt.subplots(nrows=3, ncols=3)
@@ -129,6 +134,30 @@ def main():
 
         plt.savefig(OUTPUT_DIR + 'q_val_maximizing_action.png', bbox_inches='tight', pad_inches=0)
         plt.savefig(OUTPUT_DIR + 'q_val_maximizing_action.png', bbox_inches='tight', pad_inches=0)
+
+    elif AGENT_TYPE == 'DDPG':
+
+        # Unpack data.
+        X = data['X']
+        Y = data['Y']
+        Zs_array = data['Zs_array']
+
+        X, Y = np.meshgrid(X, Y, indexing='ij')
+
+        # Policy (actions) plot.
+        fig = plt.figure()
+
+        im = plt.pcolormesh(X, Y, Zs_array, cmap=cm.jet, shading='gouraud')
+        plt.xlabel('Delay phase 0')
+        plt.ylabel('Delay phase 1')
+
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(im, cax=cbar_ax)
+        plt.title('Phase-0\nallocation')
+
+        plt.savefig(OUTPUT_DIR + 'ddpg_policy.png', bbox_inches='tight', pad_inches=0)
+        plt.savefig(OUTPUT_DIR + 'ddpg_policy.pdf', bbox_inches='tight', pad_inches=0)
 
     else:
         raise ValueError('Agent type not implemented')
