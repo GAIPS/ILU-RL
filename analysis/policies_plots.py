@@ -41,6 +41,38 @@ from matplotlib import cm
 #
 #           [At this point Q-values are saved in the pickle file.]
 #
+#
+#        DDPG example:
+#
+#           deterministic_action() method:
+#
+#               import pickle
+#               import numpy as np
+#       
+#               Zs_array = np.zeros([61,121])
+#               X = np.linspace(0,10,61)
+#               Y = np.linspace(0,30,121)
+#       
+#               for idx_x, x in enumerate(X):
+#                   for idx_y, y in enumerate(Y):
+#       
+#                       picked_action = self._deterministic_actor.select_action(np.array([x, y], dtype=np.float32))
+#                       Zs_array[idx_x,idx_y] = picked_action[0] # Store phase-0 allocations only.
+#       
+#               data = {'X': X, 'Y': Y, 'Zs_array': Zs_array}
+#       
+#               with open('ddpg_actions.pickle', 'wb') as f:
+#                   pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+#       
+#               exit()
+#       
+#           (Run models/rollout.py script pointing to the desired experiment)
+#           E.g.: python models/rollout.py -p /home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201002062037.273324/intersection_20201002-0719121601619552.1452537 -e False -n 20001
+#
+#           [At this point the policy preferences are stored in the pickle file.]
+#
+#
+#
 #   2) Setup the `DATA_PATH`, `OUTPUT_DIR`, `AGENT_TYPE` global variables bellow and run this script.
 # 
 #        `DATA_PATH` points to the pickle file.
