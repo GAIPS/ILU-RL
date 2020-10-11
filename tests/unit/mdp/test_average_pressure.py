@@ -53,12 +53,12 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[0]
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing, is_average=True)
 
         # State.
         # 247123161 static assertion
         # avg.pressure, phase 0
-        self.assertEqual(self.state[ID][0], 3.73, f'avg.pressure:{ID}\tphase:0')
+        self.assertEqual(self.state[ID][0], 0.87, f'avg.pressure:{ID}\tphase:0')
 
         # 247123161 dynamic assertion
         # avg.pressure, phase 0
@@ -75,12 +75,12 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[1]
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing, is_average=True)
 
         # State.
         # 247123161 static assertion
         # pressure, phase 1
-        self.assertEqual(self.state[ID][1], 1.88)
+        self.assertEqual(self.state[ID][1], 2.05)
 
         # 247123161 dynamic assertion
         # pressure, phase 1
@@ -94,7 +94,7 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[ID], -0.01*(3.73 + 1.88))
+        self.assertAlmostEqual(reward[ID], round(-0.01*(0.87 + 2.05), 4))
 
     def test_avg_pressure_tl2ph0(self):
         """Tests average pressure state
@@ -107,11 +107,11 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[0]
 
-        p0  = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
+        p0  = process_pressure(self.kernel_data_1, incoming, outgoing, is_average=True)
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][0], -2.58) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], -1.85) # pressure, phase 0
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -127,11 +127,11 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[1]
 
-        p1  = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
+        p1  = process_pressure(self.kernel_data_1, incoming, outgoing, is_average=True)
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][1], -2.95) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 0.03) # pressure, phase 1
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -143,7 +143,7 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], 0.01*(2.58 + 2.95))
+        self.assertEqual(reward[ID], round(-0.01*(-1.85 + 0.03), 4))
 
     def test_avg_pressure_tl3ph0(self):
         """Tests avg pressure state
@@ -156,11 +156,11 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[0]
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing, is_average=True)
 
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][0], 0.73) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.27) # pressure, phase 0
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -177,11 +177,11 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[1]
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing, is_average=True)
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing, is_average=True)
 
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][1], 0.02) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 1.32) # pressure, phase 1
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -193,7 +193,7 @@ class TestGridAveragePressure(TestGridMDPSetUp):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(0.73 + 0.02))
+        self.assertEqual(reward[ID], round(-0.01*(0.27 + 1.32), 4))
 
     def tearDown(self):
         pass
@@ -242,12 +242,12 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing,
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2, is_average=True)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][0], 0.1) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.05) # pressure, phase 0
 
         # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -265,12 +265,12 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing,
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2, is_average=True)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][1], 0.12) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 0.02) # pressure, phase 1
         # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
@@ -282,7 +282,7 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(0.1 + 0.12))
+        self.assertEqual(reward[ID], round(-0.01*(0.05 + 0.02), 4))
 
 
     def test_avg_pressure_tl2ph0(self):
@@ -298,12 +298,12 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing,
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2, is_average=True)
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][0], -0.07) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], -0.05) # pressure, phase 0
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -322,11 +322,12 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing,
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2, is_average=True)
+
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][1], -0.06) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -339,7 +340,7 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[ID], -0.01*(-0.07 - 0.06))
+        self.assertAlmostEqual(reward[ID], round(-0.01*(-0.05 - 0.0), 4))
 
     def test_avg_pressure_tl3ph0(self):
         """Tests pressure state
@@ -355,11 +356,12 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing,
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2, is_average=True)
+
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][0], 0.01) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.07) # pressure, phase 0
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -378,11 +380,12 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing,
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2, is_average=True)
+
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][1], 0.03) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 0.01) # pressure, phase 1
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -394,7 +397,7 @@ class TestGridAveragePressureNorm(TestGridAveragePressure):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], -0.01*(0.03 + 0.01))
+        self.assertEqual(reward[ID], round(-0.01*(0.07 + 0.01), 4))
 
 if __name__ == '__main__':
     unittest.main()

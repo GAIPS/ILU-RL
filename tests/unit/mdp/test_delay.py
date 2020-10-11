@@ -44,10 +44,10 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 2.91) # delay, phase 0
+        self.assertEqual(check, 1.35) # delay, phase 0
         self.assertEqual(check, sol) # delay, phase 0
 
     def test_delay_tl1ph1(self):
@@ -57,16 +57,16 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 1.23) # delay, phase 1
+        self.assertEqual(check, 1.38) # delay, phase 1
         self.assertEqual(check, sol) # delay, phase 1
 
     def test_min_delay_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(-0.01*(2.91 + 1.23), 4))
+        self.assertEqual(reward[node_id], round(-0.01*(1.35 + 1.38), 4))
 
     def test_delay_tl2ph0(self):
         # 1) Define constraints
@@ -75,10 +75,10 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.02) # delay, phase 0
+        self.assertEqual(check, 0.01) # delay, phase 0
         self.assertEqual(check, sol) # delay, phase 0
 
     def test_delay_tl2ph1(self):
@@ -88,16 +88,16 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.09) # delay, phase 1
+        self.assertEqual(check, 0.62) # delay, phase 1
         self.assertEqual(check, sol) # delay, phase 1
 
     def test_min_delay_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(-0.01*(0.02 + 0.09), 4))
+        self.assertEqual(reward[node_id], round(-0.01*(0.01 + 0.62), 4))
 
 
     def test_delay_tl3ph0(self):
@@ -107,10 +107,10 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check,  0.69) # delay, phase 0
+        self.assertEqual(check, 0.85) # delay, phase 0
         self.assertEqual(check, sol) # delay, phase 0
 
     def test_delay_tl3ph1(self):
@@ -120,16 +120,16 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check, 0.29) # delay, phase 1
+        self.assertEqual(check, 0.9) # delay, phase 1
         self.assertEqual(check, sol) # delay, phase 1
 
     def test_min_delay_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(-0.01*(0.69 + 0.29), 4))
+        self.assertEqual(reward[node_id], round(-0.01*(0.85 + 0.9), 4))
 
     def tearDown(self):
         pass
@@ -189,7 +189,7 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
         sol = process_delay(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.85) # delay, phase 0, actual cycle
+        self.assertEqual(check_1, 1.35) # delay, phase 0, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -206,7 +206,7 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
         sol = process_delay(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.82) # delay, phase 1, actual cycle
+        self.assertEqual(check_1, 1.38) # delay, phase 1, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 1
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -223,7 +223,7 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
         sol = process_delay(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.08) # delay, phase 0, actual cycle
+        self.assertEqual(check_1, 0.01) # delay, phase 0, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -240,7 +240,7 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
         sol = process_delay(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.16) # delay, phase 1, actual cycle
+        self.assertEqual(check_1, 0.62) # delay, phase 1, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 1
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -257,7 +257,7 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
         sol = process_delay(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 3.73) # delay, phase 0, actual cycle
+        self.assertEqual(check_1, 0.85) # delay, phase 0, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -274,7 +274,7 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
         sol = process_delay(self.kernel_data_1, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.5) # delay, phase 1, actual cycle
+        self.assertEqual(check_1, 0.9) # delay, phase 1, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 1
 
         # 4) Assert 247123161 previous cycle (no data)
@@ -328,11 +328,11 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
         sol = process_delay(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.32) # delay, phase 0, actual cycle
+        self.assertEqual(check_1, 0.1) # delay, phase 0, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.85) # delay, phase 0, prev cycle
+        self.assertEqual(check_2, 1.35) # delay, phase 0, prev cycle
 
     def test_delay_tl1ph1(self):
         # 1) Define constraints
@@ -345,16 +345,16 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
         sol = process_delay(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.80) # delay, phase 1, actual cycle
+        self.assertEqual(check_1, 0.92) # delay, phase 1, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 1
 
         # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.82) # delay, phase 1, prev cycle
+        self.assertEqual(check_2, 1.38) # delay, phase 1, prev cycle
 
     def test_max_delay_reduction_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(0.01*(0.85-0.32 + 0.82-0.8), 4))
+        self.assertAlmostEqual(reward[node_id], round(0.01*(1.35-0.1 + 1.38-0.92), 4))
     
     def test_delay_tl2ph0(self):
         # 1) Define constraints
@@ -367,11 +367,11 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
         sol = process_delay(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 1.52) # delay, phase 0, actual cycle
+        self.assertEqual(check_1, 0.64) # delay, phase 0, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.08) # delay, phase 0, prev cycle
+        self.assertEqual(check_2, 0.01) # delay, phase 0, prev cycle
 
     def test_delay_tl2ph1(self):
         # 1) Define constraints
@@ -384,16 +384,16 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
         sol = process_delay(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.83) # delay, phase 1, actual cycle
+        self.assertEqual(check_1, 1.46) # delay, phase 1, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 1
 
         # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.16) # delay, phase 1, prev cycle
+        self.assertEqual(check_2, 0.62) # delay, phase 1, prev cycle
 
     def test_max_delay_reduction_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(0.01*(0.08-1.52 + 0.16-0.83), 4))
+        self.assertAlmostEqual(reward[node_id], round(0.01*(0.01-0.64 + 0.62-1.46), 4))
 
     def test_delay_tl3ph0(self):
         # 1) Define constraints
@@ -406,11 +406,11 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
         sol = process_delay(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 2.13) # delay, phase 0, actual cycle
+        self.assertEqual(check_1, 0.26) # delay, phase 0, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 0
 
         # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 3.73) # delay, phase 0, prev cycle
+        self.assertEqual(check_2, 0.85) # delay, phase 0, prev cycle
 
     def test_delay_tl3ph1(self):
         # 1) Define constraints
@@ -423,16 +423,16 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
         sol = process_delay(self.kernel_data_2, nid, pid)
 
         # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.57) # delay, phase 1, actual cycle
+        self.assertEqual(check_1, 2.64) # delay, phase 1, actual cycle
         self.assertEqual(check_1, sol) # delay, phase 1
 
         # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.5) # delay, phase 1, prev cycle
+        self.assertEqual(check_2, 0.9) # delay, phase 1, prev cycle
 
     def test_max_delay_reduction_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(0.01*(3.73-2.13 + 0.50-0.57), 4))
+        self.assertAlmostEqual(reward[node_id], round(0.01*(0.85-0.26 + 0.9-2.64), 4))
 
     def tearDown(self):
         pass

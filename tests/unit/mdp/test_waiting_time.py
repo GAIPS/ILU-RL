@@ -51,10 +51,10 @@ class TestGridWaitingTime(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 2.85) # wait_t, phase 0
+        self.assertEqual(check, 1.3) # wait_t, phase 0
         self.assertEqual(check, sol) # wait_t, phase 0
 
     def test_wait_t_tl1ph1(self):
@@ -64,16 +64,16 @@ class TestGridWaitingTime(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 1.18) # wait_t, phase 1
+        self.assertEqual(check, 1.32) # wait_t, phase 1
         self.assertEqual(check, sol) # wait_t, phase 1
 
     def test_min_wait_t_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(2.85 + 1.18))
+        self.assertEqual(reward[node_id], round(-0.01*(1.3 + 1.32), 4))
 
     def test_wait_t_tl2ph0(self):
         # 1) Define constraints
@@ -82,7 +82,7 @@ class TestGridWaitingTime(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
         self.assertEqual(check, 0.00) # wait_t, phase 0
@@ -95,16 +95,16 @@ class TestGridWaitingTime(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.08) # wait_t, phase 1
+        self.assertEqual(check, 0.6) # wait_t, phase 1
         self.assertEqual(check, sol) # wait_t, phase 1
 
     def test_min_wait_t_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.0 + 0.08))
+        self.assertEqual(reward[node_id], round(-0.01*(0.0 + 0.6), 4))
 
 
     def test_wait_t_tl3ph0(self):
@@ -114,10 +114,10 @@ class TestGridWaitingTime(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check,  0.58) # wait_t, phase 0
+        self.assertEqual(check,  0.82) # wait_t, phase 0
         self.assertEqual(check, sol) # wait_t, phase 0
 
     def test_wait_t_tl3ph1(self):
@@ -127,16 +127,16 @@ class TestGridWaitingTime(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check, 0.27) # wait_t, phase 1
+        self.assertEqual(check, 0.83) # wait_t, phase 1
         self.assertEqual(check, sol) # wait_t, phase 1
 
     def test_min_wait_t_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.58 + 0.27))
+        self.assertEqual(reward[node_id], round(-0.01*(0.82 + 0.83), 4))
 
     def tearDown(self):
         pass
@@ -185,10 +185,10 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id, norm_vehs=self.norm_vehs)
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id, norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 0.32) # wait_t, phase 0
+        self.assertEqual(check, 0.16) # wait_t, phase 0
         self.assertEqual(check, sol) # wait_t, phase 0
 
     def test_wait_t_tl1ph1(self):
@@ -198,7 +198,7 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id,
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id,
                             norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123161
@@ -208,7 +208,7 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
     def test_min_wait_t_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.32 + 0.15))
+        self.assertEqual(reward[node_id], round(-0.01*(0.16 + 0.15), 4))
 
     def test_wait_t_tl2ph0(self):
         # 1) Define constraints
@@ -217,7 +217,7 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id,
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id,
                         norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123464
@@ -231,17 +231,17 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id,
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id,
                             norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.01) # wait_t, phase 1
+        self.assertEqual(check, 0.07) # wait_t, phase 1
         self.assertEqual(check, sol) # wait_t, phase 1
 
     def test_min_wait_t_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.0 + 0.01))
+        self.assertEqual(reward[node_id], round(-0.01*(0.0 + 0.07), 4))
 
 
     def test_wait_t_tl3ph0(self):
@@ -251,11 +251,11 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id,
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id,
                             norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123468
-        self.assertEqual(check,  0.07) # wait_t, phase 0
+        self.assertEqual(check,  0.09) # wait_t, phase 0
         self.assertEqual(check, sol) # wait_t, phase 0
 
     def test_wait_t_tl3ph1(self):
@@ -265,17 +265,17 @@ class TestGridWaitingTimeNorm(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_waiting_time(self.kernel_data, node_id, phase_id,
+        sol = process_waiting_time(self.kernel_data_1, node_id, phase_id,
                             norm_vehs=self.norm_vehs)
 
         # 3) Assert 247123468
-        self.assertEqual(check, 0.03) # wait_t, phase 1
+        self.assertEqual(check, 0.1) # wait_t, phase 1
         self.assertEqual(check, sol) # wait_t, phase 1
 
     def test_min_wait_t_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], -0.01*(0.07 + 0.03))
+        self.assertEqual(reward[node_id], round(-0.01*(0.09 + 0.1), 4))
 
     def tearDown(self):
         pass

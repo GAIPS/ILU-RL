@@ -43,9 +43,9 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
         phase_id = 0
 
         check = self.state[node_id][phase_id+1]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
-        self.assertEqual(check, 2.91)
+        self.assertEqual(check, 1.35)
         self.assertEqual(check, sol)
 
     def test_init_state_tl1_ph1(self):
@@ -53,9 +53,9 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
         phase_id = 1
 
         check = self.state[node_id][phase_id+1]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
-        self.assertEqual(check, 1.23)
+        self.assertEqual(check, 1.38)
         self.assertEqual(check, sol)
 
     def test_init_state_tl2_ph0(self):
@@ -63,9 +63,9 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
         phase_id = 0
 
         check = self.state[node_id][phase_id+1]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
-        self.assertEqual(check, 0.02)
+        self.assertEqual(check, 0.01)
         self.assertEqual(check, sol)
 
     def test_init_state_tl2_ph1(self):
@@ -73,9 +73,9 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
         phase_id = 1
 
         check = self.state[node_id][phase_id+1]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
-        self.assertEqual(check, 0.09)
+        self.assertEqual(check, 0.62)
         self.assertEqual(check, sol)
 
     def test_init_state_tl3_ph0(self):
@@ -83,9 +83,9 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
         phase_id = 0
 
         check = self.state[node_id][phase_id+1]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
-        self.assertEqual(check, 0.69)
+        self.assertEqual(check, 0.85)
         self.assertEqual(check, sol)
 
     def test_init_state_tl3_ph1(self):
@@ -93,9 +93,9 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
         phase_id = 1
 
         check = self.state[node_id][phase_id+1]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data_1, node_id, phase_id)
 
-        self.assertEqual(check, 0.29)
+        self.assertEqual(check, 0.9)
         self.assertEqual(check, sol)
 
     def test_time_period_sync(self):
@@ -109,7 +109,7 @@ class TestGridTimePeriodSyncVersion(TestGridMDPSetUp):
                 # Fake environment interaction with state object.
                 # (60 seconds = 1 minute).
                 timesteps = list(range(1,60)) + [0]
-                for t, data in zip(timesteps, self.kernel_data):
+                for t, data in zip(timesteps, self.kernel_data_1):
                     self.observation_space.update(t, data)
 
                 # Get state.
@@ -165,7 +165,7 @@ class TestGridTimePeriodAsyncVersion(TestGridMDPSetUp):
                 # Fake environment interaction with state object.
                 # (60 seconds = 1 minute).
                 timesteps = list(range(1,60)) + [0]
-                for t, data in zip(timesteps, self.kernel_data):
+                for t, data in zip(timesteps, self.kernel_data_1):
                     self.observation_space.update(t, data)
 
                 # Get state.

@@ -51,11 +51,11 @@ class TestGridPressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[0]
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][0], 5.0, f'pressure:{ID}\tphase:0') # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 2.0, f'pressure:{ID}\tphase:0') # pressure, phase 0
 
         # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -71,11 +71,11 @@ class TestGridPressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123161
         incoming = INCOMING_247123161[1]
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], -1.0) # pressure, phase 1
 
         # # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -88,7 +88,7 @@ class TestGridPressure(TestGridMDPSetUp):
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], round(-0.01*(5.0 + 0.0), 4))
+        self.assertEqual(reward[ID], round(-0.01*(2.0 -1.0), 4))
 
     def test_pressure_tl2ph0(self):
         """Tests pressure state
@@ -101,11 +101,11 @@ class TestGridPressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[0]
 
-        p0  = process_pressure(self.kernel_data, incoming, outgoing)
+        p0  = process_pressure(self.kernel_data_1, incoming, outgoing)
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][0], -3.0) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.0) # pressure, phase 0
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -121,11 +121,11 @@ class TestGridPressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123464
         incoming = INCOMING_247123464[1]
 
-        p1  = process_pressure(self.kernel_data, incoming, outgoing)
+        p1  = process_pressure(self.kernel_data_1, incoming, outgoing)
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][1], -2.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 3.0) # pressure, phase 1
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -138,7 +138,7 @@ class TestGridPressure(TestGridMDPSetUp):
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], round(0.01*(3.0 + 2.0), 4))
+        self.assertEqual(reward[ID], round(-0.01*(0.0 + 3.0), 4))
 
     def test_pressure_tl3ph0(self):
         """Tests pressure state
@@ -151,7 +151,7 @@ class TestGridPressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[0]
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing)
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing)
 
         # State.
         # 247123468 static assertion
@@ -172,11 +172,11 @@ class TestGridPressure(TestGridMDPSetUp):
         outgoing = OUTGOING_247123468
         incoming = INCOMING_247123468[1]
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing)
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing)
 
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 1.0) # pressure, phase 1
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -188,7 +188,7 @@ class TestGridPressure(TestGridMDPSetUp):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], round(-0.01*(1.0 + 0.0), 4))
+        self.assertEqual(reward[ID], round(-0.01*(1.0 + 1.0), 4))
 
 
 class TestGridPressureNorm(TestGridPressure):
@@ -235,12 +235,12 @@ class TestGridPressureNorm(TestGridPressure):
         fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing,
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][0], 0.1389, f'pressure:{ID}\tphase:0') # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.125, f'pressure:{ID}\tphase:0') # pressure, phase 0
 
         # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -258,12 +258,12 @@ class TestGridPressureNorm(TestGridPressure):
         fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing,
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
 
         # State.
         # 247123161 static assertion
-        self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], -0.0972) # pressure, phase 1
         # 247123161 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
 
@@ -275,7 +275,7 @@ class TestGridPressureNorm(TestGridPressure):
         """
         ID = '247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], round(-0.01*(0.1389 + 0.0), 4))
+        self.assertEqual(reward[ID], round(-0.01*(0.125 - 0.0972), 4))
 
     def test_pressure_tl2ph0(self):
         """Tests pressure state
@@ -290,12 +290,12 @@ class TestGridPressureNorm(TestGridPressure):
         fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing,
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
 
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][0], -0.0882) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.0) # pressure, phase 0
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -314,11 +314,12 @@ class TestGridPressureNorm(TestGridPressure):
         fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing,
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
+
         # State.
         # 247123464 static assertion
-        self.assertEqual(self.state[ID][1], 0.0229) # pressure, phase 1
+        self.assertEqual(self.state[ID][1], 0.0938) # pressure, phase 1
 
         # 247123464 dynamic assertion
         self.assertEqual(self.state[ID][1], p1) # pressure, phase 1
@@ -331,7 +332,7 @@ class TestGridPressureNorm(TestGridPressure):
         """
         ID = '247123464'
         reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[ID], round(-0.01*(-0.0882 + 0.0229), 4))
+        self.assertAlmostEqual(reward[ID], round(-0.01*(0.0 +  0.0938), 4))
 
     def test_pressure_tl3ph0(self):
         """Tests pressure state
@@ -347,11 +348,12 @@ class TestGridPressureNorm(TestGridPressure):
         fct1 = MAX_VEHS[(ID, 0)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 0)] if self.norm_vehs else 1
 
-        p0 = process_pressure(self.kernel_data, incoming, outgoing,
+        p0 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
+
         # State.
         # 247123468 static assertion
-        self.assertEqual(self.state[ID][0], 0.0312) # pressure, phase 0
+        self.assertEqual(self.state[ID][0], 0.1597) # pressure, phase 0
 
         # 247123468 dynamic assertion
         self.assertEqual(self.state[ID][0], p0) # pressure, phase 0
@@ -370,8 +372,9 @@ class TestGridPressureNorm(TestGridPressure):
         fct1 = MAX_VEHS[(ID, 1)] if self.norm_vehs else 1
         fct2 = MAX_VEHS_OUT[(ID, 1)] if self.norm_vehs else 1
 
-        p1 = process_pressure(self.kernel_data, incoming, outgoing,
+        p1 = process_pressure(self.kernel_data_1, incoming, outgoing,
                               fctin=fct1, fctout=fct2)
+
         # State.
         # 247123468 static assertion
         self.assertEqual(self.state[ID][1], 0.0) # pressure, phase 1
@@ -386,7 +389,7 @@ class TestGridPressureNorm(TestGridPressure):
         """
         ID = '247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[ID], round(-0.01*(0.0312 + 0.0), 4))
+        self.assertEqual(reward[ID], round(-0.01*(0.1597 + 0.0), 4))
 
 
 if __name__ == '__main__':

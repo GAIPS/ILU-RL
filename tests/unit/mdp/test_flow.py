@@ -43,10 +43,10 @@ class TestGridMaxFlow(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_flow(self.kernel_data, node_id, phase_id)
+        sol = process_flow(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 7.0) # flow, phase 0
+        self.assertEqual(check, 3.0) # flow, phase 0
         self.assertEqual(check, sol) # flow, phase 0
 
     def test_flow_tl1ph1(self):
@@ -56,16 +56,16 @@ class TestGridMaxFlow(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_flow(self.kernel_data, node_id, phase_id)
+        sol = process_flow(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 9.0) # flow, phase 1
+        self.assertEqual(check, 17.0) # flow, phase 1
         self.assertEqual(check, sol) # flow, phase 1
 
     def test_min_flow_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(0.01*(7.0  + 9.0), 4))
+        self.assertEqual(reward[node_id], round(0.01*(3.0  + 17.0), 4))
 
     def test_flow_tl2ph0(self):
         # 1) Define constraints
@@ -74,10 +74,10 @@ class TestGridMaxFlow(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_flow(self.kernel_data, node_id, phase_id)
+        sol = process_flow(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 9.0) # flow, phase 0
+        self.assertEqual(check, 1.0) # flow, phase 0
         self.assertEqual(check, sol) # flow, phase 0
 
     def test_flow_tl2ph1(self):
@@ -87,16 +87,16 @@ class TestGridMaxFlow(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_flow(self.kernel_data, node_id, phase_id)
+        sol = process_flow(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 1.0) # flow, phase 1
+        self.assertEqual(check, 14.0) # flow, phase 1
         self.assertEqual(check, sol) # flow, phase 1
 
     def test_min_flow_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(0.01*(9.0  + 1.0), 4))
+        self.assertEqual(reward[node_id], round(0.01*(1.0 + 14.0), 4))
 
 
     def test_flow_tl3ph0(self):
@@ -106,10 +106,10 @@ class TestGridMaxFlow(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_flow(self.kernel_data, node_id, phase_id)
+        sol = process_flow(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check, 15.0) # flow, phase 0
+        self.assertEqual(check, 1.0) # flow, phase 0
         self.assertEqual(check, sol) # flow, phase 0
 
     def test_flow_tl3ph1(self):
@@ -119,16 +119,16 @@ class TestGridMaxFlow(TestGridMDPSetUp):
 
         # 2) Define state & solution
         check = self.state[node_id][phase_id]
-        sol = process_flow(self.kernel_data, node_id, phase_id)
+        sol = process_flow(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check, 2.0) # flow, phase 1
+        self.assertEqual(check, 15.0) # flow, phase 1
         self.assertEqual(check, sol) # flow, phase 1
 
     def test_min_flow_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(0.01*(15.0 + 2.0), 4))
+        self.assertEqual(reward[node_id], round(0.01*(1.0 + 15.0), 4))
 
     def tearDown(self):
         pass

@@ -31,7 +31,7 @@ class TestGridMDPSetUp(TestGridSetUp):
         # Fake environment interaction with state object.
         timesteps = list(range(1,60)) + [0]
 
-        for t, data in zip(timesteps, self.kernel_data):
+        for t, data in zip(timesteps, self.kernel_data_1):
             observation_space.update(t, data)
 
         return observation_space
@@ -141,37 +141,37 @@ class TestGridObservationSpace(TestGridMDPSetUp):
     def test_tl1ph0_max_vehs(self):
         check = self.observation_space['247123161']['247123161#0'].max_vehs
         sol = MAX_VEHS[('247123161', 0)]
-        self.assertEqual(check, 36)
+        self.assertEqual(check, 16)
         self.assertEqual(check, sol)
 
     def test_tl1ph1_max_vehs(self):
         check = self.observation_space['247123161']['247123161#1'].max_vehs
         sol = MAX_VEHS[('247123161', 1)]
-        self.assertEqual(check, 16)
+        self.assertEqual(check, 36)
         self.assertEqual(check, sol)
 
     def test_tl2ph0_max_vehs(self):
         check = self.observation_space['247123464']['247123464#0'].max_vehs
         sol = MAX_VEHS[('247123464', 0)]
-        self.assertEqual(check, 32)
+        self.assertEqual(check, 9)
         self.assertEqual(check, sol)
 
     def test_tl2ph1_max_vehs(self):
         check = self.observation_space['247123464']['247123464#1'].max_vehs
         sol = MAX_VEHS[('247123464', 1)]
-        self.assertEqual(check, 9)
+        self.assertEqual(check, 32)
         self.assertEqual(check, sol)
 
     def test_tl3ph0_max_vehs(self):
         check = self.observation_space['247123468']['247123468#0'].max_vehs
         sol = MAX_VEHS[('247123468', 0)]
-        self.assertEqual(check, 32)
+        self.assertEqual(check, 9)
         self.assertEqual(check, sol)
 
     def test_tl3ph1_max_vehs(self):
         check = self.observation_space['247123468']['247123468#1'].max_vehs
         sol = MAX_VEHS[('247123468', 1)]
-        self.assertEqual(check, 9)
+        self.assertEqual(check, 32)
         self.assertEqual(check, sol)
 
     def test_tl1ph0_max_vehs_out(self):

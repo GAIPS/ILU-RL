@@ -43,12 +43,12 @@ class TestGridSpeedScore(TestGridMDPSetUp):
         # 2) Define state & solution
         check_s = self.state[node_id][0]
         check_c = self.state[node_id][1]
-        sol = process_speed_score(self.kernel_data, node_id, phase_id)
+        sol = process_speed_score(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
         self.assertEqual(check_s, 0.18) # speed_score, phase 0
         self.assertEqual(check_s, sol[0]) # speed_score, phase 0
-        self.assertEqual(check_c, 3.88) # count, phase 0
+        self.assertEqual(check_c, 1.93) # count, phase 0
         self.assertEqual(check_c, sol[1]) # count, phase 0
 
     def test_speed_count_tl1ph1(self):
@@ -59,18 +59,18 @@ class TestGridSpeedScore(TestGridMDPSetUp):
         # 2) Define state & solution
         check_s = self.state[node_id][2]
         check_c = self.state[node_id][3]
-        sol = process_speed_score(self.kernel_data, node_id, phase_id)
+        sol = process_speed_score(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123161
-        self.assertEqual(check_s, 0.27) # speed_score, phase 1
+        self.assertEqual(check_s, 0.42) # speed_score, phase 1
         # self.assertAlmostEqual(check_s, sol[0]) # speed_score, phase 1
-        self.assertEqual(check_c, 2.03) # count, phase 1
+        self.assertEqual(check_c, 3.12) # count, phase 1
         self.assertEqual(check_c, sol[1]) # count, phase 1
 
     def test_min_speed_count_tl1(self):
         node_id ='247123161'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(0.01*(0.18*3.88 + 0.27*2.03), 4))
+        self.assertEqual(reward[node_id], round(0.01*(0.18*1.93 + 0.42*3.12), 4))
 
     def test_speed_count_tl2ph0(self):
         # 1) Define constraints
@@ -80,12 +80,12 @@ class TestGridSpeedScore(TestGridMDPSetUp):
         # 2) Define state & solution
         check_s = self.state[node_id][0]
         check_c = self.state[node_id][1]
-        sol = process_speed_score(self.kernel_data, node_id, phase_id)
+        sol = process_speed_score(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check_s, 0.82) # speed_score, phase 0
+        self.assertEqual(check_s, 0.39) # speed_score, phase 0
         self.assertEqual(check_s, sol[0]) # speed_score, phase 0
-        self.assertEqual(check_c, 0.68) # count, phase 0
+        self.assertEqual(check_c, 0.05) # count, phase 0
         self.assertEqual(check_c, sol[1]) # count, phase 0
 
     def test_speed_count_tl2ph1(self):
@@ -96,18 +96,18 @@ class TestGridSpeedScore(TestGridMDPSetUp):
         # 2) Define state & solution
         check_s = self.state[node_id][2]
         check_c = self.state[node_id][3]
-        sol = process_speed_score(self.kernel_data, node_id, phase_id)
+        sol = process_speed_score(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123464
-        self.assertEqual(check_s, 0.47) # speed_score, phase 1
+        self.assertEqual(check_s, 0.57) # speed_score, phase 1
         self.assertEqual(check_s, sol[0]) # speed_score, phase 1
-        self.assertEqual(check_c, 0.32) # count, phase 1
+        self.assertEqual(check_c, 1.93) # count, phase 1
         self.assertEqual(check_c, sol[1]) # count, phase 1
 
     def test_min_speed_count_tl2(self):
         node_id ='247123464'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(0.01*(0.82*0.68 + 0.47*0.32), 4))
+        self.assertEqual(reward[node_id], round(0.01*(0.39*0.05 + 0.57*1.93), 4))
 
 
     def test_speed_count_tl3ph0(self):
@@ -118,12 +118,12 @@ class TestGridSpeedScore(TestGridMDPSetUp):
         # 2) Define state & solution
         check_s = self.state[node_id][0]
         check_c = self.state[node_id][1]
-        sol = process_speed_score(self.kernel_data, node_id, phase_id)
+        sol = process_speed_score(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check_s, 0.27) # speed_score, phase 0
+        self.assertEqual(check_s, 0.16) # speed_score, phase 0
         #self.assertEqual(check_s, sol[0]) # speed_score, phase 0
-        self.assertEqual(check_c, 1.27) # count, phase 0
+        self.assertEqual(check_c, 1.13) # count, phase 0
         self.assertEqual(check_c, sol[1]) # count, phase 0
 
     def test_speed_count_tl3ph1(self):
@@ -134,18 +134,18 @@ class TestGridSpeedScore(TestGridMDPSetUp):
         # 2) Define state & solution
         check_s = self.state[node_id][2]
         check_c = self.state[node_id][3]
-        sol = process_speed_score(self.kernel_data, node_id, phase_id)
+        sol = process_speed_score(self.kernel_data_1, node_id, phase_id)
 
         # 3) Assert 247123468
-        self.assertEqual(check_s, 0.3) # speed_score, phase 1
+        self.assertEqual(check_s, 0.43) # speed_score, phase 1
         self.assertEqual(check_s, sol[0]) # speed_score, phase 1
-        self.assertEqual(check_c, 0.55) # count, phase 1
+        self.assertEqual(check_c,2.18) # count, phase 1
         self.assertEqual(check_c, sol[1]) # count, phase 1
 
     def test_min_speed_count_tl3(self):
         node_id ='247123468'
         reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(0.01*(0.27*1.27 + 0.30*0.55), 4))
+        self.assertEqual(reward[node_id], round(0.01*(0.16*1.13 + 0.43*2.18), 4))
 
     def tearDown(self):
         pass
