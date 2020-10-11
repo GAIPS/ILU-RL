@@ -4,7 +4,7 @@
     "category_delays": [0.05, 0.75, 2.25, 4.15],
     "category_flows": [1.0, 6.0, 10.0, 15.0, 20.0],
     "category_queues": [1.0, 3.0, 5.0, 6.0],
-    "category_waiting_times":[0.01, 1.68, 2.58, 4.28, 6.18, 8.03],
+    "category_waiting_times":[0.05, 1.0, 2.1, 3.5],
     "category_pressures": [0.5, 1.0, 2.0, 3.0, 4.0, 5.0],
     "category_speeds": [0.2, 0.6, 0.75, 0.85],
     "category_speed_scores":[0.05, 0.1, 0.26, 0.3, 0.468]
