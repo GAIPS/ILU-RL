@@ -417,10 +417,8 @@ class Phase(Node):
         # fn: extracts category_<feature_name>s from mdp_params
         def fn(x):
             z = self._get_derived(x)
-            return [getattr(mdp_params, y) for y in dir(mdp_params)
-                    if (z in y) and ('category_' in y)][0]
+            return [getattr(mdp_params, f'category_{z}s')][0]
         self._bins = {_feat: fn(_feat) for _feat in mdp_params.features}
-
 
         # 3) Instantiate lanes
         lanes = {}
@@ -634,7 +632,6 @@ class Phase(Node):
         # 3) Categorize each phase feature.
         if categorize:
             ret = [self._digitize(val, lbl) for val, lbl in zip(ret, sel)]
-
         return ret
 
     @property

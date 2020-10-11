@@ -87,7 +87,6 @@ if __name__ == '__main__':
                 for label, val in zip(labels, features):
                     states[label].append(val)
 
-    import ipdb; ipdb.set_trace()
     # plot building
     num_bins = 100
     # percentile separators: low, medium and high

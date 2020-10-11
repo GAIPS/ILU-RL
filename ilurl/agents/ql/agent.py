@@ -166,12 +166,14 @@ class QL(AgentWorker, AgentInterface):
                     dpq_update(self.discount_factor, lr, self.Q, s_, a_, r_, s1_)
 
             # Log values.
+            q_abs = np.abs(self.Q[s][a]) 
             values = {
                 "step": self._obs_counter,
                 "lr": lr,
                 "expl_eps": self.exploration.value(sum(
                         self.state_action_counter[s].values())-1),
                 "q_dist": dist,
+                "q_resid": dist if q_abs < 1e-3 else (dist / q_abs),
             }
             self._learning_logger.write(values)
 
