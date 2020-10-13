@@ -34,7 +34,7 @@ _ERROR_MESSAGE_TEST = ("ERROR: Caught an exception while "
 test_plots = safe_run(baseline_plots, error_message=_ERROR_MESSAGE_TEST)
 
 
-ILURL_PATH = Path(os.environ['ILURL_HOME'])
+ILURL_PATH = Path(os.environ['ALTRL_HOME'])
 CONFIG_PATH = ILURL_PATH / 'config'
 
 mp = multiprocessing.get_context('spawn')

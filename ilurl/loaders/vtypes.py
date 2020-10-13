@@ -6,7 +6,7 @@ from xml.dom.minidom import parseString
 from flow.controllers import GridRouter
 from flow.core.params import SumoCarFollowingParams, VehicleParams
 
-NETWORKS_PATH = f"{os.environ['ILURL_HOME']}/data/networks"
+NETWORKS_PATH = f"{os.environ['ALTRL_HOME']}/data/networks"
 VTYPES_PATH = f"{NETWORKS_PATH}/vtypes.add.xml"
 
 def get_vehicle_types():

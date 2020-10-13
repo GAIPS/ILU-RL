@@ -57,6 +57,7 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+ROOT_DIR = os.environ['ALTRL_HOME']
 
 if __name__ == '__main__':
     args = get_arguments()
