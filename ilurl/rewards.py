@@ -4,6 +4,8 @@ from sys import modules
 
 import numpy as np
 
+from ilurl.utils.aux import flatten
+
 
 
 def get_rewards():
@@ -177,8 +179,8 @@ def reward_min_delay(state, *args):
         delays = state
 
     ret = {}
-    for tls_id, phase_obs in delays.items():
-        ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    for tls_id, values in delays.items():
+        ret[tls_id] = -sum(flatten(values))
     return ret
 
 def reward_min_waiting_time(state, *args):
@@ -203,8 +205,8 @@ def reward_min_waiting_time(state, *args):
         wait_times = state
 
     ret = {}
-    for tls_id, phase_obs in wait_times.items():
-        ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    for tl_id, values in wait_times.items():
+        ret[tl_id] = -sum(flatten(values))
     return ret
 
 def reward_max_delay_reduction(state, *args):
@@ -399,4 +401,5 @@ def rescale_rewards(rewards, scale_factor):
 
 def diff(x, y):
     return np.array(x) - np.array(y)
+
 

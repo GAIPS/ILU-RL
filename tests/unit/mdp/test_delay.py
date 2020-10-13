@@ -1,6 +1,7 @@
-import numpy as np
-
+from collections import defaultdict
 import unittest
+
+import numpy as np
 
 from ilurl.state import State
 from ilurl.params import MDPParams
@@ -8,7 +9,7 @@ from ilurl.utils.properties import lazy_property
 
 from tests.unit.mdp.test_mdp_base import TestGridMDPSetUp
 
-class TestGridMinDelay(TestGridMDPSetUp):
+class TestGridDelaySetUp(TestGridMDPSetUp):
     """
         * Tests delay wrt Grid network (reward_min_delay)
 
@@ -35,107 +36,187 @@ class TestGridMinDelay(TestGridMDPSetUp):
 
     def setUp(self):
         """Code here will run before every test"""
-        super(TestGridMinDelay, self).setUp()
+        super(TestGridDelaySetUp, self).setUp()
 
-    def test_delay_tl1ph0(self):
-        # 1) Define constraints
-        node_id ='247123161'
-        phase_id = 0
+class TestGridTLS1DelaySetUp(TestGridDelaySetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-        # 2) Define state & solution
-        check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS1DelaySetUp, self).setUp()
+        self.ID = '247123161'
+
+class TestGridTLS1Delay(TestGridTLS1DelaySetUp):
+    """
+        * Tests waiting time wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS1Delay, self).setUp()
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0][0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1][0]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+    def test_0(self):
+        sol = process_delay(self.kernel_data, self.ID, self.PHASE_0)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 2.91) # delay, phase 0
-        self.assertEqual(check, sol) # delay, phase 0
+        self.assertEqual(self.STATE_0, [0.02, 3.2]) # phase 0
+        self.assertEqual(self.STATE_0, sol) # phase 0
 
-    def test_delay_tl1ph1(self):
-        # 1) Define constraints
-        node_id ='247123161'
-        phase_id = 1
-
+    def test_1(self):
         # 2) Define state & solution
-        check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, self.ID, self.PHASE_1)
 
         # 3) Assert 247123161
-        self.assertEqual(check, 1.23) # delay, phase 1
-        self.assertEqual(check, sol) # delay, phase 1
+        self.assertEqual(self.STATE_1, [0.06, 1.22]) # phase 0
+        self.assertEqual(self.STATE_1, sol) # phase 0
 
-    def test_min_delay_tl1(self):
-        node_id ='247123161'
-        reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(-0.01*(2.91 + 1.23), 4))
+    def test_reward(self):
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.02 + 3.2 + 0.06 + 1.22))
 
-    def test_delay_tl2ph0(self):
-        # 1) Define constraints
-        node_id ='247123464'
-        phase_id = 0
+class TestGridTLS2DelaySetUp(TestGridDelaySetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-        # 2) Define state & solution
-        check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS2DelaySetUp, self).setUp()
+        self.ID = '247123464'
+
+class TestGridTLS2Delay(TestGridTLS2DelaySetUp):
+    """
+        * Tests waiting time wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS2Delay, self).setUp()
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0][0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1][0]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+    def test_0(self):
+        sol = process_delay(self.kernel_data, self.ID, self.PHASE_0)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.02) # delay, phase 0
-        self.assertEqual(check, sol) # delay, phase 0
+        self.assertEqual(self.STATE_0, [0.75, 0.01]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
 
-    def test_delay_tl2ph1(self):
-        # 1) Define constraints
-        node_id ='247123464'
-        phase_id = 1
-
+    def test_1(self):
         # 2) Define state & solution
-        check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        sol = process_delay(self.kernel_data, self.ID, self.PHASE_1)
 
         # 3) Assert 247123464
-        self.assertEqual(check, 0.09) # delay, phase 1
-        self.assertEqual(check, sol) # delay, phase 1
+        self.assertEqual(self.STATE_1, [0.81, 0.01]) # wait_t, phase 1
+        self.assertEqual(self.STATE_1, sol) # wait_t, phase 1
 
-    def test_min_delay_tl2(self):
-        node_id ='247123464'
-        reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(-0.01*(0.02 + 0.09), 4))
+    def test_reward(self):
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.75 + 0.01 + 0.81 + 0.01))
 
+class TestGridTLS3DelaySetUp(TestGridDelaySetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-    def test_delay_tl3ph0(self):
-        # 1) Define constraints
-        node_id ='247123468'
-        phase_id = 0
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-        # 2) Define state & solution
-        check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-        # 3) Assert 247123468
-        self.assertEqual(check,  0.69) # delay, phase 0
-        self.assertEqual(check, sol) # delay, phase 0
+        super(TestGridTLS3DelaySetUp, self).setUp()
+        self.ID = '247123468'
 
-    def test_delay_tl3ph1(self):
-        # 1) Define constraints
-        node_id ='247123468'
-        phase_id = 1
+class TestGridTLS3Delay(TestGridTLS3DelaySetUp):
+    """
+        * Tests waiting time wrt Grid network
 
-        # 2) Define state & solution
-        check = self.state[node_id][phase_id]
-        sol = process_delay(self.kernel_data, node_id, phase_id)
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-        # 3) Assert 247123468
-        self.assertEqual(check, 0.29) # delay, phase 1
-        self.assertEqual(check, sol) # delay, phase 1
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-    def test_min_delay_tl3(self):
-        node_id ='247123468'
-        reward = self.reward(self.observation_space)
-        self.assertEqual(reward[node_id], round(-0.01*(0.69 + 0.29), 4))
+        super(TestGridTLS3Delay, self).setUp()
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0][0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1][0]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+    def test_0(self):
+        sol = process_delay(self.kernel_data, self.ID, self.PHASE_0)
+
+        self.assertEqual(self.STATE_0, [0.09, 1.08]) # wait_t, phase 0
+        self.assertEqual(self.STATE_0, sol) # wait_t, phase 0
+
+    def test_1(self):
+        sol = process_delay(self.kernel_data, self.ID, self.PHASE_1)
+
+        self.assertEqual(self.STATE_1, [0.13, 0.74]) # wait_t, phase 1
+        self.assertEqual(self.STATE_1, sol) # wait_t, phase 1
+
+    def test_reward(self):
+        self.assertAlmostEqual(self.REWARD, -0.01 * (0.09 + 1.08 + 0.13 + 0.74))
 
     def tearDown(self):
         pass
 
 
-class TestGridMaxDelayReduction1(TestGridMDPSetUp):
+class TestGridDelayReduxSetUp(TestGridMDPSetUp):
     """
         * Tests delay wrt Grid network (reward_max_delay_reduction)
         * (part 1)
@@ -165,128 +246,46 @@ class TestGridMaxDelayReduction1(TestGridMDPSetUp):
     def observation_space(self):
         observation_space = State(self.network, self.mdp_params)
         observation_space.reset()
-        # Fake environment interaction with state object.
-        timesteps = list(range(1,60)) + [0]
-
-        for t, data in zip(timesteps, self.kernel_data_1):
-            observation_space.update(t, data)
+        for data in self.kernel_data_1:
+            observation_space.update(*data)
 
         return observation_space
 
-
     def setUp(self):
         """Code here will run before every test"""
-        super(TestGridMaxDelayReduction1, self).setUp()
 
-    def test_delay_tl1ph0(self):
-        # 1) Define constraints
-        nid ='247123161'
-        pid = 0
-        fid = slice(pid, pid + 2)
+        super(TestGridDelayReduxSetUp, self).setUp()
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_1, nid, pid)
-
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.85) # delay, phase 0, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 0
-
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.00) # delay, phase 0, prev cycle
-
-    def test_delay_tl1ph1(self):
-        # 1) Define constraints
-        nid ='247123161'
-        pid = 1
-        fid = slice(pid * 2, pid * 2 + 2)
-
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_1, nid, pid)
-
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.82) # delay, phase 1, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 1
-
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.00) # delay, phase 1, prev cycle
-
-    def test_delay_tl2ph0(self):
-        # 1) Define constraints
-        nid ='247123464'
-        pid = 0
-        fid = slice(pid, pid + 2)
-
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_1, nid, pid)
-
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.08) # delay, phase 0, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 0
-
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.00) # delay, phase 0, prev cycle
-
-    def test_delay_tl2ph1(self):
-        # 1) Define constraints
-        nid ='247123464'
-        pid = 1
-        fid = slice(pid * 2, pid * 2 + 2)
-
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_1, nid, pid)
-
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.16) # delay, phase 1, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 1
-
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.00) # delay, phase 1, prev cycle
-
-    def test_delay_tl3ph0(self):
-        # 1) Define constraints
-        nid ='247123468'
-        pid = 0
-        fid = slice(pid, pid + 2)
-
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_1, nid, pid)
-
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 3.73) # delay, phase 0, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 0
-
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.00) # delay, phase 0, prev cycle
-
-    def test_delay_tl3ph1(self):
-        # 1) Define constraints
-        nid ='247123468'
-        pid = 1
-        fid = slice(pid * 2, pid * 2 + 2)
-
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_1, nid, pid)
-
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.5) # delay, phase 1, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 1
-
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.00) # delay, phase 1, prev cycle
-
-    def tearDown(self):
-        pass
-
-class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
+class TestGridTLS1DelayReduxSetUp(TestGridDelayReduxSetUp):
     """
-        * Tests delay wrt Grid network (reward_max_delay_reduction)
-        * (part 2)
+        * Tests maximize delay redux wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS1DelayReduxSetUp, self).setUp()
+        self.ID = '247123161'
+
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+
+
+class TestGridTLS1DelayRedux(TestGridTLS1DelayReduxSetUp):
+    """
+        * Tests maximize delay redux wrt Grid network
 
         * Set of tests that target the implemented
           problem formulations, i.e. state and reward
@@ -297,166 +296,354 @@ class TestGridMaxDelayReduction2(TestGridMaxDelayReduction1):
           property
     """
 
+    def setUp(self):
+        """Code here will run before every test"""
+        super(TestGridTLS1DelayRedux, self).setUp()
+
+    def test_0(self):
+        sol = process_delay(self.kernel_data_1, self.ID, self.PHASE_0)
+
+        self.assertEqual(self.STATE_0[0], [0.3, 0.01])
+        self.assertEqual(self.STATE_0[0], sol)
+
+    def test_1(self):
+        sol = process_delay(self.kernel_data_1, self.ID, self.PHASE_1)
+
+        self.assertEqual(self.STATE_1[0], [0.52, 1.36])
+        self.assertEqual(self.STATE_1[0], sol)
+
+    def test_rewards(self):
+        reward = round(-0.01 * ((0.3 - 0) + (0.01 - 0) + (0.52 - 0.0) + (1.36 - 0)), 4)
+        self.assertAlmostEqual(self.REWARD, reward)
+
+class TestGridTLS2DelayReduxSetUp(TestGridDelayReduxSetUp):
+    """
+        * Tests maximize delay redux wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS2DelayReduxSetUp, self).setUp()
+        self.ID = '247123464'
+
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+
+
+class TestGridTLS2DelayRedux(TestGridTLS2DelayReduxSetUp):
+    """
+        * Tests maximize delay redux wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+
+    def setUp(self):
+        """Code here will run before every test"""
+        super(TestGridTLS2DelayRedux, self).setUp()
+
+    def test_0(self):
+        sol = process_delay(self.kernel_data_1, self.ID, self.PHASE_0)
+
+        self.assertEqual(self.STATE_0[0], [0.38, 0.1])
+        self.assertEqual(self.STATE_0[0], sol)
+
+    def test_1(self):
+        sol = process_delay(self.kernel_data_1, self.ID, self.PHASE_1)
+
+        self.assertEqual(self.STATE_1[0], [0.17, 0.03])
+        self.assertEqual(self.STATE_1[0], sol)
+
+    def test_rewards(self):
+        reward = round(-0.01 * ((0.38 - 0) + (0.1 - 0) + (0.17 - 0.0) + (0.03 - 0)), 4)
+        self.assertAlmostEqual(self.REWARD, reward)
+
+
+class TestGridTLS3DelayReduxSetUp(TestGridDelayReduxSetUp):
+    """
+        * Tests maximize delay redux wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
+
+        super(TestGridTLS3DelayReduxSetUp, self).setUp()
+        self.ID = '247123468'
+
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0]
+
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
+
+
+
+class TestGridTLS3DelayRedux(TestGridTLS3DelayReduxSetUp):
+    """
+        * Tests maximize delay redux wrt Grid network
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+
+    def setUp(self):
+        """Code here will run before every test"""
+        super(TestGridTLS3DelayRedux, self).setUp()
+
+    def test_0(self):
+        sol = process_delay(self.kernel_data_1, self.ID, self.PHASE_0)
+
+        self.assertEqual(self.STATE_0[0], [0.06, 0.09])
+        self.assertEqual(self.STATE_0[0], sol)
+
+    def test_1(self):
+        sol = process_delay(self.kernel_data_1, self.ID, self.PHASE_1)
+
+        self.assertEqual(self.STATE_1[0], [0.22, 1.55])
+        self.assertEqual(self.STATE_1[0], sol)
+
+    def test_rewards(self):
+        reward = round(-0.01 * ((0.06 - 0) + (0.09 - 0) + (0.22 - 0.0) + (1.55 - 0)), 4)
+        self.assertAlmostEqual(self.REWARD, reward)
+
+
+class TestGridDelayReduxSetUp2(TestGridDelayReduxSetUp):
+    """
+        * Tests delay wrt Grid network (reward_max_delay_reduction)
+        * (part 1)
+
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
+
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    @lazy_property
+    def mdp_params(self):
+        mdp_params = MDPParams(
+                        features=('delay', 'lag[delay]'),
+                        reward='reward_max_delay_reduction',
+                        normalize_velocities=True,
+                        normalize_vehicles=False,
+                        discretize_state_space=False,
+                        reward_rescale=0.01,
+                        time_period=None,
+                        velocity_threshold=0.1)
+        return mdp_params
+
     @lazy_property
     def observation_space(self):
-        observation_space = super(TestGridMaxDelayReduction2, self).observation_space
-        # Fake environment interaction with state object.
-        timesteps = list(range(1,60)) + [0]
-
-        for t, data in zip(timesteps, self.kernel_data_2):
-            observation_space.update(t, data)
-
+        observation_space = super(TestGridDelayReduxSetUp2, self).observation_space
+        for data in self.kernel_data_2:
+            observation_space.update(*data)
         return observation_space
 
     def setUp(self):
         """Code here will run before every test"""
-        super(TestGridMaxDelayReduction2, self).setUp()
 
-    def test_state(self):
-        self.assertEqual(len(self.state['247123161']), 4)
-        self.assertEqual(len(self.state['247123464']), 4)
-        self.assertEqual(len(self.state['247123468']), 4)
+        super(TestGridDelayReduxSetUp2, self).setUp()
 
-    def test_delay_tl1ph0(self):
-        # 1) Define constraints
-        nid ='247123161'
-        pid = 0
-        fid = slice(pid, pid + 2)
+class TestGridTLS1DelayReduxSetUp2(TestGridDelayReduxSetUp2):
+    """
+        * Tests maximize delay redux wrt Grid network
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_2, nid, pid)
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.32) # delay, phase 0, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 0
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.85) # delay, phase 0, prev cycle
+        super(TestGridTLS1DelayReduxSetUp2, self).setUp()
+        self.ID = '247123161'
 
-    def test_delay_tl1ph1(self):
-        # 1) Define constraints
-        nid ='247123161'
-        pid = 1
-        fid = slice(pid * 2, pid * 2 + 2)
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0]
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_2, nid, pid)
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
 
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.80) # delay, phase 1, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 1
+    def test_0(self):
+        sol = process_delay(self.kernel_data_2, self.ID, self.PHASE_0)
 
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.82) # delay, phase 1, prev cycle
+        self.assertEqual(self.STATE_0[0], [0.05, 2.27])
+        self.assertEqual(self.STATE_0[0], sol)
 
-    def test_max_delay_reduction_tl1(self):
-        node_id ='247123161'
-        reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(0.01*(0.85-0.32 + 0.82-0.8), 4))
-    
-    def test_delay_tl2ph0(self):
-        # 1) Define constraints
-        nid ='247123464'
-        pid = 0
-        fid = slice(pid, pid + 2)
+    def test_1(self):
+        sol = process_delay(self.kernel_data_2, self.ID, self.PHASE_1)
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_2, nid, pid)
+        self.assertEqual(self.STATE_1[0], [0.05, 3.15])
+        self.assertEqual(self.STATE_1[0], sol)
 
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 1.52) # delay, phase 0, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 0
+    def test_rewards(self):
+        reward = round(-0.01 * ((0.05 - 0.3) + (2.27 - 0.01) + (0.05 - 0.52) + (3.15 - 1.36)), 4)
+        self.assertAlmostEqual(self.REWARD, reward)
 
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.08) # delay, phase 0, prev cycle
+class TestGridTLS2DelayRedux2(TestGridDelayReduxSetUp2):
+    """
+        * Tests maximize delay redux wrt Grid network
 
-    def test_delay_tl2ph1(self):
-        # 1) Define constraints
-        nid ='247123464'
-        pid = 1
-        fid = slice(pid * 2, pid * 2 + 2)
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_2, nid, pid)
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.83) # delay, phase 1, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 1
+        super(TestGridTLS2DelayRedux2, self).setUp()
+        self.ID = '247123464'
 
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.16) # delay, phase 1, prev cycle
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0]
 
-    def test_max_delay_reduction_tl2(self):
-        node_id ='247123464'
-        reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(0.01*(0.08-1.52 + 0.16-0.83), 4))
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
 
-    def test_delay_tl3ph0(self):
-        # 1) Define constraints
-        nid ='247123468'
-        pid = 0
-        fid = slice(pid, pid + 2)
+    def test_0(self):
+        sol = process_delay(self.kernel_data_2, self.ID, self.PHASE_0)
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_2, nid, pid)
+        self.assertEqual(self.STATE_0[0], [1.19, 0.1])
+        self.assertEqual(self.STATE_0[0], sol)
 
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 2.13) # delay, phase 0, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 0
+    def test_1(self):
+        sol = process_delay(self.kernel_data_2, self.ID, self.PHASE_1)
 
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 3.73) # delay, phase 0, prev cycle
+        self.assertEqual(self.STATE_1[0], [1.11, 0.03])
+        self.assertEqual(self.STATE_1[0], sol)
 
-    def test_delay_tl3ph1(self):
-        # 1) Define constraints
-        nid ='247123468'
-        pid = 1
-        fid = slice(pid * 2, pid * 2 + 2)
+    def test_rewards(self):
+        reward = round(-0.01 * ((1.19 - 0.38 ) + (0.1 - 0.1 ) + (1.11 - 0.17) + (0.03 - 0.03)), 4)
+        self.assertAlmostEqual(self.REWARD, reward)
 
-        # 2) Define state & solution
-        check_1, check_2 = self.state[nid][fid]
-        sol = process_delay(self.kernel_data_2, nid, pid)
+class TestGridTLS3DelayRedux2(TestGridDelayReduxSetUp2):
+    """
+        * Tests maximize delay redux wrt Grid network
 
-        # 3) Assert 247123161 actual cycle
-        self.assertEqual(check_1, 0.57) # delay, phase 1, actual cycle
-        self.assertEqual(check_1, sol) # delay, phase 1
+        * Set of tests that target the implemented
+          problem formulations, i.e. state and reward
+          function definitions.
 
-        # 4) Assert 247123161 previous cycle (no data)
-        self.assertEqual(check_2, 0.5) # delay, phase 1, prev cycle
+        * Use lazy_properties to compute once and use
+          as many times as you want -- it's a cached
+          property
+    """
+    def setUp(self):
+        """Code here will run before every test"""
 
-    def test_max_delay_reduction_tl3(self):
-        node_id ='247123468'
-        reward = self.reward(self.observation_space)
-        self.assertAlmostEqual(reward[node_id], round(0.01*(3.73-2.13 + 0.50-0.57), 4))
+        super(TestGridTLS3DelayRedux2, self).setUp()
+        self.ID = '247123468'
 
-    def tearDown(self):
-        pass
+        self.PHASE_0 = 0
+        self.STATE_0 = self.state[self.ID][self.PHASE_0]
 
+        self.PHASE_1 = 1
+        self.STATE_1 = self.state[self.ID][self.PHASE_1]
+        self.REWARD = self.reward(self.observation_space)[self.ID]
 
-def process_delay(kernel_data, node_id, phase_id):
+    def test_0(self):
+        sol = process_delay(self.kernel_data_2, self.ID, self.PHASE_0)
+
+        self.assertEqual(self.STATE_0[0], [0.06, 2.52])
+        self.assertEqual(self.STATE_0[0], sol)
+
+    def test_1(self):
+        sol = process_delay(self.kernel_data_2, self.ID, self.PHASE_1)
+
+        self.assertEqual(self.STATE_1[0], [0.01, 2.05])
+        self.assertEqual(self.STATE_1[0], sol)
+
+    def test_rewards(self):
+        reward = round(-0.01 * ((1.19 - 0.38) + (0.1 - 0.1) + (1.11 - 0.17) + (0.03 - 0.03)), 4)
+
+        reward = round(-0.01 * ((0.06 - 0.06) + (2.52 - 0.09) + (0.01 - 0.22) + (2.05 - 1.55)), 4)
+        self.assertAlmostEqual(self.REWARD, reward)
+
+def process_delay(kernel_data, node_id, phase_id, norm_vehs=False):
     """Processes batched delay computation"""
     cycle_time = 60
 
-    def delay(x):
-            return np.where(x >= 1, 0.0, np.exp(-5*x))
+    def fn(x):
+        return np.where(x >= 1, 0.0, np.exp(-5 * x))
 
-    values_count = []
-    for t in kernel_data:
-        values_count.extend(t[node_id][phase_id])
+    def green(x, y):
+        if y == 0:
+            return x[0].upper() in ('G', 'Y')
+        else:
+            return x[0].upper() not in ('G', 'Y')
 
-    vehs_speeds = []
-    for veh in values_count:
-        vehs_speeds.append(veh.speed)
+    def ind(x, y):
+        g = green(x, y)
+        return int(g * 0 + (not g) * 1)
 
-    vehs_speeds = np.array(vehs_speeds)
 
-    ret = np.sum(delay(vehs_speeds / 13.89)) / cycle_time
-    ret = round(ret, 2)
+    delay_times = []
+    weight = [0.0, 0.0]
+    # timesteps = list(range(1, 60)) + [0]
+    timesteps, vehs, tls = zip(*kernel_data)
+    for t, vehicles, tls in zip(timesteps, vehs, tls):
+        qt = defaultdict(lambda : [0.0, 0.0])
+        vehs = vehicles[node_id][phase_id]
+        tl = tls[node_id]
+        index = ind(tl, phase_id)
+        weight[index] += 1
+        for veh in vehs:
+            key = (veh.edge_id, veh.lane)
+            qt[key][index] += fn(veh.speed / 13.89)
+
+        if len(qt) == 0:
+            delay_times.append([0.0, 0.0])
+        else:
+            if norm_vehs:
+                delay_times.append([
+                    sum([v / MAX_VEHS_PER_LANE[k]  for k, v in qt.items()]) for i in range(2)
+                ])
+            else:
+                delay_times.append([sum([values[i] for values in qt.values()]) for i in range(2)])
+
+    ret =  [round(sum([dt[i] for dt in delay_times]) / weight[i] , 2) for i in range(2)]
     return ret
 
 if __name__ == '__main__':
