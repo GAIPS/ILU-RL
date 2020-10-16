@@ -118,8 +118,8 @@ def main():
         for idx, ax in enumerate(axes.flat):
             if idx in range(NUM_ACTIONS):
                 ax.set_title('Action {0}'.format(idx))
-                ax.set_xlabel('Delay phase 0')
-                ax.set_ylabel('Delay phase 1')
+                ax.set_xlabel('Delay phase 1')
+                ax.set_ylabel('Delay phase 2')
                 im = ax.pcolormesh(X, Y, Zs_array[idx],
                     cmap=cm.jet, shading='gouraud',
                     vmin=np.min(Zs_array), vmax=np.max(Zs_array))
@@ -139,8 +139,8 @@ def main():
         fig = plt.figure()
 
         im = plt.pcolormesh(X, Y, argmax_Zs, cmap=plt.get_cmap('Set2', 7), vmin=0, vmax=6)
-        plt.xlabel('Delay phase 0')
-        plt.ylabel('Delay phase 1')
+        plt.xlabel('Delay phase 1')
+        plt.ylabel('Delay phase 2')
 
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
@@ -157,15 +157,15 @@ def main():
 
         im = plt.pcolormesh(X, Y, max_Zs, cmap=cm.jet, shading='gouraud',
                     vmin=np.min(Zs_array), vmax=np.max(Zs_array))
-        plt.xlabel('Delay phase 0')
-        plt.ylabel('Delay phase 1')
+        plt.xlabel('Delay phase 1')
+        plt.ylabel('Delay phase 2')
 
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(im, cax=cbar_ax)
 
         plt.savefig(OUTPUT_DIR + 'q_val_maximizing_action.png', bbox_inches='tight', pad_inches=0)
-        plt.savefig(OUTPUT_DIR + 'q_val_maximizing_action.png', bbox_inches='tight', pad_inches=0)
+        plt.savefig(OUTPUT_DIR + 'q_val_maximizing_action.pdf', bbox_inches='tight', pad_inches=0)
 
     elif AGENT_TYPE == 'DDPG':
 
@@ -180,13 +180,13 @@ def main():
         fig = plt.figure()
 
         im = plt.pcolormesh(X, Y, Zs_array, cmap=cm.jet, shading='gouraud')
-        plt.xlabel('Delay phase 0')
-        plt.ylabel('Delay phase 1')
+        plt.xlabel('Delay phase 1')
+        plt.ylabel('Delay phase 2')
 
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(im, cax=cbar_ax)
-        plt.title('Phase-0\nallocation')
+        plt.title('Phase-1\nallocation')
 
         plt.savefig(OUTPUT_DIR + 'ddpg_policy.png', bbox_inches='tight', pad_inches=0)
         plt.savefig(OUTPUT_DIR + 'ddpg_policy.pdf', bbox_inches='tight', pad_inches=0)

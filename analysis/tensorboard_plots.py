@@ -73,7 +73,7 @@ def main():
 
     for col in cols:
 
-        if col in ('steps', 'walltime', 'step'):
+        if col in ('steps', 'walltime', 'step', 'learner_steps', 'learner_walltime'):
             continue
 
         print(f'Creating plot for column "{col}":')
