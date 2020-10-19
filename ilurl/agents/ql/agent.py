@@ -52,8 +52,7 @@ class QL(AgentWorker, AgentInterface):
         self._stop = False
 
         # Learning rate.
-        self.learning_rate = PowerSchedule(
-                        power_coef=ql_params.lr_decay_power_coef)
+        self.learning_rate = 0.1
 
         # Exploration strategy.
         self.choice_type = ql_params.choice_type
@@ -140,13 +139,10 @@ class QL(AgentWorker, AgentInterface):
             # Update (state, action) counter.
             self.state_action_counter[s][a] += 1
 
-            # Calculate learning rate.
-            lr = self.learning_rate.value(self.state_action_counter[s][a])
-
             Q_old = self.Q[s][a]
 
             # Q-learning update.
-            dpq_update(self.discount_factor, lr, self.Q, s, a, r, s1)
+            dpq_update(self.discount_factor, self.learning_rate, self.Q, s, a, r, s1)
 
             # Calculate Q-table update distance.
             dist = np.abs(Q_old - self.Q[s][a])
@@ -163,13 +159,13 @@ class QL(AgentWorker, AgentInterface):
                     s1_ = tuple(s1_samples[sample])
 
                     # Q-learning update.
-                    dpq_update(self.discount_factor, lr, self.Q, s_, a_, r_, s1_)
+                    dpq_update(self.discount_factor, self.learning_rate, self.Q, s_, a_, r_, s1_)
 
             # Log values.
             q_abs = np.abs(self.Q[s][a]) 
             values = {
                 "step": self._obs_counter,
-                "lr": lr,
+                "lr": self.learning_rate,
                 "expl_eps": self.exploration.value(sum(
                         self.state_action_counter[s].values())-1),
                 "q_dist": dist,
