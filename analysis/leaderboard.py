@@ -15,7 +15,7 @@ import pandas as pd
 
 from ilurl.loaders.emission import (get_emissions, get_vehicles,
                                     get_throughput, add_column_hour)
-ROOT = os.environ['ILURL_HOME']
+ROOT = os.environ['ALTRL_HOME']
 CYCLE = 90      # agg. unit corresponding to all phases
 
 EXPERIMENTS_DIR = \

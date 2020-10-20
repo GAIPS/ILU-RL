@@ -9,7 +9,7 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-ROOT_PATH = os.environ['ILURL_HOME']
+ROOT_PATH = os.environ['ALTRL_HOME']
 
 # EXPERIMENTS_PATH = f'{ROOT_PATH}/data/emissions/'
 EXPERIMENTS_PATH = f'{ROOT_PATH}/data/experiments/0x04/'

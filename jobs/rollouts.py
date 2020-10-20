@@ -19,9 +19,9 @@ from ilurl.utils.decorators import processable
 from models.rollout import main as roll
 from ilurl.utils import str2bool
 
-ILURL_HOME = environ['ILURL_HOME']
+ALTRL_HOME = environ['ALTRL_HOME']
 CONFIG_PATH = \
-    Path(f'{ILURL_HOME}/config/')
+    Path(f'{ALTRL_HOME}/config/')
 
 mp = multiprocessing.get_context('spawn')
 

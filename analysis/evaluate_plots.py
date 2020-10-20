@@ -12,10 +12,10 @@ import seaborn as sns
 
 plt.style.use('ggplot')
 
-ILURL_HOME = os.environ['ILURL_HOME']
+ALTRL_HOME = os.environ['ALTRL_HOME']
 
 EMISSION_PATH = \
-    f'{ILURL_HOME}/data/emissions'
+    f'{ALTRL_HOME}/data/emissions'
 
 def get_arguments():
     parser = argparse.ArgumentParser(

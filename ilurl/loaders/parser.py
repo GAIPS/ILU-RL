@@ -15,7 +15,7 @@ from ilurl.params import (QLParams,
                           MDPParams,
                           TrainParams)
 
-ILURL_PATH = Path(environ['ILURL_HOME'])
+ILURL_PATH = Path(environ['ALTRL_HOME'])
 TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
 NETWORK_PATH = ILURL_PATH / 'data' / 'networks'
 

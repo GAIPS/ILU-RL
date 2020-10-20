@@ -57,7 +57,6 @@ def get_series(observation_space, labels, xylabels=[], xyphases=[]):
     else:
         xyphases = range(2)
 
-
     if len(xylabels) == 1:
         xys = [(x, x) for x in xylabels]
     else:
