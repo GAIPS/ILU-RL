@@ -52,7 +52,7 @@ class QL(AgentWorker, AgentInterface):
         self._stop = False
 
         # Learning rate.
-        self.learning_rate = 0.1
+        self.learning_rate = 0.05
 
         # Exploration strategy.
         self.choice_type = ql_params.choice_type
@@ -139,13 +139,11 @@ class QL(AgentWorker, AgentInterface):
             # Update (state, action) counter.
             self.state_action_counter[s][a] += 1
 
-            Q_old = self.Q[s][a]
+            # Q_old = self.q_values
+            qvals0 = self.sumqs()
 
             # Q-learning update.
             dpq_update(self.discount_factor, self.learning_rate, self.Q, s, a, r, s1)
-
-            # Calculate Q-table update distance.
-            dist = np.abs(Q_old - self.Q[s][a])
 
             if self.replay_buffer and self._obs_counter > self.warm_up:
 
@@ -161,8 +159,11 @@ class QL(AgentWorker, AgentInterface):
                     # Q-learning update.
                     dpq_update(self.discount_factor, self.learning_rate, self.Q, s_, a_, r_, s1_)
 
+            # Calculate Q-table update distance.
+            qvals = self.sumqs()
+            dist = np.abs(qvals - qvals0)
             # Log values.
-            q_abs = np.abs(self.Q[s][a]) 
+            q_abs = np.abs(qvals)
             values = {
                 "step": self._obs_counter,
                 "lr": self.learning_rate,
@@ -206,4 +207,11 @@ class QL(AgentWorker, AgentInterface):
 
         with open(chkpt_path, 'rb') as f:
             self.Q =  dill.load(f)
+
+    def sumqs(self):
+        """Sum of all q-values"""
+        ret = 0
+        for state, actions in self.Q.items():
+            ret += sum(saval for saval in actions.values())
+        return ret
 
