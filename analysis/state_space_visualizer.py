@@ -37,13 +37,14 @@ NUM_PHASES = 2  #TODO: RELAX THIS ASSUMPTION
 # TODO: make this an input argument
 # LOG_PATH = 'data/emissions/20200916183156.533079/grid_6_20200916-1831561600277516.627527/logs/train_log.json'
 # LOG_PATH = 'data/emissions/20200828015100.697569/grid_20200828-0151021598575862.5034564/logs/train_log.json'
-LOG_PATH = "data/emissions/20200916161353.347374/grid_6_20200916-1613531600269233.4435577/logs/train_log.json"
+# LOG_PATH = "data/emissions/20200916161353.347374/grid_6_20200916-1613531600269233.4435577/logs/train_log.json"
 
+LOG_PATH = 'data/experiments/intbins/wtime/intersection_20201009-2004551602270295.8987248/logs/train_log.json'
 if __name__ == '__main__':
 
     log_path = Path(ILU_PATH) / LOG_PATH
     config_path = log_path.parent.parent / 'config' 
-    quantile = (0.2, 0.4, 0.6, 0.8, 0.9)
+    quantile = (0.15, 0.5, 0.75, 0.85)
     # TODO: go to config and determine features
     train_config = configparser.ConfigParser()
     train_config.read((config_path / 'train.config').as_posix())
@@ -55,7 +56,8 @@ if __name__ == '__main__':
     # 1. Create log_path
     target_path = log_path.parent.parent / 'log_plots'
     target_path.mkdir(mode=0o777, exist_ok=True)
-    data = defaultdict(list)
+
+    # TODO: Aggregate multiple experiments
     with log_path.open(mode='r') as f:
 
         json_data = json.load(f)
@@ -64,12 +66,13 @@ if __name__ == '__main__':
         states = pd.DataFrame(states)
 
         # Interates per intersection
-        for (tl_id, tl_data) in states.iteritems():
+        for (tid, tdata) in states.iteritems():
 
             # assumptions there are always two phases
             labels = [f'{label}_{n}' for n in range(2) for label in features]
-            tl_data = pd.DataFrame(tl_data.to_list(), columns=labels)
+            df = pd.DataFrame(tdata.to_list(), columns=labels)
 
+            import ipdb; ipdb.set_trace()
             # Num. plots == Num. features  x Num. intersection
             # Num. series == Num. labels in feature
             for feature in features:
@@ -79,21 +82,16 @@ if __name__ == '__main__':
 
                 for num in range(2):
                     label = f'{feature}_{num}'
-                    print(label)
-                    sns.distplot(tl_data[label], hist=False, kde=True, label=label, kde_kws = {'linewidth': 3})
+                    sns.distplot(df[label], hist=False, kde=True, label=label, kde_kws = {'linewidth': 3})
 
-                    data[feature] = np.concatenate((data[feature], tl_data[label].values))
-
-                
-                plt.xlabel(f'(Normalized) {snakefy(feature)}')
+                plt.xlabel(f'{snakefy(feature)}')
                 plt.ylabel('Density')
-                plt.title(f'{snakefy(network)}: Intersection {tl_id}, {snakefy(feature)} feature')
-                plt.savefig((target_path / f'{tl_id}-{feature}.png').as_posix(),
+                plt.title(f'{snakefy(network)}: Intersection {tid}, {snakefy(feature)} feature')
+                plt.savefig((target_path / f'{tid}-{feature}.png').as_posix(),
                             bbox_inches='tight', pad_inches=0)
                 plt.close()
 
         # Save quantile plots
-        df = pd.DataFrame.from_dict(data)
-        df = df.quantile(quantile)
-        print(df.head(len(quantile)))
-        df.to_csv((target_path / 'quantile.csv').as_posix(), sep='|', encoding='utf-8')
+        qdf = df.quantile(quantile)
+        print(qdf.head(len(quantile)))
+        qdf.to_csv((target_path / 'quantile.csv').as_posix(), sep='|', encoding='utf-8')

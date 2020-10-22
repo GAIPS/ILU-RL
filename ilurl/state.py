@@ -410,7 +410,7 @@ class Phase(Node):
             max count of vehicles for the phase.
 
         """
-        # 1) Define base attributes
+        # 2) Define common
         self._labels = mdp_params.features
         self._matcher = re.compile('\[(.*?)\]')
         self._lagged = any('lag' in lbl for lbl in mdp_params.features)
@@ -421,9 +421,10 @@ class Phase(Node):
         # fn: extracts <feature_name> from mdp_params
         self._bins = {}
         if mdp_params.discretize_state_space:
+            binid = phase_id.split('#')[-1]
             def fn(x):
                 dfeat = self._get_derived(x)
-                return [mdp_params.categories[dfeat]][0]
+                return [mdp_params.categories[dfeat][binid]][0]
             self._bins = {_feat: fn(_feat) for _feat in mdp_params.features}
 
         # 3) Instantiate lanes
@@ -443,7 +444,9 @@ class Phase(Node):
         self._outgoing_ids = outgoing_ids
 
         self.cached_features = {}
+        # 1) Define base class attributes
         super(Phase, self).__init__(intersection, phase_id, lanes)
+
 
 
     @property
