@@ -1,6 +1,5 @@
+from copy import deepcopy
 import re
-from collections import OrderedDict
-
 import numpy as np
 
 from ilurl.utils.aux import flatten as flat
@@ -297,9 +296,14 @@ class Intersection(Node):
         * state
             A state is an aggregate of features indexed by intersections' ids.
         """
+        # 1) Deepcopy categories
+        _mdp_params = deepcopy(mdp_params)
+        if _mdp_params.discretize_state_space:
+            _mdp_params.categories = _mdp_params.categories[tls_id]
+
         # 1) Define children nodes: Phase
         phases = {f'{tls_id}#{phase_id}': Phase(self,
-                                                mdp_params,
+                                                _mdp_params,
                                                 f'{tls_id}#{phase_id}',
                                                 phase_comp,
                                                 phase_capacity[phase_id])
@@ -414,11 +418,13 @@ class Phase(Node):
         self._normalize_vehicles = mdp_params.normalize_vehicles
 
         # 2) Get categorization bins.
-        # fn: extracts category_<feature_name>s from mdp_params
-        def fn(x):
-            z = self._get_derived(x)
-            return [getattr(mdp_params, f'category_{z}s')][0]
-        self._bins = {_feat: fn(_feat) for _feat in mdp_params.features}
+        # fn: extracts <feature_name> from mdp_params
+        self._bins = {}
+        if mdp_params.discretize_state_space:
+            def fn(x):
+                dfeat = self._get_derived(x)
+                return [mdp_params.categories[dfeat]][0]
+            self._bins = {_feat: fn(_feat) for _feat in mdp_params.features}
 
         # 3) Instantiate lanes
         lanes = {}
