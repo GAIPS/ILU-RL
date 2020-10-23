@@ -10,9 +10,9 @@ from datetime import datetime
 from datetime import timedelta
 
 
-ILURL_HOME = os.environ['ILURL_HOME']
+ALTRL_HOME = os.environ['ALTRL_HOME']
 DIR = \
-    f'{ILURL_HOME}/data/'
+    f'{ALTRL_HOME}/data/'
 
 # pd.set_option('mode.chained_assignment', 'raise')
 def get_holidays():

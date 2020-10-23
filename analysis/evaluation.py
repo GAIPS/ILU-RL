@@ -11,7 +11,7 @@ from glob import glob
 import matplotlib.pyplot as plt
 import numpy as np
 
-ROOT_PATH = os.environ['ILURL_HOME']
+ROOT_PATH = os.environ['ALTRL_HOME']
 EXPERIMENTS_PATH = f'{ROOT_PATH}/data/experiments/0x04/'
 # EXPERIMENTS_PATH = f'{ROOT_PATH}/data/emissions/'
 

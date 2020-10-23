@@ -31,7 +31,7 @@ pd.set_option('display.max_colwidth', -1)
 # CONSTANTS
 FIGURE_X = 6.0
 FIGURE_Y = 4.0
-ILU_PATH = environ['ILURL_HOME']
+ILU_PATH = environ['ALTRL_HOME']
 NUM_PHASES = 2  #TODO: RELAX THIS ASSUMPTION
 
 # TODO: make this an input argument

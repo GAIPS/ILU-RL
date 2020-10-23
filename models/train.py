@@ -30,9 +30,9 @@ from ilurl.networks.base import Network
 from ilurl.loaders.parser import config_parser
 
 
-ILURL_PATH = Path(os.environ['ILURL_HOME'])
-EMISSION_PATH = ILURL_PATH / 'data/emissions/'
-NETWORKS_PATH = ILURL_PATH / 'data/networks/'
+ALTRL_PATH = Path(os.environ['ALTRL_HOME'])
+EMISSION_PATH = ALTRL_PATH / 'data/emissions/'
+NETWORKS_PATH = ALTRL_PATH / 'data/networks/'
 
 def main(train_config_path=None):
 

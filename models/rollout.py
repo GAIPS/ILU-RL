@@ -25,8 +25,8 @@ from ilurl.networks.base import Network
 from ilurl.loaders.parser import config_parser
 
 
-ILURL_PATH = Path(os.environ['ILURL_HOME'])
-EMISSION_PATH = ILURL_PATH / 'data/emissions/'
+ALTRL_PATH = Path(os.environ['ALTRL_HOME'])
+EMISSION_PATH = ALTRL_PATH / 'data/emissions/'
 
 def get_arguments(config_file_path):
     if config_file_path is None:

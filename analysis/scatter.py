@@ -31,11 +31,11 @@ from ilurl.utils.plots import (scatter_states, scatter_phases)
 import ilurl.rewards as rew
 
 MockMDP = namedtuple('MockMDP', 'reward reward_rescale')
-ILURL_PATH = Path(environ['ILURL_HOME'])
+ALTRL_PATH = Path(environ['ALTRL_HOME'])
 
 def get_categories(network_id, labels):
     """Gets features' categories"""
-    category_path = ILURL_PATH / 'data' / 'networks' / network_id / 'categories.json'
+    category_path = ALTRL_PATH / 'data' / 'networks' / network_id / 'categories.json'
     categories = {}
     # Network/Categories
     with category_path.open('r') as f:
