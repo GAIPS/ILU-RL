@@ -39,11 +39,19 @@ NUM_PHASES = 2  #TODO: RELAX THIS ASSUMPTION
 # LOG_PATH = 'data/emissions/20200828015100.697569/grid_20200828-0151021598575862.5034564/logs/train_log.json'
 # LOG_PATH = "data/emissions/20200916161353.347374/grid_6_20200916-1613531600269233.4435577/logs/train_log.json"
 
-LOG_PATH = 'data/experiments/intbins/wtime/intersection_20201009-2004551602270295.8987248/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/wtime/intersection_20201009-2004551602270295.8987248/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/ss/intersection_20201009-2344491602283489.5916183/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/sc/intersection_20201009-1125051602239105.9357407/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/ddel/intersection_20201012-1944331602528273.319772/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/del/intersection_20201008-2241231602193283.2883132/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/pss/intersection_20201008-2356301602197790.8946025/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/pss/intersection_20201021-1922561603304576.0938213/logs/train_log.json'
+# LOG_PATH = 'data/experiments/intbins/flow/intersection_20201021-1919381603304378.5587554/logs/train_log.json'
+LOG_PATH = 'data/experiments/intbins/queue/intersection_20201009-1552361602255156.0307872/logs/train_log.json'
 if __name__ == '__main__':
 
     log_path = Path(ILU_PATH) / LOG_PATH
-    config_path = log_path.parent.parent / 'config' 
+    config_path = log_path.parent.parent / 'config'
     quantile = (0.15, 0.5, 0.75, 0.85)
     # TODO: go to config and determine features
     train_config = configparser.ConfigParser()
@@ -71,8 +79,6 @@ if __name__ == '__main__':
             # assumptions there are always two phases
             labels = [f'{label}_{n}' for n in range(2) for label in features]
             df = pd.DataFrame(tdata.to_list(), columns=labels)
-
-            import ipdb; ipdb.set_trace()
             # Num. plots == Num. features  x Num. intersection
             # Num. series == Num. labels in feature
             for feature in features:
