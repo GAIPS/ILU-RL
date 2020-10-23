@@ -275,7 +275,7 @@ def main(experiment_root_folder=None):
             plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
 
         plt.xlabel('Cycle')
-        plt.ylabel('Action (Phase-0 allocation)')
+        plt.ylabel('Action (Phase-1 allocation)')
         # plt.title('Actions per intersection')
         plt.legend()
 
@@ -291,7 +291,7 @@ def main(experiment_root_folder=None):
             plt.plot(df_actions[col], label=col)
 
         plt.xlabel('Cycle')
-        plt.ylabel('Action (Phase-0 allocation)')
+        plt.ylabel('Action (Phase-1 allocation)')
         # plt.title('Actions per intersection')
         plt.legend()
 

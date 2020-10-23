@@ -642,7 +642,7 @@ def main(experiment_root_folder=None):
             plt.plot(df_actions[col], label=col) # .rolling(window=window_size).mean()
 
         plt.xlabel('Cycle')
-        plt.ylabel('Action (phase-0 allocation)')
+        plt.ylabel('Action (phase-1 allocation)')
         # plt.title('Actions per intersection')
         plt.legend()
 
