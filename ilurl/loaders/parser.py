@@ -14,9 +14,9 @@ from ilurl.params import (QLParams,
                           MDPParams,
                           TrainParams)
 
-ALTRL_PATH = Path(environ['ALTRL_HOME'])
-TRAIN_CONFIG_PATH = ALTRL_PATH / 'config/train.config'
-NETWORK_PATH = ALTRL_PATH / 'data' / 'networks'
+ILURL_PATH = Path(environ['ILURL_HOME'])
+TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
+NETWORK_PATH = ILURL_PATH / 'data' / 'networks'
 
 def str2bool(v, exception=None):
     if isinstance(v, bool):

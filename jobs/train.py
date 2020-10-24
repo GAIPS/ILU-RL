@@ -15,9 +15,9 @@ import multiprocessing.pool
 from models.train import main as train
 from ilurl.utils.decorators import processable, benchmarked
 
-ALTRL_HOME = os.environ['ALTRL_HOME']
+ILURL_HOME = os.environ['ILURL_HOME']
 CONFIG_PATH = \
-    f'{ALTRL_HOME}/config/'
+    f'{ILURL_HOME}/config/'
 
 mp = multiprocessing.get_context('spawn')
 

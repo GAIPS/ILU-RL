@@ -11,7 +11,7 @@ import pdb
 # current project dependencies
 from ilurl.envs.base import TrafficLightQLEnv
 
-ROOT_DIR = os.environ['ALTRL_HOME']
+ROOT_DIR = os.environ['ILURL_HOME']
 EMISSION_DIR = f"{ROOT_DIR}/data/experiments/0x04/"
 # CONFIG_DIRS = ('4545', '5040', '5434', '6030')
 CONFIG_DIRS = ('6030',)

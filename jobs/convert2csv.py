@@ -8,9 +8,9 @@ from pathlib import Path
 
 from ilurl.loaders.xml2csv import main as _xml2csv
 
-ALTRL_HOME = environ['ALTRL_HOME']
+ILURL_HOME = environ['ILURL_HOME']
 CONFIG_PATH = \
-    Path(f'{ALTRL_HOME}/config/')
+    Path(f'{ILURL_HOME}/config/')
 
 
 def get_arguments():
