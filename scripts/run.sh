@@ -3,8 +3,8 @@
 # This scripts switches features and state spaces
 #
 # A) EXPERIMENT: INTER, SPEED & COUNT
-git commit -a -m 'Set config INTER, QL, 50k, 60s, 30, SPEED.COUNT' 
-python jobs/run.py
+# git commit -a -m 'Set config INTER, QL, 50k, 60s, 30, SPEED.COUNT' 
+# python jobs/run.py
 
 # B) EXPERIMENT: INTER, DELAY
 sed -i "s/features = ('speed', 'count')/# features = ('speed', 'count')/"  config/train.config
