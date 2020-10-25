@@ -49,7 +49,14 @@ def rmlag(x):
         return MATCHER.search(x).groups()[0]
     return x
 
-
+def fn(cycles, ind):
+    return [
+                {
+                    tid: [phase[ind] for phase in phases]
+                    for tid, phases in cycle.items()
+                }
+                for cycle in cycles
+            ]
 # TODO: make this an input argument
 # LOG_PATH = 'data/emissions/20200916183156.533079/grid_6_20200916-1831561600277516.627527/logs/train_log.json'
 # LOG_PATH = 'data/emissions/20200828015100.697569/grid_20200828-0151021598575862.5034564/logs/train_log.json'
@@ -127,9 +134,26 @@ def main():
         # Remove lag from features
         features = tuple(rmlag(f) for f in features)
         key = (network, features)
-        data[key].append(train_data)
+        data[key] += train_data
 
+    # Data aggregation loop
+    # paginates all tuples consolidating same features.
+    data1 = {}
+    for k, v in data.items():
+        network, features = k
+        for feature in features:
+            if (network, feature) not in data1:
+                data1[(network, feature)] = defaultdict(list)
+                sel = {k1: fn(v1, k1[1].index(feature))
+                       for k1, v1 in data.items() if k1[0] == network and feature in k1[1]}
+                for cycles in sel.values():
+                    for cycle in cycles:
+                        for tl, phases in cycle.items():
+                            data1[(network, feature)][tl].append(phases)
 
+    tlids = list({k for dat in data1.values() for k in dat})
+    # TODO: Data partitioning loop
+    import ipdb; ipdb.set_trace()
 if __name__ == '__main__':
     main()
 
