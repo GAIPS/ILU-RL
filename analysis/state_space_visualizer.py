@@ -106,10 +106,11 @@ def main():
 
     if Path(args.experiment_collection_folder).suffix == '.gz':
         raise ValueError('Please uncompress folder first.')
+    origin_path = Path(args.experiment_collection_folder)
 
-    train_log_paths = list(p for p in Path(args.experiment_collection_folder).rglob('*train_log.json'))
+    train_log_paths = list(p for p in origin_path.rglob('*train_log.json'))
 
-    values = args.percentiles
+    percentiles = args.percentiles
     # raise ValueError('num_samples argument should be <= than the number of training runs.')
 
     # Data extraction loop
@@ -151,9 +152,66 @@ def main():
                         for tl, phases in cycle.items():
                             data1[(network, feature)][tl].append(phases)
 
-    tlids = list({k for dat in data1.values() for k in dat})
-    # TODO: Data partitioning loop
+    tlids = sorted({k for dat in data1.values() for k in dat})
+    networks = sorted({k[0] for dat in data1})
+
+    # Data partitioning loop
+    target_path = origin_path / 'category_plots'
+    target_path.mkdir(mode=0o777, exist_ok=True)
+    for network in networks:
+        network_path = target_path / network
+        network_path.mkdir(mode=0o777, exist_ok=True)
+
+        data2 = {k: v for k, v in data1.items() if network == k[0]}
+        tlids = sorted({kk for dat in data2.values() for kk in dat})
+
+        dest_path = network_path / 'categories.json'
+        data3 = {} # categories json
+        data4 = defaultdict(dict) # quantile CSV
+        with dest_path.open(mode='w') as f:
+
+            for tid in tlids:
+                data3[tid] = {}
+                for key, values in data2.items():
+                    _, feature = key
+                    d1, d2 = zip(*values[tid]) # should have two phases
+                    p1 = np.quantile(d1, percentiles).tolist()
+                    p2 = np.quantile(d2, percentiles).tolist()
+                    data3[tid][feature] = {}
+                    for p, pp1, pp2 in zip(percentiles, p1, p2):
+                        data4[(tid, feature, 0)][p] = pp1
+                        data4[(tid, feature, 1)][p] = pp2
+
+                    # assumptions there are always two phases
+                    labels = [f'{feature}_{n}' for n in range(2)]
+                    fig, ax = plt.subplots()
+                    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+                    sns.distplot(d1, hist=False, kde=True,
+                                 label=labels[0], kde_kws = {'linewidth': 3})
+                    sns.distplot(d2, hist=False, kde=True,
+                                 label=labels[1], kde_kws = {'linewidth': 3})
+
+                    # ax.vlines(p1, 0, 1,
+                    #           transform=ax.get_xaxis_transform(),
+                    #           colors='tab:purple', label=f'phase 1')
+
+                    # ax.hlines(p2, 0, 1,
+                    #           transform=ax.get_yaxis_transform(),
+                    #           colors='tab:cyan', label=f'phase 2')
+                    plt.xlabel(f'{snakefy(feature)}')
+                    plt.ylabel('Density')
+                    plt.title(f'{snakefy(network)}: Intersection {tid}, {snakefy(feature)} feature')
+                    plt.savefig((target_path / f'{tid}-{feature}.png').as_posix(),
+                                bbox_inches='tight', pad_inches=0)
+                    plt.close()
+
+                # Save quantile plots
+                df = pd.DataFrame.from_dict(data4).transpose()
+                df.to_csv((target_path / 'quantile.csv').as_posix(), sep=',', encoding='utf-8')
+
     import ipdb; ipdb.set_trace()
+
 if __name__ == '__main__':
     main()
 
