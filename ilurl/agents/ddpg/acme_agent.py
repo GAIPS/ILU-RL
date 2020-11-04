@@ -47,6 +47,7 @@ class DDPG(agent.Agent):
     def __init__(self,
                 environment_spec: specs.EnvironmentSpec,
                 policy_network: snt.Module,
+                policy_network_eval: snt.Module,
                 critic_network: snt.Module,
                 observation_network: types.TensorTransformation = tf.identity,
                 discount: float = 0.99,
@@ -155,7 +156,7 @@ class DDPG(agent.Agent):
 
         # Create optimizers.
         policy_optimizer = snt.optimizers.Adam(learning_rate=1e-4)
-        critic_optimizer = snt.optimizers.Adam(learning_rate=1e-4)
+        critic_optimizer = snt.optimizers.Adam(learning_rate=1e-3)
 
         # The learner updates the parameters (and initializes them).
         learner = learning.DDPGLearner(
@@ -181,7 +182,7 @@ class DDPG(agent.Agent):
         # Create deterministic (evaluation) network.
         deterministic_network = snt.Sequential([
             observation_network,
-            policy_network,
+            policy_network_eval,
             tf2_layers.GaussianNoiseExploration(eval_mode=True),
             lambda x: tf.nn.softmax(x)
         ])
