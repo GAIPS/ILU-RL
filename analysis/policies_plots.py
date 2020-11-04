@@ -84,14 +84,19 @@ from matplotlib import cm
 #
 
 # DQN setup.
-# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/q_vals.pickle'
-# OUTPUT_DIR = 'analysis/plots/policies/'
-# AGENT_TYPE = 'DQN'
+DATA_PATH = '/home/ppsantos/ILU/ILU-RL/q_vals.pickle'
+OUTPUT_DIR = 'analysis/plots/policies/'
+AGENT_TYPE = 'DQN'
 
 # DDPG setup.
-DATA_PATH = '/home/ppsantos/ILU/ILU-RL/ddpg_actions.pickle'
-OUTPUT_DIR = 'analysis/plots/policies/'
-AGENT_TYPE = 'DDPG'
+# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/ddpg_actions.pickle'
+# OUTPUT_DIR = 'analysis/plots/policies/'
+# AGENT_TYPE = 'DDPG'
+
+# QL setup.
+# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201012000831.234665/intersection_20201012-0008451602457725.6145556/checkpoints/20001/247123161.chkpt'
+# OUTPUT_DIR = 'analysis/plots/policies/'
+# AGENT_TYPE = 'QL'
 
 def main():
 
@@ -118,8 +123,8 @@ def main():
         for idx, ax in enumerate(axes.flat):
             if idx in range(NUM_ACTIONS):
                 ax.set_title('Action {0}'.format(idx))
-                ax.set_xlabel('Delay phase 1')
-                ax.set_ylabel('Delay phase 2')
+                ax.set_xlabel('Waiting time phase 1')
+                ax.set_ylabel('Waiting time phase 2')
                 im = ax.pcolormesh(X, Y, Zs_array[idx],
                     cmap=cm.jet, shading='gouraud',
                     vmin=np.min(Zs_array), vmax=np.max(Zs_array))
@@ -139,8 +144,8 @@ def main():
         fig = plt.figure()
 
         im = plt.pcolormesh(X, Y, argmax_Zs, cmap=plt.get_cmap('Set2', 7), vmin=0, vmax=6)
-        plt.xlabel('Delay phase 1')
-        plt.ylabel('Delay phase 2')
+        plt.xlabel('Waiting time phase 1')
+        plt.ylabel('Waiting time phase 2')
 
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
@@ -157,8 +162,8 @@ def main():
 
         im = plt.pcolormesh(X, Y, max_Zs, cmap=cm.jet, shading='gouraud',
                     vmin=np.min(Zs_array), vmax=np.max(Zs_array))
-        plt.xlabel('Delay phase 1')
-        plt.ylabel('Delay phase 2')
+        plt.xlabel('Waiting time phase 1')
+        plt.ylabel('Waiting time phase 2')
 
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
@@ -188,8 +193,82 @@ def main():
         fig.colorbar(im, cax=cbar_ax)
         plt.title('Phase-1\nallocation')
 
+        plt.show()
+
         plt.savefig(OUTPUT_DIR + 'ddpg_policy.png', bbox_inches='tight', pad_inches=0)
         plt.savefig(OUTPUT_DIR + 'ddpg_policy.pdf', bbox_inches='tight', pad_inches=0)
+
+    elif AGENT_TYPE == 'QL':
+
+        import operator
+
+        bins = [0.05, 0.75, 2.25, 4.15]
+
+        data_max_actions_matrix = np.zeros((len(bins)+1, len(bins)+1))
+        data_max_q_vals_matrix = np.zeros((len(bins)+1, len(bins)+1))
+
+        for i in range(len(bins)+1):
+            for j in range(len(bins)+1):
+                if sum(data[(i,j)].values()) == 0:
+                    data_max_actions_matrix[i,j] = np.nan
+                else:
+                    data_max_actions_matrix[i,j] = max(data[(i,j)].items(), key=operator.itemgetter(1))[0]
+                
+                data_max_q_vals_matrix[i,j] =  max(data[(i,j)].values())
+
+        print(data)
+        print(data_max_actions_matrix)
+        print(data_max_q_vals_matrix)
+
+        # Policy (actions) plot.
+        fig = plt.figure()
+
+        data_max_actions_matrix[0,0] = np.nan
+
+        im = plt.pcolormesh(data_max_actions_matrix, cmap=plt.get_cmap('Set2', 7), vmin=0, vmax=6)
+
+        plt.xticks([0.5, 1.5, 2.5, 3.5, 4.5], ['0', '1', '2', '3', '4'])
+        plt.yticks([0.5, 1.5, 2.5, 3.5, 4.5], ['0', '1', '2', '3', '4'])
+
+        # im = plt.pcolormesh(X, Y, data_max_actions_matrix, cmap=cm.jet, shading='gouraud')
+
+        plt.xlabel('Waiting time phase 1 (bins)')
+        plt.ylabel('Waiting time phase 2 (bins)')
+
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(im, cax=cbar_ax)
+        plt.title('Phase-1\nallocation')
+
+        plt.savefig(OUTPUT_DIR + 'ql_policy.png', bbox_inches='tight', pad_inches=0)
+        plt.savefig(OUTPUT_DIR + 'ql_policy.pdf', bbox_inches='tight', pad_inches=0)
+
+
+        ################################################
+
+        bins_x = [0.0, 0.05, 0.75, 2.25, 4.15]
+        bins_y = [0.0, 0.05, 0.75, 2.25, 4.15]
+
+        # Policy (actions) plot.
+        fig = plt.figure()
+
+        colors = plt.get_cmap('Set2', 7)
+
+        ax = plt.subplot(111)
+        # for x,y,w,h,c in zip(xs,ys,ws,hs,colors):
+        rect = plt.Rectangle((1.0,1.0), 2.0, 3.0, color='black')
+        ax.add_patch(rect)
+
+        # cax, _ = plt.colorbar.make_axes(ax) 
+        # cb2 = plt.colorbar.ColorbarBase(cax, cmap=pl.cm.jet) 
+
+        plt.xlim(0,5)
+        plt.ylim(0,5)
+        plt.xlabel('Waiting time phase 1')
+        plt.ylabel('Waiting time phase 2')
+
+        plt.savefig(OUTPUT_DIR + 'ql_policy_v2.png', bbox_inches='tight', pad_inches=0)
+        plt.savefig(OUTPUT_DIR + 'ql_policy_v2.pdf', bbox_inches='tight', pad_inches=0)
 
     else:
         raise ValueError('Agent type not implemented')
