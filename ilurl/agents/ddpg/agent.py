@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Sequence, Iterable, Optional, Callable, Any, Text
+from typing import Sequence
 
 import numpy as np
 
@@ -12,7 +12,6 @@ import acme
 from acme import specs
 from acme import types
 from acme.tf import networks
-from acme.tf import utils as tf2_utils
 
 from ilurl.agents.ddpg import acme_agent
 from ilurl.agents.worker import AgentWorker
@@ -24,52 +23,18 @@ _TF_USE_GPU = False
 _TF_NUM_THREADS = 1
 
 
-class PolicyWrapper(snt.Module):
-    """
-        This module creates a policy network from a list of layers.
-    """
-
-    def __init__(self, layers: Iterable[Callable[..., Any]] = None,
-                is_training: bool = True,
-                name: Optional[Text] = 'train_policy_wrapper'):
-
-        super(PolicyWrapper, self).__init__(name=name)
-        self._layers = list(layers) if layers is not None else []
-        self._is_training = is_training
-
-    def __call__(self, observations: types.Nest) -> tf.Tensor:
-
-        out = tf2_utils.batch_concat(observations)
-
-        for layer in self._layers:
-
-            if isinstance(layer, snt.BatchNorm):
-                out = layer(out, is_training=self._is_training)
-            else:
-                out = layer(out)
-
-        return out
-
 def _make_networks(
         actions_dim : int,
         policy_layers : Sequence[int] = [5, 5],
         critic_layers : Sequence[int] = [5, 5],
     ):
 
-    # Policy network layers.
-    layers = [snt.BatchNorm(create_scale=True, create_offset=True)]
-    for layer_size in policy_layers:
-        layers.append(snt.Linear(layer_size, w_init=tf.initializers.VarianceScaling(
-                                    distribution='uniform', mode='fan_out', scale=0.333)))
-        layers.append(snt.BatchNorm(create_scale=True, create_offset=True))
-        layers.append(tf.nn.relu)
-    layers.append(networks.NearZeroInitializedLinear(actions_dim))
-    layers.append(tf.nn.softmax)
-
-    # Create the policy network (one of the network is used
-    # for training and the other for evaluation).
-    policy_network = PolicyWrapper(layers, is_training=True)
-    policy_network_eval = PolicyWrapper(layers, is_training=False)
+    # Create the policy network.
+    policy_network = snt.Sequential([
+        networks.LayerNormMLP(policy_layers, activate_final=True),
+        networks.NearZeroInitializedLinear(actions_dim),
+        lambda x: tf.nn.softmax(x)
+    ])
 
     # Create the critic network.
     critic_layers = list(critic_layers) + [1]
@@ -82,7 +47,6 @@ def _make_networks(
     return {
         'policy': policy_network,
         'critic': critic_network,
-        'policy_eval': policy_network_eval,
     }
 
 
@@ -152,7 +116,6 @@ class DDPG(AgentWorker,AgentInterface):
 
         self.agent = acme_agent.DDPG(environment_spec=env_spec,
                                     policy_network=networks['policy'],
-                                    policy_network_eval=networks['policy_eval'],
                                     critic_network=networks['critic'],
                                     discount=params.discount_factor,
                                     batch_size=params.batch_size,
