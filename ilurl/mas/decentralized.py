@@ -21,9 +21,14 @@ class DecentralizedMAS(MASInterface):
         agents = {}
 
         num_variables = len(mdp_params.features)
+
+        # State space.
+        # Period is a "Global" state space
+        has_period = mdp_params.time_period is not None
+        states_depth = None # Assign only when discretize_state_space
         for tid in mdp_params.phases_per_traffic_light:
             agent_params_ = deepcopy(agent_params)
-
+            num_phases = mdp_params.phases_per_traffic_light[tid]
             # Action space.
             if mdp_params.action_space == 'discrete':
                 # Discrete action space.
@@ -40,14 +45,11 @@ class DecentralizedMAS(MASInterface):
                 # the portion of the cycle length allocated for each of the phases.
                 agent_params_.num_phases = mdp_params.phases_per_traffic_light[tid]
 
-            # State space.
-            # Period is a "Global" state space
-            has_period = mdp_params.time_period is not None
-            num_phases = mdp_params.phases_per_traffic_light[tid]
-            states_rank = num_phases * num_variables + int(has_period)
-            states_depth = len(mdp_params.category_counts) + 1
-            agent_params_.states = Bounds(states_rank, states_depth)
+            if agent_type == 'QL':
+                states_depth = len(mdp_params.categories[tid]['count']['0']) + 1
 
+            states_rank = num_phases * num_variables + int(has_period)
+            agent_params_.states = Bounds(states_rank, states_depth)
             # Experience path.
             agent_params_.exp_path = exp_path
 

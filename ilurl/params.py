@@ -2,7 +2,7 @@
 __author__ = 'Guilherme Varela'
 __date__ = '2020-01-30'
 import math
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from collections import namedtuple
 
 import numpy as np
@@ -50,16 +50,8 @@ class MDPParams(Printable):
                 normalize_velocities: bool = True,
                 normalize_vehicles: bool = False,
                 discretize_state_space: bool = False,
-                category_counts: List[float] = [8.56, 13.00],
-                category_speeds: List[float] = [2.28, 5.50],
-                category_delays: List[float] = [5, 30],
-                category_queues: List[float] = [1, 10],
-                category_waiting_times: List[float] = [1, 10],
                 category_times: List[int] = [1, 10],
-                category_pressures: List[int] = [1, 10],
-                category_average_pressures: List[int] = [1, 10],
-                category_flows: List[int] = [1, 10],
-                category_speed_scores: List[int] = [1, 10],
+                categories: Dict[str, Dict[str, List[float]]] = {},
                 reward: str = 'reward_min_speed_delta',
                 reward_rescale: float = 1.0,
                 time_period: int = None,

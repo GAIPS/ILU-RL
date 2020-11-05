@@ -1,4 +1,3 @@
-from collections import UserDict, ChainMap
 import json
 import configparser
 from os import environ
@@ -19,12 +18,6 @@ ILURL_PATH = Path(environ['ILURL_HOME'])
 TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
 NETWORK_PATH = ILURL_PATH / 'data' / 'networks'
 
-class ConfigDict(UserDict):
-    def __init__(self, train_config, *args, **kwargs):
-        base = train_config._sections['mdp_args']
-        base = {k: eval(v) for k, v in base.items() if 'category' in k}
-        super(ConfigDict, self).__init__(base, *args, **kwargs)
-    
 def str2bool(v, exception=None):
     if isinstance(v, bool):
         return v
@@ -98,7 +91,7 @@ class Parser(object):
         return train_params
 
 
-    def parse_mdp_params(self):
+    def parse_mdp_params(self, tls_ids):
         """
             Parses MDP parameters (mdp_args) from config file located
             at self.config_path and returns a ilurl.params.MDPParams
@@ -109,7 +102,7 @@ class Parser(object):
         train_config.read(str(self.config_path))
 
         mdp_args = train_config['mdp_args']
-
+        agent_type = train_config.get('agent_type', 'agent_type')
         time_period = int(mdp_args['time_period']) if not isNone(mdp_args['time_period']) else None
 
 
@@ -121,12 +114,14 @@ class Parser(object):
                 categories = json.load(f)
         except FileNotFoundError:
             # Throws FileNotFoundError only for QL agent
-            agent_type = train_config.get('agent_type', 'agent_type')
             if agent_type == 'QL':
                 raise FileNotFoundError
 
+        if agent_type == 'QL' and set(tls_ids) != set(categories.keys()):
+            tlserr = tls_ids - categories.keys()
+            raise ValueError(f'AgentType is QL but category(ies) for agents {tlserr} not found.')
+
         # Merge custom categories and default categories
-        categories = ChainMap(categories, ConfigDict(train_config))
         mdp_params = MDPParams(
             discount_factor=float(mdp_args['discount_factor']),
             action_space=literal_eval(mdp_args['action_space']),
@@ -138,7 +133,8 @@ class Parser(object):
             reward_rescale=float(mdp_args['reward_rescale']),
             velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
             time_period=time_period,
-            **categories
+            categories=categories,
+            category_times=eval(mdp_args['category_times'])
         )
 
         return mdp_params
