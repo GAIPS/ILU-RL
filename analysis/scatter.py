@@ -31,16 +31,20 @@ from ilurl.utils.plots import (scatter_states, scatter_phases)
 import ilurl.rewards as rew
 
 MockMDP = namedtuple('MockMDP', 'reward reward_rescale')
+ILURL_PATH = Path(environ['ILURL_HOME'])
 
-def get_categories(train_config, labels):
+def get_categories(network_id, labels):
     """Gets features' categories"""
+    category_path = ILURL_PATH / 'data' / 'networks' / network_id / 'categories.json'
     categories = {}
-    for label in labels:
-        catkey = f'category_{label}s'
-        train_args = ('mdp_args', catkey)
-        categories[label] = eval(train_config.get(*train_args))
+    # Network/Categories
+    with category_path.open('r') as f:
+        categories = json.load(f)
+    # Filter
+    categories = {tls: {label: categ[label] for label in labels}
+                    for tls, categ in categories.items()}
     return categories
-    
+
 def get_series(observation_space, labels, xylabels=[], xyphases=[]):
     """Gets series"""
     if len(xylabels) == 0:
@@ -56,7 +60,6 @@ def get_series(observation_space, labels, xylabels=[], xyphases=[]):
             raise ValueError('Must xyphases must be in {0,1}')
     else:
         xyphases = range(2)
-
 
     if len(xylabels) == 1:
         xys = [(x, x) for x in xylabels]
@@ -144,9 +147,9 @@ if __name__ == '__main__':
 
     reward_function = get_reward_function(train_config)
     reward_is_penalty = '_min_' in train_config.get('mdp_args', 'reward')
-    
-    categories = get_categories(train_config, labels)
-        
+
+    categories = get_categories(network_id, labels)
+
     # Scatter from phase 0 vs phase 1
     for j, label in enumerate(labels):
         feature_series = get_series(observation_spaces, labels, xylabels=[j])

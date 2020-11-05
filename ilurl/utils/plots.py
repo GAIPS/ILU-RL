@@ -116,7 +116,7 @@ def scatter_phases(series, label, categories={}, save_path=None,
 
             ax.set_xlabel(f'{title_label} 0')
             ax.set_ylabel(f'{title_label} 1')
-            set_categories(ax, [label], categories)
+            set_categories(ax, [label], categories[tl])
 
             # Plot the gradient colors
             clr = make_colors(ax, data, _rewards, reward_is_penalty)
@@ -192,20 +192,18 @@ def set_categories(ax, labels, categories):
     Params:
         * ax: matplotlib.axes._subplots.AxesSubplot
             Axis object
-        
         * labels: array-like
-            One or Two sized array with x and y labels. 
-
+            One or Two sized array with x and y labels.
         * categories: dict<tuple(str, str), list<float>>
             Vertical and Horizontal categories
     """
     if any(categories):
         xlabel, ylabel = labels[0], labels[-1]
-        ax.vlines(categories[xlabel], 0, 1,
+        ax.vlines(categories[xlabel]['0'], 0, 1,
                   transform=ax.get_xaxis_transform(),
                   colors='tab:purple', label=f'category {snakefy(xlabel)}')
 
-        ax.hlines(categories[ylabel], 0, 1,
+        ax.hlines(categories[ylabel]['1'], 0, 1,
                   transform=ax.get_yaxis_transform(),
                   colors='tab:cyan', label=f'category {snakefy(ylabel)}')
 
@@ -214,7 +212,6 @@ def make_colors(ax, data, rewards, reward_is_penalty=False):
         Params:
             * ax: matplotlib.axes._subplots.AxesSubplot
                 Axis object
-            
             * data: list<?>
                 List with series.
  
@@ -228,23 +225,23 @@ def make_colors(ax, data, rewards, reward_is_penalty=False):
             * clr: str or numpy.ndarray
                 'tab:blue' or array of gradient
     """
-    if any(rewards):
-        rnorm = normalize_rewards(rewards, reward_is_penalty)
-        cmap = plt.get_cmap('RdPu')
-        cnorm = mcolors.Normalize(vmin=min(rnorm), vmax=max(rnorm))
-        smap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
+    # TODO: FIX gradient
+    # if any(rewards):
+    #     rnorm = normalize_rewards(rewards, reward_is_penalty)
+    #     cmap = plt.get_cmap('RdPu')
+    #     cnorm = mcolors.Normalize(vmin=min(rnorm), vmax=max(rnorm))
+    #     smap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
 
-        clr = smap.to_rgba(rnorm)
-        data.append(rnorm)
-        
-        cbar = plt.colorbar(mappable=smap, ax=ax)
-    else:
-        clr = 'tab:blue'
+    #     clr = smap.to_rgba(rnorm)
+    #     data.append(rnorm)
+    #     cbar = plt.colorbar(mappable=smap, ax=ax)
+    # else:
+    clr = 'tab:blue'
     return clr
 
 def save_scatter(fig, tl, labels, network=None, save_path=None):
     """Creates subtitle and save scatter plot
-    
+
     Params:
         * fig: matplotlib.figure.Figure
             Two axis figure
@@ -253,7 +250,7 @@ def save_scatter(fig, tl, labels, network=None, save_path=None):
             The index of the traffic light e.g '247123161'
 
         * labels: array-like
-            One or Two sized array with x and y labels. 
+            One or Two sized array with x and y labels.
 
         * network: str
             map name e.g intersection, grid, grid_6

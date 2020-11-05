@@ -52,8 +52,7 @@ class QL(AgentWorker, AgentInterface):
         self._stop = False
 
         # Learning rate.
-        self.learning_rate = PowerSchedule(
-                        power_coef=ql_params.lr_decay_power_coef)
+        self.learning_rate = 0.05
 
         # Exploration strategy.
         self.choice_type = ql_params.choice_type
@@ -140,16 +139,11 @@ class QL(AgentWorker, AgentInterface):
             # Update (state, action) counter.
             self.state_action_counter[s][a] += 1
 
-            # Calculate learning rate.
-            lr = self.learning_rate.value(self.state_action_counter[s][a])
-
-            Q_old = self.Q[s][a]
+            # Q_old = self.q_values
+            qvals0 = self.sumqs()
 
             # Q-learning update.
-            dpq_update(self.discount_factor, lr, self.Q, s, a, r, s1)
-
-            # Calculate Q-table update distance.
-            dist = np.abs(Q_old - self.Q[s][a])
+            dpq_update(self.discount_factor, self.learning_rate, self.Q, s, a, r, s1)
 
             if self.replay_buffer and self._obs_counter > self.warm_up:
 
@@ -163,13 +157,16 @@ class QL(AgentWorker, AgentInterface):
                     s1_ = tuple(s1_samples[sample])
 
                     # Q-learning update.
-                    dpq_update(self.discount_factor, lr, self.Q, s_, a_, r_, s1_)
+                    dpq_update(self.discount_factor, self.learning_rate, self.Q, s_, a_, r_, s1_)
 
+            # Calculate Q-table update distance.
+            qvals = self.sumqs()
+            dist = np.abs(qvals - qvals0)
             # Log values.
-            q_abs = np.abs(self.Q[s][a]) 
+            q_abs = np.abs(qvals)
             values = {
                 "step": self._obs_counter,
-                "lr": lr,
+                "lr": self.learning_rate,
                 "expl_eps": self.exploration.value(sum(
                         self.state_action_counter[s].values())-1),
                 "q_dist": dist,
@@ -210,4 +207,11 @@ class QL(AgentWorker, AgentInterface):
 
         with open(chkpt_path, 'rb') as f:
             self.Q =  dill.load(f)
+
+    def sumqs(self):
+        """Sum of all q-values"""
+        ret = 0
+        for state, actions in self.Q.items():
+            ret += sum(saval for saval in actions.values())
+        return ret
 
