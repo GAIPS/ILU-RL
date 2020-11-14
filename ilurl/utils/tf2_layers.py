@@ -121,3 +121,42 @@ class EpsilonGreedyExploration(snt.Module):
         sample = policy.sample()
 
         return sample
+
+@snt.allow_empty_variables
+class InputStandardization(snt.Module):
+    """ Sonnet module to scale inputs. """
+
+    def __init__(self, shape):
+        """ Initialise InputStandardization class.
+            Parameters:
+            ----------
+            * shape: state space shape.
+        """
+        super().__init__(name='normalization')
+
+        # Internalise parameters.
+        self._mean = tf.Variable(tf.zeros(shape=shape), trainable=False)
+        self._var = tf.Variable(tf.ones(shape=shape), trainable=False)
+        self._count = tf.Variable(1e-4, trainable=False)
+
+    def __call__(self, inputs: tf.Tensor) -> tf.Tensor:
+
+        batch_mean, batch_var = tf.nn.moments(inputs, axes=[0])
+        batch_count = tf.cast(tf.shape(inputs)[0], inputs.dtype)
+
+        if batch_count > 1:
+            # Update moving average and std.
+            delta = batch_mean - self._mean
+            tot_count = self._count + batch_count
+
+            self._mean.assign(self._mean + delta * batch_count / tot_count)
+            m_a = self._var * self._count
+            m_b = batch_var * batch_count
+            M2 = m_a + m_b + tf.math.square(delta) * self._count * batch_count / tot_count
+            self._var.assign(M2 / tot_count)
+            self._count.assign(tot_count)
+
+        # Standardize inputs.
+        normalized = (inputs - self._mean) / self._var
+
+        return normalized 

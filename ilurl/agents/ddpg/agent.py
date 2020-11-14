@@ -12,29 +12,63 @@ import acme
 from acme import specs
 from acme import types
 from acme.tf import networks
+from acme.tf import utils as tf2_utils
 
 from ilurl.agents.ddpg import acme_agent
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
 from ilurl.utils.default_logger import make_default_logger
 from ilurl.utils.precision import double_to_single_precision
+from ilurl.utils.tf2_layers import InputStandardization
+
 
 _TF_USE_GPU = False
 _TF_NUM_THREADS = 1
 
 
+class PolicyMLP(snt.Module):
+
+    def __init__(self,
+                hidden_layer_sizes: Sequence[int],
+                actions_dim : int):
+        """ Policy network.
+
+        Args:
+        hidden_layer_sizes: a sequence of ints specifying the size of each layer.
+        action dim: actions number of dimensions.
+
+        """
+        super().__init__(name='layer_input_norm_mlp')
+
+        layers = []
+
+        # Hidden layers.
+        for layer_size in hidden_layer_sizes:
+            layers.append(snt.Linear(layer_size, w_init=tf.initializers.VarianceScaling(
+                                        distribution='uniform', mode='fan_out', scale=0.333)))
+            # layers.append(snt.LayerNorm(axis=slice(1, None), create_scale=True, create_offset=True))
+            layers.append(tf.nn.relu)
+
+        # Last layer.
+        layers.append(networks.NearZeroInitializedLinear(actions_dim))
+        layers.append(tf.nn.softmax)
+
+        self._network = snt.Sequential(layers)
+
+    def __call__(self, observations: types.Nest) -> tf.Tensor:
+        """Forwards the policy network."""
+        return self._network(tf2_utils.batch_concat(observations))
+
+
 def _make_networks(
         actions_dim : int,
+        state_dim : int,
         policy_layers : Sequence[int] = [5, 5],
         critic_layers : Sequence[int] = [5, 5],
     ):
 
     # Create the policy network.
-    policy_network = snt.Sequential([
-        networks.LayerNormMLP(policy_layers, activate_final=True),
-        networks.NearZeroInitializedLinear(actions_dim),
-        lambda x: tf.nn.softmax(x)
-    ])
+    policy_network = PolicyMLP(policy_layers, actions_dim)
 
     # Create the critic network.
     critic_layers = list(critic_layers) + [1]
@@ -44,9 +78,12 @@ def _make_networks(
         snt.nets.MLP(critic_layers, activate_final=False),
     ])
 
+    observation_network = InputStandardization(shape=state_dim)
+
     return {
         'policy': policy_network,
         'critic': critic_network,
+        'observation': observation_network,
     }
 
 
@@ -111,12 +148,14 @@ class DDPG(AgentWorker,AgentInterface):
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
 
         networks = _make_networks(actions_dim=params.num_phases,
+                                  state_dim=params.states.rank,
                                   policy_layers=params.policy_layers,
                                   critic_layers=params.critic_layers)
 
         self.agent = acme_agent.DDPG(environment_spec=env_spec,
                                     policy_network=networks['policy'],
                                     critic_network=networks['critic'],
+                                    observation_network=networks['observation'],
                                     discount=params.discount_factor,
                                     batch_size=params.batch_size,
                                     prefetch_size=params.prefetch_size,
