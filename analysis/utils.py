@@ -42,6 +42,8 @@ def get_emissions(file_path, exclude_emissions=EXCLUDE_EMISSION):
     if exclude_emissions is not None:
         df = df.drop(exclude_emissions, axis=1, errors='ignore')
 
+    df = df.drop(['waiting'], axis=1)
+
     return df
 
 def get_vehicles(emissions_df):
@@ -82,12 +84,13 @@ def get_vehicles(emissions_df):
     rename(columns={'time': 'finish'}, inplace=False)
 
     # Builds a dataframe with waiting times
+    emissions_df['isStopped'] = (emissions_df['speed'] <= 0.1).astype(float)
     wait_df = pd.pivot_table(
         emissions_df.reset_index(),
-        index='id', values='waiting',
-        aggfunc=max
+        index='id', values='isStopped',
+        aggfunc=sum
     ).\
-    rename(columns={'time': 'wait'}, inplace=False)
+    rename(columns={'isStopped': 'waiting'}, inplace=False)
 
     speed_df = pd.pivot_table(
         emissions_df.reset_index(),
