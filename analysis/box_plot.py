@@ -2,17 +2,13 @@ import os
 import tarfile
 import pandas as pd
 import argparse
-import numpy as np
 from pathlib import Path
-from collections import OrderedDict
 
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 import seaborn as sns
-
-from analysis.utils import str2bool, get_emissions, get_vehicles, get_throughput
 
 plt.style.use('ggplot')
 
