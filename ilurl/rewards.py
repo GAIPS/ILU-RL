@@ -347,6 +347,32 @@ def reward_min_average_pressure(state, *args):
 
     return ret
 
+def reward_min_queue(state, *args):
+    """Minimizing the queues.
+
+    Params:
+    ------
+    * state: ilurl.state.State
+        captures the queues experienced by each of the phases.
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    """
+    try:
+        queues = state.feature_map(
+            filter_by=('queue',)
+        )
+    except AttributeError:
+        queues = state
+
+    ret = {}
+    for tls_id, phase_obs in queues.items():
+        ret[tls_id] = -sum([q for obs in phase_obs for q in obs])
+    return ret
+
 def reward_min_queue_squared(state):
     """Minimizing the delta of queue length squared
 
