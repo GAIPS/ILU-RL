@@ -7,6 +7,7 @@ from pathlib import Path
 from scipy import stats
 import configparser
 
+
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from analysis.utils import str2bool, get_emissions, get_vehicles, get_throughput
+from ilurl.networks.base import Network
 
 plt.style.use('ggplot')
 
@@ -41,9 +43,34 @@ def print_arguments(args):
     print('Arguments (analysis/test_plots.py):')
     print('\tExperiment root folder: {0}\n'.format(args.experiment_root_folder))
 
+def get_lanes_lengths(train_args):
+
+    network_args = {
+        'network_id': train_args['network'],
+        'horizon': train_args['experiment_time'],
+        'demand_type': train_args['demand_type'],
+        'demand_mode': train_args['demand_mode'],
+        'tls_type': train_args['tls_type']
+    }
+    network = Network(**network_args)
+
+    lanes_lengths = {
+        (edge['id'], int(lane['index'])): float(lane['length'])
+        for edge in network.edges
+        for lane in sorted(edge['lanes'], key=lambda x: int(x['index']))
+    }
+    return lanes_lengths
+
+def get_length(row, lanes_lengths):
+    *edge, lid =  row['lane'].split('_')
+    eid = '_'.join(edge)
+    lid = int(lid)
+    return lanes_lengths.get((eid, lid), 0)
+
 def main(experiment_root_folder=None):
 
     print('\nRUNNING analysis/test_plots.py\n')
+
 
     if not experiment_root_folder:
         args = get_arguments()
@@ -69,21 +96,27 @@ def main(experiment_root_folder=None):
     train_config_path = list(Path(experiment_root_folder).rglob('train.config'))[0]
     train_config = configparser.ConfigParser()
     train_config.read(train_config_path)
+
     agent_type = train_config['agent_type']['agent_type']
     demand_type = train_config['train_args']['demand_type']
+
 
     vehicles_appended = []
     throughputs = []
     global_throughputs = []
 
     mean_values_per_eval = []
+    lanes_lengths = get_lanes_lengths(train_config['train_args'])
+    def fn(x):
+        return get_length(x, lanes_lengths)
 
     for csv_file in csv_files:
 
         print('Processing CSV file: {0}'.format(csv_file))
-        
+
         # Load CSV data.
         df_csv = get_emissions(csv_file)
+        df_csv['length'] = df_csv.apply(fn, axis=1)
 
         df_per_vehicle = get_vehicles(df_csv)
 
