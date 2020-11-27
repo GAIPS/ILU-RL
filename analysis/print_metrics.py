@@ -4,6 +4,9 @@ import tarfile
 import pandas as pd
 import argparse
 from pathlib import Path
+import configparser
+import tempfile
+import shutil
 
 CSVS_TO_PRINT = ['cumulative_reward.csv',
                  'speed_congested_stats.csv',
@@ -45,17 +48,40 @@ def main():
         raise ValueError('Expected compressed (.tar.gz) input file.')
 
     tar = tarfile.open(exp_path)
-
     all_names = tar.getnames()
+
+    # Get one of the config files.
+    config_files = [x for x in all_names if Path(x).name == 'train.config']
+    config_p = config_files[0]
+
+    # Create temporary directory.
+    dirpath = tempfile.mkdtemp()
+
+    # Extract config file to temporary directory.
+    tar.extract(config_p, dirpath)
+
+    train_config = configparser.ConfigParser()
+    train_config.read(dirpath + '/' + config_p)
+
+    # Print config file.
+    for section in train_config.sections():
+        print('\n')
+        print(section + ':')
+        print(dict(train_config[section]))
+
+    # Clean temporary directory.
+    shutil.rmtree(dirpath)
+
+    # Print csv files.
     filtered_csvs = [x for x in all_names if Path(x).name in CSVS_TO_PRINT]
 
     for csv_p in filtered_csvs:
-        tar_file = tar.extractfile(csv_p)
-        df = pd.read_csv(tar_file)
-        
+        df = pd.read_csv(tar.extractfile(csv_p))
         print('\n')
         print(Path(csv_p).name)
         print(df)
+
+    tar.close()
 
 if __name__ == "__main__":
     main()
