@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import tarfile
 import pandas as pd
 import argparse
@@ -41,6 +42,7 @@ def main():
 
     args = get_arguments()
     print_arguments(args)
+    print('\n')
     
     exp_path = args.experiment_path
 
@@ -49,6 +51,13 @@ def main():
 
     tar = tarfile.open(exp_path)
     all_names = tar.getnames()
+
+    # Get one of the demands.json files.
+    demands_files = [x for x in all_names if Path(x).name == 'demands.json']
+
+    print('demands.json:')
+    json_file = json.load(tar.extractfile(demands_files[0]))
+    print(json_file)
 
     # Get one of the config files.
     config_files = [x for x in all_names if Path(x).name == 'train.config']
