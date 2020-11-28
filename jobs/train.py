@@ -63,7 +63,7 @@ def delay_train(args):
     return benchmarked_train(args[1])
 
 
-def train_batch():
+def train_batch(categories={}):
 
     print('\nRUNNING jobs/train.py\n')
 
@@ -115,6 +115,8 @@ def train_batch():
 
             # Setup train seed.
             train_config.set("train_args", "experiment_seed", str(seed))
+            if any(categories):
+                train_config.set("mdp_args", "category", str(categories))
 
             # Write temporary train config file.
             tmp_cfg_file = open(tmp_train_cfg_path, "w")
@@ -124,9 +126,9 @@ def train_batch():
         # Run.
         # rvs: directories' names holding experiment data
         if num_processors > 1:
+            train_args = zip(range(num_runs), train_configs)
             pool = NonDaemonicPool(num_processors, maxtasksperchild=1)
-            rvs = pool.map(delay_train, [(delay, cfg)
-                            for (delay, cfg) in zip(range(len(train_configs)), train_configs)])
+            rvs = pool.map(delay_train, train_args)
             pool.close()
             pool.join()
         else:

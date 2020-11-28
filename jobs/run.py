@@ -2,6 +2,8 @@
 
     Python script to run full pipeline:
 
+        0) jobs/preprocess: makes discretization bin
+
         1) jobs/train.py: train agent(s).
 
         2) analysis/train_plots.py: create training plots.
@@ -22,7 +24,7 @@
         7) analysis/test_plots.py: Create plots with metrics
                              for the final agent.
 
-        8) Clean up and compress the experiment folder in 
+        8) Clean up and compress the experiment folder in
             order to optimize disk space usage.
 
 """
@@ -30,6 +32,7 @@ import os
 import shutil
 from pathlib import Path
 
+from jobs.preprocess import preprocess_batch as preprocess
 from jobs.train import train_batch as train
 from jobs.rollouts import rollout_batch as rollouts
 from jobs.convert2csv import xml2csv
@@ -54,8 +57,12 @@ test_plots = safe_run(test_plots, error_message=_ERROR_MESSAGE_TEST)
 
 if __name__ == '__main__':
 
+
+    # 0) Makes discretization bins
+    categories = preprocess()
+
     # 1) Train agent(s).
-    experiment_root_path = train()
+    experiment_root_path = train(categories)
 
     # 2) Create train plots.
     train_plots(experiment_root_path)
@@ -85,7 +92,6 @@ if __name__ == '__main__':
                     'gztar',
                     os.path.dirname(experiment_root_path),
                     experiment_root_path.name)
-    
     shutil.rmtree(experiment_root_path)
 
     print('Experiment folder: {0}'.format(experiment_root_path))

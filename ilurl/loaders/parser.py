@@ -106,21 +106,6 @@ class Parser(object):
         time_period = int(mdp_args['time_period']) if not isNone(mdp_args['time_period']) else None
 
 
-        # Fetch custom categories
-        try:
-            categories = {}
-            category_path =  NETWORK_PATH / train_config.get('train_args', 'network') / 'categories.json'
-            with category_path.open('r') as f:
-                categories = json.load(f)
-        except FileNotFoundError:
-            # Throws FileNotFoundError only for QL agent
-            if agent_type == 'QL':
-                raise FileNotFoundError
-
-        if agent_type == 'QL' and set(tls_ids) != set(categories.keys()):
-            tlserr = tls_ids - categories.keys()
-            raise ValueError(f'AgentType is QL but category(ies) for agents {tlserr} not found.')
-
         # Merge custom categories and default categories
         mdp_params = MDPParams(
             discount_factor=float(mdp_args['discount_factor']),
@@ -133,7 +118,7 @@ class Parser(object):
             reward_rescale=float(mdp_args['reward_rescale']),
             velocity_threshold=literal_eval(mdp_args['velocity_threshold']),
             time_period=time_period,
-            categories=categories,
+            categories=literal_eval(mdp_args.get('category', '{}')),
             category_times=eval(mdp_args['category_times'])
         )
 

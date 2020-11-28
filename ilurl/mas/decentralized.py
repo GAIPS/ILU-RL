@@ -45,8 +45,9 @@ class DecentralizedMAS(MASInterface):
                 # the portion of the cycle length allocated for each of the phases.
                 agent_params_.num_phases = mdp_params.phases_per_traffic_light[tid]
 
-            if agent_type == 'QL':
-                states_depth = len(mdp_params.categories[tid]['count']['0']) + 1
+            if mdp_params.discretize_state_space:
+                feature = mdp_params.features[0]
+                states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
 
             states_rank = num_phases * num_variables + int(has_period)
             agent_params_.states = Bounds(states_rank, states_depth)
