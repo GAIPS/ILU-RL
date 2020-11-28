@@ -94,12 +94,33 @@ def get_vehicles(emissions_df):
     ).\
     rename(columns={'isStopped': 'waiting'}, inplace=False)
 
+    # Builds a dataframe with speeds
     speed_df = pd.pivot_table(
         emissions_df,
         index='id', values='speed',
         aggfunc=np.mean
     ).\
     rename(columns={'time': 'speed'}, inplace=False)
+
+    # Builds a dataframe with the number of stops
+    emissions_df['pos_rounded'] = emissions_df.pos.round(decimals=1)
+
+    stops_df = pd.pivot_table(
+        emissions_df,
+        index=['id', 'lane', 'pos_rounded'], values='speed',
+        aggfunc='count'
+    ). \
+    reset_index('pos_rounded'). \
+    reset_index('lane'). \
+    reset_index('id'). \
+    rename(columns={'speed': 'stops'}, inplace=False)
+
+    stops_df['stops'] = (stops_df['stops'] > 3).astype(float)
+    stops_df = pd.pivot_table(
+        stops_df.reset_index(),
+        index=['id'], values='stops',
+        aggfunc=sum
+    )
 
     vehs_df = start_df.join(
         finish_df, on='id', how='inner',
@@ -116,6 +137,10 @@ def get_vehicles(emissions_df):
 
     vehs_df = vehs_df.join(
         speed_df, on='id', how='inner',
+    )
+
+    vehs_df = vehs_df.join(
+        stops_df, on='id', how='inner',
     )
 
     if 'length' in emissions_df:
