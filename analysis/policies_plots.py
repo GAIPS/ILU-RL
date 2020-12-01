@@ -84,9 +84,9 @@ from matplotlib import cm
 #
 
 # DQN setup.
-DATA_PATH = '/home/ppsantos/ILU/ILU-RL/q_vals.pickle'
-OUTPUT_DIR = 'analysis/plots/policies/'
-AGENT_TYPE = 'DQN'
+# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/q_vals.pickle'
+# OUTPUT_DIR = 'analysis/plots/policies/'
+# AGENT_TYPE = 'DQN'
 
 # DDPG setup.
 # DATA_PATH = '/home/ppsantos/ILU/ILU-RL/ddpg_actions.pickle'
@@ -94,9 +94,9 @@ AGENT_TYPE = 'DQN'
 # AGENT_TYPE = 'DDPG'
 
 # QL setup.
-# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201012000831.234665/intersection_20201012-0008451602457725.6145556/checkpoints/20001/247123161.chkpt'
-# OUTPUT_DIR = 'analysis/plots/policies/'
-# AGENT_TYPE = 'QL'
+DATA_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201120195251.364751/intersection_20201121-0136331605922593.5583198/checkpoints/50001/247123161.chkpt'
+OUTPUT_DIR = 'analysis/plots/policies/'
+AGENT_TYPE = 'QL'
 
 def main():
 
@@ -202,13 +202,20 @@ def main():
 
         import operator
 
-        bins = [0.05, 0.75, 2.25, 4.15]
+        #  {'247123161': {'waiting_time': {'0': [1.35, 2.0, 2.48, 3.02, 3.83], '1': [2.72, 3.67, 4.42, 5.22, 6.48]}}}
+        bins_0 = [1.35, 2.0, 2.48, 3.02, 3.83]
+        bins_1 = [2.72, 3.67, 4.42, 5.22, 6.48]
 
-        data_max_actions_matrix = np.zeros((len(bins)+1, len(bins)+1))
-        data_max_q_vals_matrix = np.zeros((len(bins)+1, len(bins)+1))
+        min_0 = 0
+        min_1 = 0
+        max_0 = 10
+        max_1 = 20
 
-        for i in range(len(bins)+1):
-            for j in range(len(bins)+1):
+        data_max_actions_matrix = np.zeros((len(bins_0)+1, len(bins_1)+1))
+        data_max_q_vals_matrix = np.zeros((len(bins_0)+1, len(bins_1)+1))
+
+        for i in range(len(bins_0)+1):
+            for j in range(len(bins_1)+1):
                 if sum(data[(i,j)].values()) == 0:
                     data_max_actions_matrix[i,j] = np.nan
                 else:
@@ -216,59 +223,56 @@ def main():
                 
                 data_max_q_vals_matrix[i,j] =  max(data[(i,j)].values())
 
-        print(data)
-        print(data_max_actions_matrix)
-        print(data_max_q_vals_matrix)
+        # print(data)
+        # print(data_max_actions_matrix)
+        # print(data_max_q_vals_matrix)
 
-        # Policy (actions) plot.
+        cmap = plt.get_cmap('Set2', 7)
+
         fig = plt.figure()
-
-        data_max_actions_matrix[0,0] = np.nan
-
-        im = plt.pcolormesh(data_max_actions_matrix, cmap=plt.get_cmap('Set2', 7), vmin=0, vmax=6)
-
-        plt.xticks([0.5, 1.5, 2.5, 3.5, 4.5], ['0', '1', '2', '3', '4'])
-        plt.yticks([0.5, 1.5, 2.5, 3.5, 4.5], ['0', '1', '2', '3', '4'])
-
-        # im = plt.pcolormesh(X, Y, data_max_actions_matrix, cmap=cm.jet, shading='gouraud')
-
-        plt.xlabel('Waiting time phase 1 (bins)')
-        plt.ylabel('Waiting time phase 2 (bins)')
-
-        fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        fig.colorbar(im, cax=cbar_ax)
-        plt.title('Phase-1\nallocation')
-
-        plt.savefig(OUTPUT_DIR + 'ql_policy.png', bbox_inches='tight', pad_inches=0)
-        plt.savefig(OUTPUT_DIR + 'ql_policy.pdf', bbox_inches='tight', pad_inches=0)
-
-
-        ################################################
-
-        bins_x = [0.0, 0.05, 0.75, 2.25, 4.15]
-        bins_y = [0.0, 0.05, 0.75, 2.25, 4.15]
-
-        # Policy (actions) plot.
-        fig = plt.figure()
-
-        colors = plt.get_cmap('Set2', 7)
 
         ax = plt.subplot(111)
-        # for x,y,w,h,c in zip(xs,ys,ws,hs,colors):
-        rect = plt.Rectangle((1.0,1.0), 2.0, 3.0, color='black')
-        ax.add_patch(rect)
 
-        # cax, _ = plt.colorbar.make_axes(ax) 
-        # cb2 = plt.colorbar.ColorbarBase(cax, cmap=pl.cm.jet) 
+        bins_0_extended = [min_0] + bins_0 + [max_0]
+        xs = []
+        for i in range(len(bins_0)+1):
+            xs.append((bins_0_extended[i], bins_0_extended[i+1]))
+        
+        bins_1_extended = [min_1] + bins_1 + [max_1]
+        ys = []
+        for i in range(len(bins_1)+1):
+            ys.append((bins_1_extended[i], bins_1_extended[i+1]))
+        
+        # print('xs:', xs)
+        # print('ys:', ys)
 
-        plt.xlim(0,5)
-        plt.ylim(0,5)
+        for i in range(len(bins_0)+1):
+            for j in range(len(bins_1)+1):
+
+                color = cmap(int(data_max_actions_matrix[i,j]))
+
+                rect = plt.Rectangle((xs[i][0],ys[j][0]), (xs[i][1]-xs[i][0]), (ys[j][1]-ys[j][0]),
+                                facecolor=color, edgecolor='black', linewidth=0.7)
+                ax.add_patch(rect)
+
+        plt.xlim(0, max_0)
+        plt.ylim(0, max_1)
         plt.xlabel('Waiting time phase 1')
         plt.ylabel('Waiting time phase 2')
 
-        plt.savefig(OUTPUT_DIR + 'ql_policy_v2.png', bbox_inches='tight', pad_inches=0)
-        plt.savefig(OUTPUT_DIR + 'ql_policy_v2.pdf', bbox_inches='tight', pad_inches=0)
+        import matplotlib as mpl
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.82, 0.15, 0.05, 0.7])
+
+        cbar = mpl.colorbar.ColorbarBase(cbar_ax, cmap=cmap)
+
+        cbar.set_ticks([0.07,0.21,0.35,0.5,0.64,0.79,0.93])
+        cbar.ax.set_yticklabels(['(30,70)','(36,63)','(43,57)',
+                                '(50,50)','(57,43)','(63,37)','(70,30)'])
+        plt.title('Action')
+
+        plt.savefig(OUTPUT_DIR + 'ql_policy.png', bbox_inches='tight', pad_inches=0)
+        plt.savefig(OUTPUT_DIR + 'ql_policy.pdf', bbox_inches='tight', pad_inches=0)
 
     else:
         raise ValueError('Agent type not implemented')
