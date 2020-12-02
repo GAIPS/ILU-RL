@@ -98,7 +98,9 @@ def main():
             'fliers': []                # Outliers
         })
 
-    ax.bxp(boxes, showfliers=False)
+    ax.bxp(boxes)
+
+    plt.xticks(rotation=45)
 
     plt.ylabel('Waiting time (s)')
     
@@ -130,6 +132,8 @@ def main():
     ax.bxp(boxes, showfliers=False)
 
     plt.ylabel('Travel time (s)')
+
+    plt.xticks(rotation=45)
     
     plt.savefig('analysis/plots/box_plots/travel_time.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/box_plots/travel_time.png', bbox_inches='tight', pad_inches=0)
@@ -159,6 +163,8 @@ def main():
     ax.bxp(boxes, showfliers=False)
 
     plt.ylabel('Speed (m/s)')
+
+    plt.xticks(rotation=45)
     
     plt.savefig('analysis/plots/box_plots/speed.pdf', bbox_inches='tight', pad_inches=0)
     plt.savefig('analysis/plots/box_plots/speed.png', bbox_inches='tight', pad_inches=0)
