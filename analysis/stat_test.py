@@ -1,7 +1,13 @@
 import os
+import tarfile
 import json
 import pandas as pd
 import numpy as np
+import argparse
+from pathlib import Path
+import configparser
+import tempfile
+import shutil
 
 import matplotlib
 matplotlib.use('agg')
@@ -11,206 +17,104 @@ plt.style.use('ggplot')
 
 from scipy import stats
 import statsmodels
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 
-RANDOM_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/random.csv'
-DELAY_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/delay.csv'
-SPEED_COUNT_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/speed_count.csv'
-SPEED_SCORE_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/speed_score.csv'
-WAITING_TIME_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/waiting_time.csv'
+def get_arguments():
+    parser = argparse.ArgumentParser(
+        description="""
+            This script creates a kde dist plot that allows comparisons between \
+                the mean distributions of different experiments.
+        """
+    )
+    parser.add_argument('--experiments_paths', nargs="+", help='List of paths to experiments.', required=True)
+    parser.add_argument('--labels', nargs="+", help='List of experiments\' labels.', required=False)
 
+    return parser.parse_args()
 
-FIGURE_X = 6.0
-FIGURE_Y = 4.0
+def print_arguments(args):
+
+    print('Arguments (analysis/stat_test.py):')
+    print('\tExperiments: {0}\n'.format(args.experiments_paths))
+    print('\tExperiments labels: {0}\n'.format(args.labels))
+
 
 if __name__ == '__main__':
 
-    """ fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+    print('\nRUNNING analysis/stat_test.py\n')
 
-    sns.distplot(data['travel_time'][0:6], hist=True, kde=False, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Train run 1')
-    sns.distplot(data['travel_time'][6:12], hist=True, kde=False, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Train run 2')
-    sns.distplot(data['travel_time'][12:18], hist=True, kde=False, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Train run 3')
-    sns.distplot(data['travel_time'][18:24], hist=True, kde=False, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Train run 4')
-    sns.distplot(data['travel_time'][24:], hist=True, kde=False, norm_hist=True,
-                kde_kws = {'linewidth': 3}, label='Train run 5')
+    args = get_arguments()
+    print_arguments(args)
 
-    plt.legend()
-    plt.xlabel('Travel time (s)')
-    plt.ylabel('Density')
-    plt.title('Travel time\n(per train run)')
-    plt.savefig('variability_travel_time_metric_per_train_run.png', bbox_inches='tight', pad_inches=0)
-    plt.close()
+    # Open dataframes.
+    dfs = []
+    for exp_path in args.experiments_paths:
+
+        if Path(exp_path).suffix == '.gz':
+            # Compressed file (.tar.gz).
+
+            tar = tarfile.open(exp_path)
+            all_names = tar.getnames()
+
+            # Get one of the config files.
+            config_files = [x for x in all_names if Path(x).name == 'train.config']
+            config_p = config_files[0]
+
+            # Create temporary directory.
+            dirpath = tempfile.mkdtemp()
+
+            # Extract config file to temporary directory.
+            tar.extract(config_p, dirpath)
+
+            train_config = configparser.ConfigParser()
+            train_config.read(dirpath + '/' + config_p)
+
+            # Print config file.
+            tls_type = train_config['train_args']['tls_type']
+
+            # Clean temporary directory.
+            shutil.rmtree(dirpath)
+
+            exp_name = os.path.basename(exp_path)
+            exp_name = exp_name.split('.')[0] + '.' + exp_name.split('.')[1]
+            df = pd.read_csv(tarfile.open(exp_path).extractfile(
+                                    f'{exp_name}/plots/test/{exp_name}_metrics.csv'))
+
+            if tls_type == 'rl':
+                df = df.groupby(['train_run']).mean()
+
+            dfs.append(df)
+
+        else:
+            # Uncompressed file (experiment_folder).
+            raise ValueError('Not implemented for uncompressed folders. Please point to a file with .tar.gz extension.')
+
+    if args.labels:
+        lbls = args.labels # Custom labels.
+    else:
+        lbls = [Path(exp_path).name for exp_path in args.experiments_paths] # Default labels.
 
 
+    # Shapiro tests.
+    print('Shapiro tests:')
+    for (df, lbl) in zip(dfs,lbls):
+        shapiro_test = stats.shapiro(df['travel_time'])
+        print(f'\t{lbl}: {shapiro_test}')
 
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+    args = [df['travel_time'] for df in dfs]
+    print(f'\nLevene\'s test: {stats.levene(*args)}')
 
-    sns.distplot(data['travel_time'], hist=False, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3, 'color': 'black'})
+    print(f'\nANOVA test: {stats.f_oneway(*args)}')
 
-    plt.xlabel('Travel time (s)')
-    plt.ylabel('Density')
-    plt.title('Travel time\n(All)')
-    plt.savefig('variability_travel_time_metric.png', bbox_inches='tight', pad_inches=0)
-    plt.close()
+    data = []
+    groups = []
+    for (df, lbl) in zip(dfs, lbls):
+        data.extend(df['travel_time'].tolist())
+        groups.extend([lbl for _ in range(len(df['travel_time'].tolist()))])
 
-    shapiro_test = stats.shapiro(data['travel_time'])
-    print(shapiro_test)
+    print('\nTukeyHSD:', pairwise_tukeyhsd(data, groups))
 
-    # Inter variability.
-    global_mean = data['travel_time'].mean()
+    # Non-parametric test.
+    print('\nKruskal (non-parametric) test:', stats.kruskal(*args))
 
-    eval_avgs = []
-    eval_avgs.append(np.mean(data['travel_time'][0:6]))
-    eval_avgs.append(np.mean(data['travel_time'][6:12]))
-    eval_avgs.append(np.mean(data['travel_time'][12:18]))
-    eval_avgs.append(np.mean(data['travel_time'][18:24]))
-    eval_avgs.append(np.mean(data['travel_time'][24:]))
-    eval_avgs = np.array(eval_avgs)
-
-    inter_var = np.mean(np.abs(eval_avgs - global_mean))
-    print('inter_var:', inter_var)
-
-    # Intra variability.
-    intra_avgs = []
-    intra_avgs.append(np.mean(np.abs(data['travel_time'][0:6] - np.mean(data['travel_time'][0:6]))))
-    intra_avgs.append(np.mean(np.abs(data['travel_time'][6:12] - np.mean(data['travel_time'][6:12]))))
-    intra_avgs.append(np.mean(np.abs(data['travel_time'][12:18] - np.mean(data['travel_time'][12:18]))))
-    intra_avgs.append(np.mean(np.abs(data['travel_time'][18:24] - np.mean(data['travel_time'][18:24]))))
-    intra_avgs.append(np.mean(np.abs(data['travel_time'][24:] - np.mean(data['travel_time'][24:]))))
-
-    intra_var = np.mean(intra_avgs)
-    print('intra_avgs:', intra_var) """
-
-    df_delay = pd.read_csv(DELAY_PATH)
-    df_delay = df_delay.groupby('train_run').mean()
-
-    df_wait = pd.read_csv(WAITING_TIME_PATH)
-    df_wait = df_wait.groupby('train_run').mean()
-
-    df_random = pd.read_csv(RANDOM_PATH)
-
-    df_speed_count = pd.read_csv(SPEED_COUNT_PATH)
-    df_speed_count = df_speed_count.groupby('train_run').mean()
-
-    df_speed_score = pd.read_csv(SPEED_SCORE_PATH)
-    df_speed_score = df_speed_score.groupby('train_run').mean()
-
-    """
-        Travel time.
-    """
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-    sns.distplot(df_delay['travel_time'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Delay')
-    sns.distplot(df_wait['travel_time'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Waiting time')
-    sns.distplot(df_random['travel_time'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Random')
-    sns.distplot(df_speed_count['travel_time'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Speed count')
-    sns.distplot(df_speed_score['travel_time'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Speed score')
-
-    plt.legend()
-    plt.xlabel('Travel time (s)')
-    plt.ylabel('Density')
-    plt.title('Travel time (DDPG agent, intersection, variable)')
-    plt.savefig('test_stat_tt.png', bbox_inches='tight', pad_inches=0)
-    plt.close()
-
-    """
-        Speed.
-    """
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-    sns.distplot(df_delay['speed'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Delay')
-    sns.distplot(df_wait['speed'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Waiting time')
-    sns.distplot(df_random['speed'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Random')
-    sns.distplot(df_speed_count['speed'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Speed count')
-    sns.distplot(df_speed_score['speed'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Speed score')
-
-    plt.legend()
-    plt.xlabel('Speed (m/s)')
-    plt.ylabel('Density')
-    plt.title('Speed (DDPG agent, intersection, variable)')
-    plt.savefig('test_stat_s.png', bbox_inches='tight', pad_inches=0)
-    plt.close()
-
-    """
-        Waiting time.
-    """
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
-
-    sns.distplot(df_delay['delay'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Delay')
-    sns.distplot(df_wait['delay'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Waiting time')
-    sns.distplot(df_random['delay'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Random')
-    sns.distplot(df_speed_count['delay'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Speed count')
-    sns.distplot(df_speed_score['delay'], hist=True, kde=True, norm_hist=True,
-                 kde_kws = {'linewidth': 3}, label='Speed score')
-
-    plt.legend()
-    plt.xlabel('Waiting time (s)')
-    plt.ylabel('Density')
-    plt.title('Waiting time (DDPG agent, intersection, variable)')
-    plt.savefig('test_stat_w.png', bbox_inches='tight', pad_inches=0)
-    plt.close()
-
-    # Shapiro.
-    shapiro_test = stats.shapiro(df_delay['travel_time'])
-    print('delay shapiro:', shapiro_test)
-
-    shapiro_test = stats.shapiro(df_wait['travel_time'])
-    print('wait shapiro:', shapiro_test)
-
-    shapiro_test = stats.shapiro(df_random['travel_time'])
-    print('random shapiro:', shapiro_test)
-
-    shapiro_test = stats.shapiro(df_speed_count['travel_time'])
-    print('speed_count shapiro:', shapiro_test)
-
-    shapiro_test = stats.shapiro(df_speed_score['travel_time'])
-    print('speed_score shapiro:', shapiro_test)
-
-    # Levene.
-    print('Levene test:', stats.levene(df_delay['travel_time'], df_wait['travel_time'],
-                                       df_random['travel_time'], df_speed_score['travel_time'],
-                                       df_speed_count['travel_time']))
-
-    # ANOVA + Tukey-HSD.
-    print('ANOVA:', stats.f_oneway(df_delay['travel_time'], df_wait['travel_time'],
-                                    df_speed_score['travel_time'], df_speed_count['travel_time']))
-
-    print('ANOVA:', stats.f_oneway(df_delay['travel_time'], df_wait['travel_time'],
-                                    df_speed_score['travel_time'], df_speed_count['travel_time'],
-                                    df_random['travel_time']))
-
-    from statsmodels.stats.multicomp import pairwise_tukeyhsd
-    data = df_delay['travel_time'].tolist() + df_wait['travel_time'].tolist() + \
-            df_speed_score['travel_time'].tolist() + df_speed_count['travel_time'].tolist() + \
-            df_random['travel_time'].tolist()
-    groups = ['Delay' for _ in range(len(df_delay['travel_time']))] + \
-        ['WaitTime' for _ in range(len(df_wait['travel_time']))] + \
-        ['SpeedScore' for _ in range(len(df_speed_score['travel_time']))] + \
-        ['SpeedCount' for _ in range(len(df_speed_count['travel_time']))] + \
-        ['Random' for _ in range(len(df_random['travel_time']))]
-
-    print('TukeyHSD:', pairwise_tukeyhsd(data, groups))
+    # TODO: post-hoc non-parametric comparisons.
