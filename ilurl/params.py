@@ -81,11 +81,9 @@ class MDPParams(Printable):
         * discretize_state_space: bool
             if True the state space will be categorized (categories below).
 
-        * category_counts: List[float]
-        * category_speeds: List[float]
-        * category_delays: List[float]
-        * category_queues: List[float]
-        * (...)
+        * category_times: List[int]
+
+        * categoriess: Dict[str, Dict[str, List[float]]]
 
         * reward: str
             The reward function to be applied.

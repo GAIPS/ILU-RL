@@ -17,14 +17,35 @@ MATCHER = re.compile('\[(.*?)\]')
 NUM_PHASES = 2  #TODO: RELAX THIS ASSUMPTION
 import configparser
 
+def get_feature_index(feature, features):
+    """Get index from a feature in a list of features.
+
+    Time is a static feature, it's represented by a value it's not
+    needed for preprocessing
+
+    Params:
+        * feature: str
+            feature to be preprocessed
+
+        * feature: tuple<str>
+            tuple of features
+
+    Returns:
+        * ind: int
+        index of feature in feature
+    """
+    return features.index(feature) - int('time' in features)
+
+def pn(phases, ind):
+    """Get index from a feature in a list of features."""
+    return [phase[ind] for phase in phases if isinstance(phase, list)]
+
 def fn(cycles, ind):
-    return [
-                {
-                    tid: [phase[ind] for phase in phases]
-                    for tid, phases in cycle.items()
-                }
-                for cycle in cycles
-            ]
+    return [{
+                tid: pn(phases, ind) for tid, phases in cycle.items()
+            }
+            for cycle in cycles]
+
 def rmlag(x):
     if 'lag[' in x:
         return MATCHER.search(x).groups()[0]
@@ -89,22 +110,22 @@ def _consolidate(data, verbose=True):
     for k, v in data.items():
         network, features = k
         for feature in features:
-            if (network, feature) not in data1:
-                data1[(network, feature)] = defaultdict(list)
-                sel = {k1: fn(v1, k1[1].index(feature))
-                       for k1, v1 in data.items() if k1[0] == network and feature in k1[1]}
-
-                num_points = []
-                for cycles in sel.values():
-                    for cycle in cycles:
-                        for tl, phases in cycle.items():
-                            data1[(network, feature)][tl].append(phases)
-                            num_points.append(len(phases))
-                if verbose:
-                    msgs = [f'{network}\tnum. nodes: {len(data1[(network, feature)])}']
-                    msgs.append(f'feature: {feature}')
-                    msgs.append(f'num. data points:{sum(num_points)}')
-                    print("\t".join(msgs))
+            if feature is not 'time':
+                if (network, feature) not in data1:
+                    data1[(network, feature)] = defaultdict(list)
+                    sel = {k1: fn(v1, get_feature_index(feature, k1[1]))
+                           for k1, v1 in data.items() if k1[0] == network and feature in k1[1]}
+                    num_points = []
+                    for cycles in sel.values():
+                        for cycle in cycles:
+                            for tl, phases in cycle.items():
+                                data1[(network, feature)][tl].append(phases)
+                                num_points.append(len(phases))
+                    if verbose:
+                        msgs = [f'{network}\tnum. nodes: {len(data1[(network, feature)])}']
+                        msgs.append(f'feature: {feature}')
+                        msgs.append(f'num. data points:{sum(num_points)}')
+                        print("\t".join(msgs))
     networks = sorted({k[0] for k in data})
     return data1, networks
 

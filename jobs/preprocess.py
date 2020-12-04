@@ -131,6 +131,9 @@ def preprocess_batch(tls_type='webster'):
         network = preprocess_config.get('train_args', 'network')
         features = eval(preprocess_config.get('mdp_args', 'features'))
 
+        if eval(preprocess_config.get('mdp_args', 'time_period')) is not None:
+            features = ('time',) + features
+
         # Remove lag from features
         features = tuple(rmlag(f) for f in features)
 
