@@ -19,7 +19,7 @@ data = [
     {
         'mdp': 'Min. speed delta',
         'paths': {
-            'QL':  '/path/to/XXXX.YYY.tar.gz'.
+            'QL':  '/path/to/XXXX.YYY.tar.gz',
             'DQN': '/path/to/XXXX.YYY.tar.gz',
             'DDPG':  '/path/to/XXXX.YYY.tar.gz',
         }
@@ -27,7 +27,7 @@ data = [
     {
         'mdp': 'Min. delay',
         'paths': {
-            'QL':  '/path/to/XXXX.YYY.tar.gz'.
+            'QL':  '/path/to/XXXX.YYY.tar.gz',
             'DQN': '/path/to/XXXX.YYY.tar.gz',
             'DDPG':  '/path/to/XXXX.YYY.tar.gz',
         }
