@@ -3,7 +3,7 @@ import numpy as np
 import unittest
 from collections import defaultdict
 
-from ilurl.state import State
+from ilurl.state.state import State
 from ilurl.params import MDPParams
 from ilurl.utils.properties import lazy_property
 

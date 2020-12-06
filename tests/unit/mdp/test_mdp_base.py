@@ -2,7 +2,7 @@ import unittest
 
 
 from ilurl.rewards import build_rewards
-from ilurl.state import State
+from ilurl.state.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.params import MDPParams
 from ilurl.utils.properties import lazy_property

@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from ilurl.state import State
+from ilurl.state.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.params import MDPParams
 from ilurl.networks.base import Network
