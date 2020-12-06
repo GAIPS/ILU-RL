@@ -3,7 +3,7 @@ import numpy as np
 import unittest
 from collections import defaultdict
 
-from ilurl.state import State
+from ilurl.state.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
