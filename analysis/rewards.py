@@ -1,188 +1,145 @@
-"""Analyses aggregate experiment files e.g info and envs"""
-__author__ = 'Guilherme Varela'
-__date__ = '2020-02-13'
-import os
-import argparse
+import math
 import json
-from glob import glob
-
+import tarfile
 import numpy as np
 import matplotlib.pyplot as plt
-
-ROOT_PATH = os.environ['ILURL_HOME']
-
-# EXPERIMENTS_PATH = f'{ROOT_PATH}/data/emissions/'
-EXPERIMENTS_PATH = f'{ROOT_PATH}/data/experiments/0x04/'
-
-CYCLE = 90
-TIME = 9000
-CONFIG_DIRS = ('4545', '5040', '5436', '6030')
-# CONFIG_DIRS = ('5040',)
-
-def get_arguments():
-    parser = argparse.ArgumentParser(
-        description="""
-            This script runs a traffic light simulation based on
-            custom environment with with presets saved on data/networks
-        """
-    )
-
-    parser.add_argument('--type', '-t', dest='db_type', nargs='?',
-                        choices=('evaluate', 'train'),
-                        default='evaluate',
-                        help="db type `evaluate` or `train`")
-
-    return parser.parse_args()
+from pathlib import Path
+import tempfile
+import shutil
+import pandas as pd
 
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+plt.style.use('ggplot')
 
-if __name__ == '__main__':
-    parser = get_arguments()
+FIGURE_X = 7.0
+FIGURE_Y = 5.0
 
-    db_type = parser.db_type
-    if db_type == 'evaluate':
-        ext = 'eval.info.json'
-    elif db_type == 'train':
-        ext = '[w|l].info.json'
-    else:
-        raise ValueError(f'db_type<{db_type}> not recognized!')
-
-    for config_dir in CONFIG_DIRS:
-        files_dir = f'{EXPERIMENTS_PATH}{config_dir}/'
-        paths = sorted(glob(f"{files_dir}*.{ext}"))
-        num_dbs = len(paths)
-        phase_split = f'{config_dir[:2]}x{config_dir[2:]}'
-
-        for nf, path in enumerate(paths):
-            with open(path, 'r') as f:
-                data = json.load(f)
-                print(data.keys())
-
-            try:
-                if 'cycle' in data:
-                    # new: information already comes in cycles
-                    cycle_time = data['cycle']
-                    group_by = False
-                    
-                else:
-                    # legacy: information was either by episode or sim_step
-                    # 0x00, 0x01, 0x02, 0x03
-                    cycle_time = int(config_dir[:2]) + int(config_dir[2:])
-                    group_by = True
-            except Exception:
-                cycle_time = CYCLE
-
-            num_iter = len(data['rewards'])
-            num_steps = len(data['rewards'][0])
-
-            if group_by:
-                if nf == 0:
-                    N = int((num_steps * num_iter) / cycle_time)
-                    rets = np.zeros((N,), dtype=float)
-                    vels = np.zeros((N,),  dtype=float)
-                    vehs = np.zeros((N,),  dtype=float)
-                    acts = np.zeros((N, num_dbs),  dtype=int)
-
-                for i in range(num_iter):
-
-                    _rets = data['rewards'][i]
-                    _vels = data['velocities'][i]
-                    _vehs = data['vehicles'][i]
-                    _acts = np.array(data["rl_actions"][i])
-
-                    for t in range(0, num_steps, cycle_time):
-
-                        cycle = int(i * (num_steps / cycle_time) + t / cycle_time)
-                        ind = slice(t, t + cycle_time)
-                        vels[cycle] = \
-                            (nf * vels[cycle] + np.mean(_vels[ind])) / (nf + 1)
-                        rets[cycle] = \
-                            (nf * rets[cycle] + np.sum(_rets[ind])) / (nf + 1)
-                        vehs[cycle] = \
-                            (nf * vehs[cycle] + np.mean(_vehs[ind])) / (nf + 1)
-                        # 0x02 per_step_actions
-                        if len(_acts) == num_steps:
-                            acts[cycle, nf] = \
-                                round(np.array(_acts[ind]).mean())
-                        else:
-                            # 0x03 actions per decision
-                            acts[cycle, nf] = _acts[cycle]
-            else:
-                if nf == 0:
-                    N = num_steps * num_iter
-                    rets = np.zeros((N, num_dbs), dtype=float)
-                    vels = np.zeros((N, num_dbs), dtype=float)
-                    vehs = np.zeros((N, num_dbs), dtype=float)
-                    acts = np.zeros((N, num_dbs), dtype=int)
-
-                # concatenates vertically the contents
-                for i in range(num_iter):
-
-                    start = i * num_steps
-                    finish = (i + 1) * num_steps
-                    _vehs = data['vehicles'][i]
-                    _acts = np.array(data["rl_actions"][i])
-
-                    vels[start:finish, nf] = data['velocities'][i]
-                    rets[start:finish, nf] = data['rewards'][i]
-                    vehs[start:finish, nf] = data['vehicles'][i]
-                    acts[start:finish, nf] = np.array(data["rl_actions"][i]).flatten()
-        _, ax1 = plt.subplots()
-        ax1.set_xlabel(f'Cycles ({np.mean(cycle_time)} sec)')
-
-        color = 'tab:blue'
-        ax1.set_ylabel('Avg. speed', color=color)
-        ax1.plot(np.mean(vels, axis=1), color=color)
-        ax1.tick_params(axis='y', labelcolor=color)
-
-        color = 'tab:red'
-        ax2 = ax1.twinx()
-        ax2.set_ylabel('Avg. vehicles', color=color)
-        ax2.plot(np.mean(vehs, axis=1), color=color)
-        ax2.tick_params(axis='y', labelcolor=color)
-
-        plt.title(f'{phase_split}:speed and count\n({db_type}, n={num_dbs})')
-        plt.savefig(f'{files_dir}{phase_split}_{db_type}_velsvehs.png')
-        plt.show()
+# Data to plot.
+data = [
+    {
+        'mdp': 'Min. speed delta',
+        'paths': {
+            'QL':  '/path/to/XXXX.YYY.tar.gz'.
+            'DQN': '/path/to/XXXX.YYY.tar.gz',
+            'DDPG':  '/path/to/XXXX.YYY.tar.gz',
+        }
+    },
+    {
+        'mdp': 'Min. delay',
+        'paths': {
+            'QL':  '/path/to/XXXX.YYY.tar.gz'.
+            'DQN': '/path/to/XXXX.YYY.tar.gz',
+            'DDPG':  '/path/to/XXXX.YYY.tar.gz',
+        }
+    },
+]
 
 
-        color = 'tab:cyan'
-        _, ax1 = plt.subplots()
-        ax1.set_xlabel(f'Cycles ({np.mean(cycle_time)} sec)')
+def calculate_CI_bootstrap(x_hat, samples, num_resamples=20000):
+    """
+        Calculates 95 % interval using bootstrap.
 
-        ax1.set_ylabel('Avg. Reward per Cycle', color=color)
-        ax2.tick_params(axis='y', labelcolor=color)
-        ax1.plot(np.mean(rets, axis=1), color=color)
-        plt.title(f'{phase_split}:avg. cycle return\n({db_type}, n={num_dbs})')
-        plt.savefig(f'{files_dir}{phase_split}_{db_type}_rewards.png')
-        plt.show()
+        REF: https://ocw.mit.edu/courses/mathematics/
+            18-05-introduction-to-probability-and-statistics-spring-2014/
+            readings/MIT18_05S14_Reading24.pdf
 
-        # optimal action
-        # TODO: allow for customize action
-        optact = 0.0
-        _, ax1 = plt.subplots()
-        color = 'tab:orange'
-        ax1.set_xlabel(f'Cycles ({np.mean(cycle_time)} sec)')
-        ax1.set_ylabel('ratio optimal action')
+    """
+    resampled = np.random.choice(samples,
+                                size=(len(samples), num_resamples),
+                                replace=True)
+    means = np.mean(resampled, axis=0)
+    diffs = means - x_hat
+    bounds = [x_hat - np.percentile(diffs, 5), x_hat - np.percentile(diffs, 95)]
 
-        cumacts = np.cumsum(acts == optact, axis=0)
-        weights = np.arange(1, len(acts) + 1)
+    return bounds
 
-        plt.title(f'{phase_split}:% optimal action\n({db_type}, n={num_dbs})')
-        legends = []
-        for j in range(num_dbs):
-            ax1.plot(cumacts[:, j] / weights)
-            legends.append(f'e#{j}')
-        plt.legend(legends, loc='lower right')
-        plt.savefig(f'{files_dir}{phase_split}_{db_type}_optimal_cycles.png')
-        plt.show()
 
+def main():
+
+    num_cols = 3
+    num_rows = math.ceil(len(data) / num_cols)
+
+    fig, ax = plt.subplots(nrows=num_rows, ncols=num_cols)
+    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+    fig.tight_layout(pad=3.0)
+
+    counter = 0
+    for (idx, d) in enumerate(data):
+
+        if num_rows > 1:
+            r = counter // num_cols
+            c = counter % num_cols
+            curr_ax = ax[r][c]
+        else:
+            curr_ax = ax[counter]
+
+
+        names = []
+        values = []
+        errors = []
+
+        for (method, path) in d['paths'].items():
+            # Get test eval json file from experiment root folder.
+
+            tar = tarfile.open(path)
+
+            all_names = tar.getnames()
+            json_file = [x for x in all_names if Path(x).name == 'rollouts_test.json'][0]
+
+            # Create temporary directory.
+            dirpath = tempfile.mkdtemp()
+
+            # Extract json file to temporary directory.
+            tar.extract(json_file, dirpath)
+
+            # Load JSON data.
+            with open(dirpath + '/' + json_file) as f:
+                json_data = json.load(f)
+
+            # Clean temporary directory.
+            shutil.rmtree(dirpath)
+
+
+            # Calculate cumulative reward.
+            id = str(json_data['id'][0])
+            dfs_r = [pd.DataFrame(r) for r in json_data['rewards'][id]]
+            df_concat = pd.concat(dfs_r, axis=1)
+            df_rewards = df_concat.to_numpy()
+            cum_rewards = np.sum(df_rewards, axis=0)
+
+            bounds = calculate_CI_bootstrap(np.mean(cum_rewards), cum_rewards)
+
+            names.append(method)
+            values.append(np.mean(cum_rewards))
+            errors.append(bounds)
+
+            # print(np.mean(cum_rewards))
+            # print(bounds)
+            # print(df_rewards)
+            # print(df_rewards.shape)
+
+        errors = np.array(errors).T
+        errors = np.flip(errors, axis=0)
+        error_lengths = np.abs(np.subtract(errors, values))
+
+        x = 0.5*np.arange(len(names))
+
+        curr_ax.bar(x, values, width=0.25, yerr=error_lengths, capsize=4)
+
+        curr_ax.set_xticks(x)
+        curr_ax.set_xticklabels(names)
+
+        low = min(values)
+        high = max(values)
+        curr_ax.set_ylim([low-1.25*(high-low), high+1.25*(high-low)])
+
+        counter += 1
+
+    plt.savefig('analysis/plots/rewards_comparison.pdf', bbox_inches='tight', pad_inches=0)
+    plt.savefig('analysis/plots/rewards_comparison.png', bbox_inches='tight', pad_inches=0)
+    
+    plt.close()
+
+
+if __name__ == "__main__":
+    main()
