@@ -129,6 +129,12 @@ class Webster:
                                     for p, data in self._tls_phases[nid].items()}
                                         for nid in self._tls_phases}
 
+        # Uncomment below for (static) Webster timings calculation.
+        """ self._global_counts = {nid: {p: {e[0]: {l: [] for l in e[1]}
+                                for e in data['incoming']}
+                                    for p, data in self._tls_phases[nid].items()}
+                                        for nid in self._tls_phases} """
+
         # Calculate uniform timings.
         self._uniform_timings = {}
         for tid in self._tls_phases:
@@ -173,6 +179,10 @@ class Webster:
                 for veh in vehs_p:
                     if veh.id not in self._vehicles_counts[nid][p][veh.edge_id][veh.lane]:
                         self._vehicles_counts[nid][p][veh.edge_id][veh.lane].append(veh.id)
+
+                    # Uncomment below for (static) Webster timings calculation.
+                    """ if veh.id not in self._global_counts[nid][p][veh.edge_id][veh.lane]:
+                        self._global_counts[nid][p][veh.edge_id][veh.lane].append(veh.id) """
 
         if (self._time_counter % self._aggregation_period == 0) and self._time_counter > 1:
             # Calculate new signal plan.
@@ -232,3 +242,39 @@ class Webster:
 
     def terminate(self):
         self._reset_counts()
+
+        # Uncomment below for (static) Webster timings calculation.
+        """ global_timings = {}
+
+        for tls_id in self._global_counts.keys():
+            max_counts = []
+            for p in self._global_counts[tls_id].keys():
+                max_count = -1
+                for edge in self._global_counts[tls_id][p].keys():
+                    for l in self._global_counts[tls_id][p][edge].keys():
+                        lane_count = len(self._global_counts[tls_id][p][edge][l])
+                        max_count = max(max_count, lane_count)
+                max_counts.append(max_count)
+
+            num_phases = len(max_counts)
+
+            # Calculate ratios.
+            ratios = [p/sum(max_counts) for p in max_counts]
+
+            # Calculate phases durations given allocation ratios.
+            phases_durations = [np.around(r*(self._cycle_time-6.0*num_phases)) for r in ratios]
+
+            # Calculate timings.
+            counter = 0
+            timings = []
+            for p in range(num_phases):
+                timings.append(counter + phases_durations[p])
+                timings.append(counter + phases_durations[p] + 6.0)
+                counter += phases_durations[p] + 6.0
+
+            timings[-1] = self._cycle_time
+            timings[-2] = self._cycle_time - 6.0
+
+            global_timings[tls_id] = timings
+
+        print('Global timings (Webster method):', global_timings) """
