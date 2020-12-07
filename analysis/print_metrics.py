@@ -33,7 +33,8 @@ def get_arguments():
             Utility script to print the metrics of a given experiment (from compressed folder).
         """
     )
-    parser.add_argument('--experiment_path', help='Experiment path (compressed folder).', required=True)
+    parser.add_argument('experiment_path',
+                         help='Experiment path (compressed folder).', type=str, nargs='?')
 
     return parser.parse_args()
 
@@ -90,7 +91,7 @@ def main():
     # Print csv files.
     filtered_csvs = [x for x in all_names if Path(x).name in CSVS_TO_PRINT]
 
-    for csv_p in filtered_csvs:
+    for csv_p in sorted(filtered_csvs):
         df = pd.read_csv(tar.extractfile(csv_p))
         print('\n')
         print(Path(csv_p).name)

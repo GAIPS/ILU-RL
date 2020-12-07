@@ -55,8 +55,7 @@ def get_arguments():
         """
     )
 
-    parser.add_argument('--path', '-p', type=str, nargs='?',
-                dest='experiment_root_folder', required=True,
+    parser.add_argument('path', type=str, nargs='?',
                 help='Path to the experiment root folder')
 
     return parser.parse_args()
@@ -68,7 +67,7 @@ def main(experiment_root_folder=None):
 
     if not experiment_root_folder:
         args = get_arguments()
-        experiment_root_folder = args.experiment_root_folder
+        experiment_root_folder = args.path
 
     print('Input files:')
     # Get all train_log.json files from experiment root folder.
