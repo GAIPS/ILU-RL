@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import operator
 
 # How to run this script:
 #
@@ -97,6 +98,12 @@ from matplotlib import cm
 DATA_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201120195251.364751/intersection_20201121-0136331605922593.5583198/checkpoints/50001/247123161.chkpt'
 OUTPUT_DIR = 'analysis/plots/policies/'
 AGENT_TYPE = 'QL'
+bins_0 = [1.35, 2.0, 2.48, 3.02, 3.83]
+bins_1 = [2.72, 3.67, 4.42, 5.22, 6.48]
+min_0 = 0
+min_1 = 0
+max_0 = 9
+max_1 = 25
 
 def main():
 
@@ -200,38 +207,25 @@ def main():
 
     elif AGENT_TYPE == 'QL':
 
-        import operator
-
-        #  {'247123161': {'waiting_time': {'0': [1.35, 2.0, 2.48, 3.02, 3.83], '1': [2.72, 3.67, 4.42, 5.22, 6.48]}}}
-        bins_0 = [1.35, 2.0, 2.48, 3.02, 3.83]
-        bins_1 = [2.72, 3.67, 4.42, 5.22, 6.48]
-
-        min_0 = 0
-        min_1 = 0
-        max_0 = 10
-        max_1 = 20
-
         data_max_actions_matrix = np.zeros((len(bins_0)+1, len(bins_1)+1))
-        data_max_q_vals_matrix = np.zeros((len(bins_0)+1, len(bins_1)+1))
+        # data_max_q_vals_matrix = np.zeros((len(bins_0)+1, len(bins_1)+1))
 
         for i in range(len(bins_0)+1):
             for j in range(len(bins_1)+1):
                 if sum(data[(i,j)].values()) == 0:
-                    data_max_actions_matrix[i,j] = np.nan
+                    raise ValueError('Unvisited state.')
                 else:
                     data_max_actions_matrix[i,j] = max(data[(i,j)].items(), key=operator.itemgetter(1))[0]
                 
-                data_max_q_vals_matrix[i,j] =  max(data[(i,j)].values())
+                # data_max_q_vals_matrix[i,j] =  max(data[(i,j)].values())
 
         # print(data)
         # print(data_max_actions_matrix)
         # print(data_max_q_vals_matrix)
 
-        cmap = plt.get_cmap('Set2', 7)
-
         fig = plt.figure()
-
         ax = plt.subplot(111)
+        cmap = plt.get_cmap('Set2', 7)
 
         bins_0_extended = [min_0] + bins_0 + [max_0]
         xs = []
