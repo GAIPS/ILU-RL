@@ -126,12 +126,13 @@ def main():
 
         curr_ax.bar(x, values, width=0.25, yerr=error_lengths, capsize=4)
 
+        curr_ax.set_title(d['mdp'])
         curr_ax.set_xticks(x)
         curr_ax.set_xticklabels(names)
 
-        low = min(values)
-        high = max(values)
-        curr_ax.set_ylim([low-1.25*(high-low), high+1.25*(high-low)])
+        low = min(errors[0,:])
+        high = max(errors[1,:])
+        curr_ax.set_ylim([low-1.1*(high-low), high+1.1*(high-low)])
 
         counter += 1
 
