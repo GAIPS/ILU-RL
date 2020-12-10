@@ -90,20 +90,20 @@ import operator
 # AGENT_TYPE = 'DQN'
 
 # DDPG setup.
-# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/ddpg_actions.pickle'
-# OUTPUT_DIR = 'analysis/plots/policies/'
-# AGENT_TYPE = 'DDPG'
+DATA_PATH = '/home/ppsantos/ILU/ILU-RL/ddpg_actions.pickle'
+OUTPUT_DIR = 'analysis/plots/policies/'
+AGENT_TYPE = 'DDPG'
 
 # QL setup.
-DATA_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201120195251.364751/intersection_20201121-0136331605922593.5583198/checkpoints/50001/247123161.chkpt'
-OUTPUT_DIR = 'analysis/plots/policies/'
-AGENT_TYPE = 'QL'
-bins_0 = [1.35, 2.0, 2.48, 3.02, 3.83]
-bins_1 = [2.72, 3.67, 4.42, 5.22, 6.48]
-min_0 = 0
-min_1 = 0
-max_0 = 9
-max_1 = 25
+# DATA_PATH = '/home/ppsantos/ILU/ILU-RL/data/experiments/chapter_1/demand_high/20201120195251.364751/intersection_20201121-0136331605922593.5583198/checkpoints/50001/247123161.chkpt'
+# OUTPUT_DIR = 'analysis/plots/policies/'
+# AGENT_TYPE = 'QL'
+# bins_0 = [1.35, 2.0, 2.48, 3.02, 3.83]
+# bins_1 = [2.72, 3.67, 4.42, 5.22, 6.48]
+# min_0 = 0
+# min_1 = 0
+# max_0 = 9
+# max_1 = 25
 
 def main():
 
@@ -154,10 +154,19 @@ def main():
         plt.xlabel('Waiting time phase 1')
         plt.ylabel('Waiting time phase 2')
 
+        import matplotlib as mpl
         fig.subplots_adjust(right=0.8)
+        fig.set_size_inches(5.0, 4.0)
+
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        fig.colorbar(im, cax=cbar_ax)
-        plt.title('Maximizing\naction')
+
+        cbar = mpl.colorbar.ColorbarBase(cbar_ax, cmap=plt.get_cmap('Set2', 7))
+
+        cbar.set_ticks([0.07,0.21,0.35,0.5,0.64,0.79,0.93])
+        cbar.ax.set_yticklabels(['(30,70)','(36,63)','(43,57)',
+                                '(50,50)','(57,43)','(63,37)','(70,30)'])
+
+        plt.title('Action')
 
         plt.savefig(OUTPUT_DIR + 'maximizing_action.png', bbox_inches='tight', pad_inches=0)
         plt.savefig(OUTPUT_DIR + 'maximizing_action.pdf', bbox_inches='tight', pad_inches=0)
@@ -166,6 +175,7 @@ def main():
         max_Zs = np.max(Zs_array, axis=0)
 
         fig = plt.figure()
+        fig.set_size_inches(5.0, 4.0)
 
         im = plt.pcolormesh(X, Y, max_Zs, cmap=cm.jet, shading='gouraud',
                     vmin=np.min(Zs_array), vmax=np.max(Zs_array))
@@ -190,17 +200,19 @@ def main():
 
         # Policy (actions) plot.
         fig = plt.figure()
+        fig.set_size_inches(5.0, 4.0)
 
-        im = plt.pcolormesh(X, Y, Zs_array, cmap=cm.jet, shading='gouraud')
-        plt.xlabel('Delay phase 1')
-        plt.ylabel('Delay phase 2')
+        im = plt.pcolormesh(X, Y, Zs_array, cmap=cm.jet, shading='gouraud',
+                        vmin=0.25, vmax=0.65)
+        plt.xlabel('Waiting time phase 1')
+        plt.ylabel('Waiting time phase 2')
 
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(im, cax=cbar_ax)
-        plt.title('Phase-1\nallocation')
+        plt.title('Phase-1\nalloc.')
 
-        plt.show()
+        # plt.show()
 
         plt.savefig(OUTPUT_DIR + 'ddpg_policy.png', bbox_inches='tight', pad_inches=0)
         plt.savefig(OUTPUT_DIR + 'ddpg_policy.pdf', bbox_inches='tight', pad_inches=0)
@@ -224,6 +236,8 @@ def main():
         # print(data_max_q_vals_matrix)
 
         fig = plt.figure()
+        fig.set_size_inches(5.0, 4.0)
+
         ax = plt.subplot(111)
         cmap = plt.get_cmap('Set2', 7)
 
