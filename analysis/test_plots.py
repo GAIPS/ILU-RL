@@ -873,6 +873,8 @@ def main(experiment_root_folder=None):
         # plt.title('Actions per intersection')
         plt.legend()
 
+        plt.ylim(0.0,1.0)
+
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
@@ -897,6 +899,8 @@ def main(experiment_root_folder=None):
         plt.ylabel('Action')
         # plt.title('Actions per intersection')
         plt.legend()
+
+        plt.ylim(0.0,6.0)
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
