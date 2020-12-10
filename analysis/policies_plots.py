@@ -22,8 +22,8 @@ import operator
 #                import numpy as np
 #
 #                Zs_array = np.zeros([7,61,121])    # Setup this depending on the MDP.
-#                X = np.linspace(0,10,61)           # Setup this depending on the MDP.
-#                Y = np.linspace(0,30,121)          # Setup this depending on the MDP.
+#                X = np.linspace(0,9,61)            # Setup this depending on the MDP.
+#                Y = np.linspace(0,25,121)          # Setup this depending on the MDP.
 #
 #                for idx_x, x in enumerate(X):
 #                    for idx_y, y in enumerate(Y):
@@ -51,8 +51,8 @@ import operator
 #               import numpy as np
 #       
 #               Zs_array = np.zeros([61,121])
-#               X = np.linspace(0,10,61)
-#               Y = np.linspace(0,30,121)
+#               X = np.linspace(0,9,61)
+#               Y = np.linspace(0,25,121)
 #       
 #               for idx_x, x in enumerate(X):
 #                   for idx_y, y in enumerate(Y):
