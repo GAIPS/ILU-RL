@@ -900,7 +900,8 @@ def main(experiment_root_folder=None):
         # plt.title('Actions per intersection')
         plt.legend()
 
-        plt.ylim(0.0,6.0)
+        plt.ylim(-0.2,6.2)
+        plt.yticks(ticks=[0,1,2,3,4,5,6], labels=['(30,70)', '(36,63)', '(43,57)', '(50,50)', '(57,43)', '(63,37)', '(70,30)'])
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)

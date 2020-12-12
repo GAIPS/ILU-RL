@@ -316,6 +316,9 @@ def main(experiment_root_folder=None):
         for col in df_actions.columns:
             plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
 
+        plt.ylim(-0.2,6.2)
+        plt.yticks(ticks=[0,1,2,3,4,5,6], labels=['(30,70)', '(36,63)', '(43,57)', '(50,50)', '(57,43)', '(63,37)', '(70,30)'])
+
         plt.xlabel('Cycle')
         plt.ylabel('Action')
         # plt.title('Actions per intersection')
