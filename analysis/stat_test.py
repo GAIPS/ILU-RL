@@ -117,4 +117,6 @@ if __name__ == '__main__':
     # Non-parametric test.
     print('\nKruskal (non-parametric) test:', stats.kruskal(*args))
 
-    # TODO: post-hoc non-parametric comparisons.
+    # Post-hoc non-parametric comparisons.
+    data = [df['travel_time'].tolist() for df in dfs]
+    print(sp.posthoc_conover(data, p_adjust = 'holm'))
