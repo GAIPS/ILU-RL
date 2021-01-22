@@ -18,7 +18,7 @@ plt.style.use('ggplot')
 from scipy import stats
 import statsmodels
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
-
+import scikit_posthocs as sp
 
 def get_arguments():
     parser = argparse.ArgumentParser(
