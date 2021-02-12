@@ -5,9 +5,14 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.cm as cmx
 from matplotlib import colors as mcolors
-
+# import seaborn as sns
 
 from ilurl.utils.aux import TIMESTAMP, snakefy
+
+# plt.style.use('ggplot')
+
+# FIGURE_X = 7.0
+# FIGURE_Y = 5.0
 
 def plot_times(times, series, series_labels, xy_labels, title):
     """ Makes an hourly plot of series
@@ -128,6 +133,17 @@ def scatter_phases(series, label, categories={}, save_path=None,
             save_scatter(fig, tl, (label,), network=network, save_path=save_path)
             plt.show()
 
+            # Heatmap.
+            #h = sns.jointplot(x=data[0], y=data[1], kind='scatter',
+            #                height= FIGURE_Y, xlim=[0,9], ylim=[0,25])
+
+            # JointGrid has a convenience function
+            #h.set_axis_labels('Waiting time phase 1', 'Waiting time phase 2', fontsize=16)
+
+            #plt.savefig('analysis/plots/states_dist.pdf', bbox_inches='tight', pad_inches=0)
+            #plt.savefig('analysis/plots/states_dist.png', bbox_inches='tight', pad_inches=0)
+            
+            #plt.close()
 
 def scatter_states(series, categories={}, save_path=None, network=None,
                    rewards=[], reward_is_penalty=False, reward_function=None):
@@ -170,7 +186,7 @@ def scatter_states(series, categories={}, save_path=None, network=None,
                 ax.set_xlabel(snakefy(xlabel))
                 ax.set_ylabel(snakefy(ylabel))
                 
-                set_categories(ax, labels, categories)
+                # set_categories(ax, labels, categories)
 
                 ax.scatter(*data, c=clr, label=f'Phase {n}')
 

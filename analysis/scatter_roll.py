@@ -128,16 +128,20 @@ if __name__ == '__main__':
     # this loop acumulates experiments
     args = get_arguments()
     experiment_path = Path(args.experiment_dir)
-    train_log_path = experiment_path / 'logs' / 'train_log.json'
-    config_path = experiment_path / 'config' / 'train.config'
+    rollouts_path = experiment_path / 'rollouts_test.json'
+    config_path = experiment_path / 'intersection_20201020-1200311603191631.7173903/config' / 'train.config'
     target_path = experiment_path / 'log_plots'
     target_path.mkdir(mode=0o777, exist_ok=True)
 
     phases = defaultdict(list)
-    with train_log_path.open('r') as f:
+    with rollouts_path.open('r') as f:
         output = json.load(f)
-    observation_spaces = output['observation_spaces']
-    rewards = output['rewards']
+
+    id = str(output['id'][0])
+    # print(output)
+    observation_spaces = output['observation_spaces'][id][0] + output['observation_spaces'][id][1] + output['observation_spaces'][id][2]
+    print(len(observation_spaces))
+    rewards = output['rewards'][id][0]
 
     train_config = configparser.ConfigParser()
     train_config.read(config_path.as_posix())

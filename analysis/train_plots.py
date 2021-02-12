@@ -37,6 +37,16 @@ MEAN_CURVE_COLOR = (0.89,0.282,0.192)
 SMOOTHING_CURVE_COLOR = (0.33,0.33,0.33)
 
 
+# LABELS_MAP = {
+#     'gneJ0': 'Int. 1',
+#     'gneJ1': 'Int. 2',
+#     'gneJ4': 'Int. 3',
+#     'gneJ5': 'Int. 4',
+#     'gneJ8': 'Int. 5',
+#     'gneJ9': 'Int. 6',
+# }
+
+
 def get_arguments():
 
     parser = argparse.ArgumentParser(
@@ -162,10 +172,10 @@ def main(experiment_root_folder=None):
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    window_size = min(len(df_rewards)-1, 20)
+    window_size = min(len(df_rewards)-1, 200)
 
     for col in df_rewards.columns:
-        plt.plot(df_rewards[col].rolling(window=window_size).mean(), label=col)
+        plt.plot(df_rewards[col].rolling(window=window_size).mean())# , label=LABELS_MAP[col])
 
     plt.xlabel('Cycle')
     plt.ylabel('Reward')
@@ -271,7 +281,7 @@ def main(experiment_root_folder=None):
         window_size = min(len(df_actions)-1, 40)
 
         for col in df_actions.columns:
-            plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
+            plt.plot(df_actions[col].rolling(window=window_size).mean()) #, label=LABELS_MAP[col])
 
         plt.xlabel('Cycle')
         plt.ylabel('Action (Phase-1 allocation)')
@@ -287,7 +297,7 @@ def main(experiment_root_folder=None):
         fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
         for col in df_actions.columns:
-            plt.plot(df_actions[col], label=col)
+            plt.plot(df_actions[col])#, label=LABELS_MAP[col])
 
         plt.xlabel('Cycle')
         plt.ylabel('Action (Phase-1 allocation)')
@@ -314,7 +324,7 @@ def main(experiment_root_folder=None):
         window_size = min(len(df_actions)-1, 40)
 
         for col in df_actions.columns:
-            plt.plot(df_actions[col].rolling(window=window_size).mean(), label=col)
+            plt.plot(df_actions[col].rolling(window=window_size).mean())#, label=LABELS_MAP[col])
 
         plt.ylim(-0.2,6.2)
         plt.yticks(ticks=[0,1,2,3,4,5,6], labels=['(30,70)', '(36,63)', '(43,57)', '(50,50)', '(57,43)', '(63,37)', '(70,30)'])
@@ -322,7 +332,7 @@ def main(experiment_root_folder=None):
         plt.xlabel('Cycle')
         plt.ylabel('Action')
         # plt.title('Actions per intersection')
-        plt.legend()
+        # plt.legend()
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
