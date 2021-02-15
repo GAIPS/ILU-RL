@@ -208,6 +208,7 @@ class Parser(object):
                         epsilon_init=float(dqn_args['epsilon_init']),
                         epsilon_final=float(dqn_args['epsilon_final']),
                         epsilon_schedule_timesteps=int(dqn_args['epsilon_schedule_timesteps']),
+                        max_gradient_norm = float(dqn_args['max_gradient_norm']) if not isNone(dqn_args['max_gradient_norm']) else None,
                         torso_layers=json.loads(dqn_args['torso_layers']),
                         head_layers=json.loads(dqn_args['head_layers']),
         )

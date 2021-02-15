@@ -3,14 +3,13 @@ import dill
 import pickle
 import random
 import numpy as np
-from threading import Thread
 
 import tensorflow as tf
 
 from ilurl.utils.default_logger import make_default_logger
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
-from ilurl.agents.ql.choice import choice_eps_greedy, choice_ucb
+from ilurl.agents.ql.choice import choice_eps_greedy
 from ilurl.agents.ql.define import dpq_tls
 from ilurl.agents.ql.update import dpq_update
 from ilurl.agents.ql.replay_buffer import ReplayBuffer

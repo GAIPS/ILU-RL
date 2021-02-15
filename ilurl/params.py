@@ -238,6 +238,7 @@ class DQNParams(Printable):
             epsilon_init: float = 1.0,
             epsilon_final: float = 0.01,
             epsilon_schedule_timesteps: int = 50000,
+            max_gradient_norm: float = None,
             torso_layers : list = [5],
             head_layers  : list = [5],
         ):
@@ -289,6 +290,9 @@ class DQNParams(Printable):
 
         * epsilon_schedule_timesteps: int
             Number of timesteps to decay epsilon from 'epsilon_init' to 'epsilon_final'.
+
+        * max_gradient_norm: float
+            Gradient clipping coefficient.
 
         * torso_layers: list
             Torso MLP network layers.

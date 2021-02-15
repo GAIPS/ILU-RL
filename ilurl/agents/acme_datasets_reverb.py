@@ -42,11 +42,11 @@ def make_reverb_dataset(
     extra_spec: Optional[types.NestedSpec] = None,
     transition_adder: bool = False,
     table: str = adders.DEFAULT_PRIORITY_TABLE,
-    parallel_batch_optimization: bool = True,
     convert_zero_size_to_none: bool = False,
+    num_parallel_calls: int = 2,
     using_deprecated_adder: bool = False,
 ) -> tf.data.Dataset:
-  """Makes a TensorFlow dataset.
+  """Makes a TensorFlow dataset backed by a `Reverb` replay service.
 
   We need to explicitly specify up-front the shapes and dtypes of all the
   Tensors that will be drawn from the dataset. We require that the action and
@@ -72,14 +72,13 @@ def make_reverb_dataset(
       this dataset adds transitions.
     table: The name of the table to sample from replay (defaults to
       `adders.DEFAULT_PRIORITY_TABLE`).
-    parallel_batch_optimization: Whether to enable the parallel_batch
-      optimization. In some cases this optimization may slow down sampling from
-      the dataset, in which case turning this to False may speed up performance.
     convert_zero_size_to_none: When True this will convert specs with shapes 0
       to None. This is useful for datasets that contain elements with different
       shapes for example `GraphsTuple` from the graph_net library. For example,
       `specs.Array((0, 5), tf.float32)` will correspond to a examples with shape
       `tf.TensorShape([None, 5])`.
+    num_parallel_calls: Number of parallel threads creating ReplayDatasets to
+      interleave.
     using_deprecated_adder: True if the adder used to generate the data is
       from acme/adders/reverb/deprecated.
 
@@ -116,14 +115,20 @@ def make_reverb_dataset(
           num_workers_per_iterator=1, # TWEAKED.
           sequence_length=sequence_length,
           emit_timesteps=sequence_length is None)
+
+    # Finish the pipeline: batch and prefetch.
+    if batch_size:
+      dataset = dataset.batch(batch_size, drop_remainder=True)
+
     return dataset
 
   # Create the dataset.
-  dataset = tf.data.Dataset.range(1).repeat()
+  dataset = tf.data.Dataset.range(1)
   dataset = dataset.interleave(
       map_func=_make_dataset,
       cycle_length=1, # TWEAKED.
-      num_parallel_calls=None) # TWEAKED.
+      num_parallel_calls=None, # TWEAKED.
+      deterministic=False)
 
   # Optimization options.
   options = tf.data.Options()
@@ -132,10 +137,6 @@ def make_reverb_dataset(
   options.experimental_threading.max_intra_op_parallelism = 2 # TWEAKED.
   options.experimental_threading.private_threadpool_size = 2 # TWEAKED.
   dataset = dataset.with_options(options)
-
-  # Finish the pipeline: batch and prefetch.
-  if batch_size:
-    dataset = dataset.batch(batch_size, drop_remainder=True)
 
   if prefetch_size:
     dataset = dataset.prefetch(prefetch_size)

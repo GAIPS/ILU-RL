@@ -72,11 +72,14 @@ class R2D2(agent.Agent):
         max_priority_weight: float = 0.9,
         checkpoint: bool = True,
     ):
-        extra_spec = {
-            'core_state': network.initial_state(1),
-        }
-        # Remove batch dimensions.
-        extra_spec = tf2_utils.squeeze_batch_dim(extra_spec)
+
+        if store_lstm_state:
+            extra_spec = {
+                'core_state': tf2_utils.squeeze_batch_dim(network.initial_state(1)),
+            }
+        else:
+            extra_spec = ()
+
         replay_table = reverb.Table(
             name=adders.DEFAULT_PRIORITY_TABLE,
             sampler=reverb.selectors.Prioritized(priority_exponent),
@@ -134,18 +137,19 @@ class R2D2(agent.Agent):
                                      epsilon_final=epsilon_final,
                                      epsilon_schedule_timesteps=epsilon_schedule_timesteps)
         ])
-        actor = actors.RecurrentActor(policy_network, self._adder)
+        actor = actors.RecurrentActor(
+            policy_network, self._adder, store_recurrent_state=store_lstm_state)
 
         max_Q_network = snt.DeepRNN([
             network,
             lambda qs: trfl.epsilon_greedy(qs, epsilon=0.0).sample(),
         ])
-        self._deterministic_actor = actors.RecurrentActor(max_Q_network, self._adder)
+        self._deterministic_actor = actors.RecurrentActor(
+            max_Q_network, self._adder, store_recurrent_state=store_lstm_state)
 
         observations_per_step = (
             float(replay_period * batch_size) / samples_per_insert)
 
-        print('Obs per step: ', observations_per_step)
         super().__init__(
             actor=actor,
             learner=learner,
