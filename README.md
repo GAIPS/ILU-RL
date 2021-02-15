@@ -51,9 +51,9 @@ Locally install the ILU-RL package.
 	virtualenv -p python3 env_ILU-RL
 	source env_ILU-RL/bin/activate
 	```
- 2. Clone [ILU-RL](https://github.com/PPSantos/ILU-RL) repository
+ 2. Clone [ILU-RL](https://github.com/GAIPS/ILU-RL) repository
 	```bash
-	git clone https://github.com/PPSantos/ILU-RL
+	git clone https://github.com/GAIPS/ILU-RL
 	```
 3. Install packages
 	```bash
