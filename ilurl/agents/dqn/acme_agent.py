@@ -85,8 +85,9 @@ class DQN(agent.Agent):
             ignored if a dataset argument is passed.
         max_replay_size: maximum replay size.
         importance_sampling_exponent: power to which importance weights are raised
-            before normalizing.
-        priority_exponent: exponent used in prioritized sampling.
+            before normalizing (beta). See https://arxiv.org/pdf/1710.02298.pdf
+        priority_exponent: exponent used in prioritized sampling (omega).
+            See https://arxiv.org/pdf/1710.02298.pdf
         n_step: number of steps to squash into a single transition.
         epsilon_init: Initial epsilon value (probability of taking a random action)
         epsilon_final: Final epsilon value (probability of taking a random action)
