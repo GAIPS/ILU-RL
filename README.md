@@ -1,6 +1,6 @@
-# ILU - (I)ntegrative (L)earning from (U)rban Data: Reinforcement learning-based traffic signal controllers
+# ILU - (I)ntegrative (L)earning from (U)rban Data: Reinforcement Learning-based Adaptive Traffic Signal Control
 
-This experimental project researches the development of RL-based traffic signal controllers.
+This experimental project researches the development of RL-based adaptive traffic signal controllers.
 
 ## Installation 
 This project requires the installation of the computational framework for reinforcement learning (RL) in traffic control [FLOW](https://github.com/flow-project/flow) and the RL framework [acme](https://github.com/deepmind/acme).
@@ -12,7 +12,7 @@ Locally install the flow package. An installation guide can be found [here](http
 	virtualenv -p python3 env_flow
 	source env_flow/bin/activate
 	```
- 2. Clone [FLOW-Project](https://github.com/flow-project/flow) repository
+ 2. Clone the [FLOW-Project](https://github.com/flow-project/flow) repository
 	```bash
 	git clone https://github.com/flow-project/flow
 	```
@@ -51,7 +51,7 @@ Locally install the ILU-RL package.
 	virtualenv -p python3 env_ILU-RL
 	source env_ILU-RL/bin/activate
 	```
- 2. Clone [ILU-RL](https://github.com/GAIPS/ILU-RL) repository
+ 2. Clone the [ILU-RL](https://github.com/GAIPS/ILU-RL) repository
 	```bash
 	git clone https://github.com/GAIPS/ILU-RL
 	```
