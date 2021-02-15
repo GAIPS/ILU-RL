@@ -16,7 +16,7 @@ Locally install the flow package. An installation guide can be found [here](http
 	```bash
 	git clone https://github.com/flow-project/flow
 	```
- 3. Install FLOW
+ 3. Install FLOW (checkout to 50be2d074027fb465fc4a9103b3cc09fb1123ede)
 	```bash
 	pip install -e flow/
 	```
