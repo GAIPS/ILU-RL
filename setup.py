@@ -5,14 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ilurl",
-    version="0.3.0",
+    version="0.0.0.consensus",
     author="Guilherme Varela",
-    author_email="guilhermevarela@hotmail.com",
+    author_email="guilhermevarela@protonmail.com",
     description=
-    "iLU: Integrative Learning from Urban Data and Situational Context for City Mobility for City Mobility Optimization",
+    "iLU: Integrative Learning from Urban Data and Situational Context for City Mobility Optimization",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.com/guilhermevarela/ilu",
+    url="https://github.com/GAIPS/ILU-RL.git",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

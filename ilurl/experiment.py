@@ -89,7 +89,8 @@ class Experiment:
             self,
             num_steps : int,
             rl_actions = None,
-            stop_on_teleports : bool = False
+            stop_on_teleports : bool = False,
+            communicate : bool = True
     ):
         """
         Run the given scenario (env) for a given number of steps.
@@ -140,6 +141,10 @@ class Experiment:
 
         state = self.env.reset()
 
+
+        if communicate:
+            alpha = get_alpha(self.env.network.network_id)
+
         for step in tqdm(range(num_steps)):
 
             # WARNING: Env reset is not synchronized with agents' cycle time.
@@ -147,12 +152,40 @@ class Experiment:
             #     self.env.reset()
 
             state, reward, done, _ = self.env.step(rl_actions(state))
+            vehicles = self.env.k.vehicle
 
-            step_ids = self.env.k.vehicle.get_ids()
-            step_speeds = [s for s in self.env.k.vehicle.get_speed(step_ids) if s > 0]
+            step_ids = vehicles.get_ids()
+            step_speeds = [s for s in vehicles.get_speed(step_ids) if s > 0]
 
-            veh_ids.append(len(step_speeds))
+            veh_ids.append(len(step_ids))
             veh_speeds.append(np.nanmean(step_speeds))
+
+            if communicate and step > 10:
+                import ipdb; ipdb.set_trace()
+                # READ: each agent reads their speed.
+                x1, y1 = get_x("grid", "247123161",  vehicles), get_y("grid", "247123161",  vehicles)
+                x2, y2 = get_x("grid", "247123464",  vehicles), get_y("grid", "247123464",  vehicles)
+                x3, y3 = get_x("grid", "247123468",  vehicles), get_y("grid", "247123468",  vehicles)
+
+                vs = np.array([x1, x2, x3])
+                vbar = np.array([np.nanmean(step_speeds)] * 3)
+
+                # Consensus Loop: each agent broadcasts and updates
+                num_com = 0
+                while not np.allclose(vs, vbar):
+                    x1, x2, x3 = x1 + alpha * 1 * (x2 - x1), \
+                                 x2 + alpha * 2 * (0.5 *  (x1 + x3) - x2), \
+                                 x3 + alpha * 1 * (x2 - x3)
+
+                    y1, y2, y3 = y1 + alpha * 1 * (y2 - y1), \
+                                 y2 + alpha * 2 * (0.5 *  (y1 + y3) - y2), \
+                                 y3 + alpha * 1 * (y2  - y3)
+
+                    vs = np.nan_to_num(np.array([x1 / y1, x2 / y2, x3 / y3]))
+                    num_com += 1
+                print(step, veh_speeds[-1], num_com)
+            else:
+                print(step, veh_speeds[-1])
 
             if self._is_save_step():
 
@@ -198,3 +231,68 @@ class Experiment:
         if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
             return self.train and self.exp_path
         return False
+
+
+def get_alpha(network_id):
+    """
+    Communication matrix
+    """
+    assert network_id == "grid", "W is only defined for grid"
+
+    A = np.array([[0, 1, 0], [1 , 0 , 1], [0, 1, 0]])
+
+    D = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 1]])
+
+    L = D - A
+
+    # eigvals are decreasing 
+    eigvals = np.linalg.eigvals(L)
+
+    alpha = 2/ (np.round(eigvals[0], 0) + np.round(eigvals[-2], 0))
+
+    return alpha
+
+
+def get_x(network_id, tls_id, vehicles):
+    """
+    Gets speed for a given agent tls_id
+    """
+    assert network_id == "grid", "W is only defined for grid"
+
+    network = {"247123161": [":247123161_0", ":247123161_1", ":247123161_2", ":247123161_3",
+                             ":247123161_4", ":247123161_4", ":24712", "3161_6", ":247123161_7",
+                             ":247123161_8", ":247123161_9", ":247123161_10", ":247123161_10",
+                             ":247123161", "383432312", "-383432312", "309265401", "-238059324",
+                             "238059324", "-238059328", "238059328"],
+               "247123464": [":247123464_0", ":247123464_1", ":247123464_1", ":247123464_3",
+                             ":247123464_4", ":247123464_5", ":247123464_6", ":247123464_7",
+                             ":247123464_8", ":247123464_8", ":247123464", "3092655395#1",
+                             "309265400", "-309265401", "22941893"],
+               "247123468": [":247123468_0", ":247123468_1", ":247123468_2", ":247123468_3",
+                             ":247123468_4", ":247123468_5", ":247123468_5", ":247123468_7",
+                             ":247123468_8", ":247123468_8", ":247123468", "23148196",  "309265402",
+                             "-309265402", "309265396#1", "-309265400"]}
+    edges = network[tls_id]
+    speeds = vehicles.get_speed(vehicles.get_ids_by_edge(edges))
+    return np.nan_to_num(np.nansum(speeds))
+
+def get_y(network_id, tls_id, vehicles):
+    """
+    Gets speed for a given agent tls_id
+    """
+    network = {"247123161": [":247123161_0", ":247123161_1", ":247123161_2", ":247123161_3",
+                             ":247123161_4", ":247123161_4", ":24712", "3161_6", ":247123161_7",
+                             ":247123161_8", ":247123161_9", ":247123161_10", ":247123161_10",
+                             ":247123161", "383432312", "-383432312", "309265401",
+                             "-238059324", "238059324", "238059328", "-238059328"],
+               "247123464": [":247123464_0", ":247123464_1", ":247123464_1", ":247123464_3",
+                             ":247123464_4", ":247123464_5", ":247123464_6", ":247123464_7",
+                             ":247123464_8", ":247123464_8", ":247123464", "3092655395#1",
+                             "309265400", "-309265401", "22941893"],
+               "247123468": [":247123468_0", ":247123468_1", ":247123468_2", ":247123468_3",
+                             ":247123468_4", ":247123468_5", ":247123468_5", ":247123468_7",
+                             ":247123468_8", ":247123468_8", ":247123468", "23148196",  "309265402",
+                             "-309265402", "309265396#1", "-309265400"]}
+    edges = network[tls_id]
+    vehids = vehicles.get_ids_by_edge(edges)
+    return len(vehids)

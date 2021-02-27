@@ -36,11 +36,11 @@ class AgentFactory(object):
         if not cls._class:
 
             module_path = f'ilurl.agents.{name.lower()}.agent'
-            try:
-                agent_class = getattr(import_module(module_path), name)
-            except Exception as e:
-                print(e)
-                raise ModuleNotFoundError(_IMPORT_ERROR.format(module_path))
+            # try:
+            agent_class = getattr(import_module(module_path), name)
+            # except Exception as e:
+            #     print(e)
+            #     raise ModuleNotFoundError(_IMPORT_ERROR.format(module_path))
 
             cls._class = agent_class
 
