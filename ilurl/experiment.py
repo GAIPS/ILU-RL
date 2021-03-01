@@ -11,7 +11,7 @@ import logging
 from tqdm import tqdm
 
 import numpy as np
-
+import ipdb
 from ilurl.utils.precision import action_to_double_precision
 
 # TODO: Track those anoying warning
@@ -161,7 +161,6 @@ class Experiment:
             veh_speeds.append(np.nanmean(step_speeds))
 
             if communicate and step > 10:
-                import ipdb; ipdb.set_trace()
                 # READ: each agent reads their speed.
                 x1, y1 = get_x("grid", "247123161",  vehicles), get_y("grid", "247123161",  vehicles)
                 x2, y2 = get_x("grid", "247123464",  vehicles), get_y("grid", "247123464",  vehicles)
@@ -172,7 +171,8 @@ class Experiment:
 
                 # Consensus Loop: each agent broadcasts and updates
                 num_com = 0
-                while not np.allclose(vs, vbar):
+                data = [vs]
+                while (not np.allclose(vs, vbar)) or num_com < 26:
                     x1, x2, x3 = x1 + alpha * 1 * (x2 - x1), \
                                  x2 + alpha * 2 * (0.5 *  (x1 + x3) - x2), \
                                  x3 + alpha * 1 * (x2 - x3)
@@ -182,7 +182,12 @@ class Experiment:
                                  y3 + alpha * 1 * (y2  - y3)
 
                     vs = np.nan_to_num(np.array([x1 / y1, x2 / y2, x3 / y3]))
+                    data.append(vs)
                     num_com += 1
+
+                assert np.allclose(vs, vbar)
+                consensus_plot(data, np.nanmean(step_speeds), step,
+                               save_path='data/emissions/consensus/grid_20210227-1901001614452460.5683067/')
                 print(step, veh_speeds[-1], num_com)
             else:
                 print(step, veh_speeds[-1])
@@ -296,3 +301,29 @@ def get_y(network_id, tls_id, vehicles):
     edges = network[tls_id]
     vehids = vehicles.get_ids_by_edge(edges)
     return len(vehids)
+
+import matplotlib
+# matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+
+def consensus_plot(data, target, time, save_path=None):
+    MAX_STEPS = 25
+    num_steps = np.arange(0, MAX_STEPS + 1, 1)
+
+    ipdb.set_trace()
+    if isinstance(data, list):
+        X = np.stack(data)
+
+    fig, ax = plt.subplots()
+    # make a line
+    title = f"Consensus at time {time}"
+    ax.set_title(title)
+    ax.set_xlabel('steps')
+    ax.set_ylabel('velocity')
+    ax.axhline(y=target, xmin=0, xmax=25, color = 'r', linestyle = 'dashed', linewidth=3)
+    ax.plot(data)
+    plt.legend(('target','velocity 1', 'velocity 2', 'velocity 3'))
+    plt.show()
+    if not save_path is None:
+        plt.savefig(f'{save_path}/consensus_{time}.png', bbox_inches='tight', pad_inches=0)
+    plt.close()
