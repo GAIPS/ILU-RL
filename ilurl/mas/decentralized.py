@@ -6,6 +6,8 @@ from ilurl.agents.client import AgentClient
 from ilurl.agents.factory import AgentFactory
 from ilurl.interfaces.mas import MASInterface
 
+from ilurl.utils.aux import flatten
+
 
 class DecentralizedMAS(MASInterface):
     """
@@ -50,7 +52,7 @@ class DecentralizedMAS(MASInterface):
                 states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
 
             states_rank = num_phases * num_variables + int(has_period)
-            agent_params_.states = Bounds(states_rank, states_depth)
+            agent_params_.states = Bounds(states_rank * 3, states_depth)
             # Experience path.
             agent_params_.exp_path = exp_path
 
@@ -93,7 +95,8 @@ class DecentralizedMAS(MASInterface):
     def act(self, state):
         # Send requests.
         for (tid, agent) in self.agents.items():
-            agent.act(state[tid])
+            # agent.act(state[tid])
+            agent.act(_get_states(state.values()))
 
         # Retrieve requests.
         choices = {tid: agent.receive()
@@ -104,7 +107,8 @@ class DecentralizedMAS(MASInterface):
     def update(self, s, a, r, s1):
         # Send requests.
         for (tid, agent) in self.agents.items():
-            agent.update(s[tid], a[tid], r[tid], s1[tid])
+            # agent.update(s[tid], a[tid], r[tid], s1[tid])
+            agent.update(_get_states(s.values()), a[tid], r[tid], _get_states(s1.values()))
 
         # Synchronize.
         for (tid, agent) in self.agents.items():
@@ -133,3 +137,6 @@ class DecentralizedMAS(MASInterface):
         # (also waits for termination)
         for (tid, agent) in self.agents.items():
             agent.terminate()
+
+def _get_states(state):
+    return [s for s in flatten(state)]
