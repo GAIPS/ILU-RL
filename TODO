@@ -1,6 +1,11 @@
+Aceder á maquina do proj. ILU.
+Falar com Pedro/Guilherme sobre como fazer a minha extenção do desenvolvimento.
+Criar Agente DQN centralizado com informação sobre as 3 traffic lights, para criar uma upper bound para os agentes coordenados.
+---------------------------------------------------------------------------------------------------------------------------------------------------------
 Familiarizar-me melhor com o código(Quantas seeds/runs está a treinar, qual a politica escolhida?, como escolher graficos do melhor modelo/checkpoint
 Familiarizar-me com o algoritmo DQN(como funciona etc)
 Correr grid(3x1) com 3 agentes DQN para servir como baseline para a tese.
+---------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Questões:
 
@@ -18,3 +23,4 @@ Notas:
 
 CONTINUE: ilurl/envs/base.py:72/88 from ilurl/models/train.py:93
 (Explore State and reward definitions)
+
