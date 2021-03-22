@@ -1,3 +1,20 @@
 Familiarizar-me melhor com o código(Quantas seeds/runs está a treinar, qual a politica escolhida?, como escolher graficos do melhor modelo/checkpoint
 Familiarizar-me com o algoritmo DQN(como funciona etc)
 Correr grid(3x1) com 3 agentes DQN para servir como baseline para a tese.
+
+Questões:
+
+1. Na criação da Network, o Initial config retira a distribuição inicial de carros da função /
+loaders.nets.get_routes..
+  1.1 Esta distribuição tem algo com softmax e o numero de curvas de cada route?
+  1.2 Esta distribuição é apenas no inicio do rollout, correcto?
+
+2.Antes dos Inflows, 1 veiculo humano é adicionado, não percebi porquê.
+
+3.Não entendi bem o Inflow Cyclical.
+
+
+Notas:
+
+CONTINUE: ilurl/envs/base.py:72/88 from ilurl/models/train.py:93
+(Explore State and reward definitions)
