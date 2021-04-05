@@ -75,7 +75,7 @@ sphinxcontrib-htmlhelp==1.0.2
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.2
 sphinxcontrib-serializinghtml==1.1.3
-sumotools==0.3.1
+sumotools==0.7.2
 traitlets==4.3.3
 urllib3==1.25.6
 wcwidth==0.1.7
