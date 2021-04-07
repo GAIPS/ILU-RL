@@ -29,6 +29,7 @@ from ilurl.envs.controllers import get_ts_controller, is_controller_periodic
 # TODO: make this a factory in the future.
 from ilurl.mas.decentralized import DecentralizedMAS
 
+from ilurl.mas.centralized import CentralizedAgent
 
 class TrafficLightEnv(Env):
     """
@@ -70,6 +71,8 @@ class TrafficLightEnv(Env):
 
         if self.ts_type in ('rl', 'random'):
             self.tsc = DecentralizedMAS(mdp_params, exp_path, seed)
+        elif self.ts_type == "centralized":
+            self.tsc = CentralizedAgent(mdp_params, exp_path, seed)
         elif self.ts_type in ('max_pressure', 'webster'):
             self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls,
                                         self.tls_phases, self.cycle_time)
@@ -147,6 +150,22 @@ class TrafficLightEnv(Env):
             for tid, durations in self.network.tls_durations.items()
         }
 
+    def get_joined_actions(self):
+        dur = int(self.duration)
+        joined_action = []
+        action_index = self._current_rl_action()
+        if (dur == 0 and self.step_counter > 1):
+            # New cycle.
+            return [True]*len(self.tls_ids)
+
+        for tid in self.tls_ids:
+            curr_action = action_index % len(self.programs[tid])
+            joined_action.append(dur in self.programs[tid][curr_action])
+            action_index //= len(self.programs[tid])
+
+        return joined_action
+
+
     def update_observation_space(self):
         """ Query kernel to retrieve vehicles' information
         and send it to ilurl.State object for state computation.
@@ -210,7 +229,7 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if self.ts_type in ('rl', 'random') and \
+            if self.ts_type in ('rl', 'random', 'centralized') and \
                 (dur == 1 or self.time_counter == 1) and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
@@ -253,7 +272,7 @@ class TrafficLightEnv(Env):
                 return dur in self.tls_durations[tid]
             elif self.ts_type == 'webster':
                 return dur in self.webster_timings[tid]
-            elif self.ts_type in ('rl', 'random'):
+            elif self.ts_type in ('rl', 'random', 'centralized'):
                 if self.mdp_params.action_space == 'discrete':
                     # Discrete action space: TLS programs.
                     progid = self._current_rl_action()[tid]
@@ -264,7 +283,10 @@ class TrafficLightEnv(Env):
             else:
                 raise ValueError(f'Unknown ts_type:{self.ts_type}')
 
-        ret = [fn(tid) for tid in self.tls_ids]
+        if self.ts_type == 'centralized':
+            ret = self.get_joined_actions()
+        else:
+            ret = [fn(tid) for tid in self.tls_ids]
 
         return tuple(ret)
 
@@ -281,7 +303,7 @@ class TrafficLightEnv(Env):
 
         if is_controller_periodic(self.ts_type):
 
-            if self.ts_type in ('rl', 'random') and \
+            if self.ts_type in ('rl', 'random', 'centralized') and \
                 (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 

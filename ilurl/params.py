@@ -31,7 +31,7 @@ Bounds = namedtuple('Bounds', 'rank depth')
 
 # Traffic light system types.
 TLS_TYPES = ('rl', 'static', 'webster',
-             'actuated', 'random', 'max_pressure')
+             'actuated', 'random', 'max_pressure', 'centralized')
 
 # Traffic demand types (flows).
 DEMAND_TYPES = ('constant', 'variable')
