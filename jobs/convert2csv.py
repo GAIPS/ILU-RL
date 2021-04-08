@@ -6,6 +6,7 @@ import configparser
 
 from pathlib import Path
 
+from ilurl.loaders.parser import config_parser
 from ilurl.loaders.xml2csv import main as _xml2csv
 
 ILURL_HOME = environ['ILURL_HOME']
@@ -41,9 +42,7 @@ def xml2csv(experiment_root_path=None):
         experiment_root_path = args.experiment_dir
         num_processors = mp.cpu_count()
     else:
-        run_config = configparser.ConfigParser()
-        run_config.read(str(CONFIG_PATH / 'run.config'))
-        num_processors = int(run_config.get('run_args', 'num_processors'))
+        num_processors, _, _ = config_parser.parse_run_params(print_params=False)
 
     print('\nConverting .xml files to .csv ...\n')
 

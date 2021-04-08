@@ -16,11 +16,3 @@ loaders.nets.get_routes..
 
 
 Notas:
-
-CONTINUE: ilurl/envs/base.py:72/88 from ilurl/models/train.py:93
-(Explore State and reward definitions)
-
-Criar classe alternativa a DecentralizedMAS que inicializa apenas um agente com o tamanho do state/actions correcto
-Mudar envs/base.py:88 "self.observation_space = State(network, mdp_params)" para ser o estado de todas as interseções
-Mudar acções para ser um composto de todas as interseções.
-Talvez mudar reward?

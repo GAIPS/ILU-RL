@@ -15,7 +15,8 @@ from ilurl.params import (QLParams,
                           TrainParams)
 
 ILURL_PATH = Path(environ['ILURL_HOME'])
-TRAIN_CONFIG_PATH = ILURL_PATH / 'config/train.config'
+CONFIG_PATH = ILURL_PATH / 'config'
+TRAIN_CONFIG_PATH = CONFIG_PATH / 'train.config'
 NETWORK_PATH = ILURL_PATH / 'data' / 'networks'
 
 def str2bool(v, exception=None):
@@ -38,9 +39,11 @@ class Parser(object):
     """
         Parser for experiment parameters.
     """
-
     def __init__(self):
         self.config_path = TRAIN_CONFIG_PATH # Default config path.
+        train_config = configparser.ConfigParser()
+        train_config.read(str(self.config_path))
+        self.debug = str2bool(train_config.get('train_args', 'debug'))
 
     def set_config_path(self, config_path):
         """
@@ -55,6 +58,51 @@ class Parser(object):
         if not save_dir_path.exists():
             save_dir_path.mkdir()
         copyfile(self.config_path, save_dir_path / 'train.config')
+
+    def parse_run_params(self, print_params=False):
+        """
+             Parses run parameters from config file located at
+             self.config_path and returns a tuple with the parsed parameters
+             (num_runs, num_processors, train_seeds).
+         """
+        run_config = configparser.ConfigParser()
+        run_config.read(str(CONFIG_PATH / 'run.config'))
+
+        if self.debug:
+            num_processors = int(run_config.get('run_args', 'debug_num_processors'))
+            num_runs = int(run_config.get('run_args', 'debug_num_runs'))
+            train_seeds = json.loads(run_config.get("run_args", "debug_train_seeds"))
+        else:
+            num_processors = int(run_config.get('run_args', 'num_processors'))
+            num_runs = int(run_config.get('run_args', 'num_runs'))
+            train_seeds = json.loads(run_config.get("run_args", "train_seeds"))
+
+        return num_processors, num_runs, train_seeds
+
+    def parse_rollout_params(self, test_file=False):
+        """
+             Parses rollout parameters from config file located at
+             self.config_path and returns a tuple with the parsed parameters
+             (rollout_time, num_rollouts).
+         """
+        run_config = configparser.ConfigParser()
+        if test_file:
+            run_config.read(str(CONFIG_PATH / 'test.config'))
+            args = 'test_args'
+
+        else:
+            run_config.read(str(CONFIG_PATH / 'rollouts.config'))
+            args = 'rollouts_args'
+
+        if self.debug:
+            rollout_time = int(run_config.get(args, 'debug_rollout-time'))
+            num_rollouts = int(run_config.get(args, 'debug_num-rollouts'))
+
+        else:
+            rollout_time = int(run_config.get(args, 'rollout-time'))
+            num_rollouts = int(run_config.get(args, 'num-rollouts'))
+
+        return rollout_time, num_rollouts
 
     def parse_train_params(self, print_params=False):
         """
@@ -71,8 +119,15 @@ class Parser(object):
 
         seed = int(train_args['experiment_seed']) if not isNone(train_args['experiment_seed']) else None
 
+        if self.debug:
+            train_args['experiment_time'] = train_args['debug_experiment_time']
+            train_args['experiment_save_agent'] = train_args['debug_experiment_save_agent']
+            train_args['experiment_save_agent_interval'] = train_args['debug_experiment_save_agent_interval']
+
+
 
         train_params = TrainParams(
+            debug=self.debug,
             network=train_args['network'],
             experiment_time=int(train_args['experiment_time']),
             experiment_save_agent=str2bool(train_args['experiment_save_agent']),

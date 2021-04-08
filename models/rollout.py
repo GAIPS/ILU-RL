@@ -47,8 +47,21 @@ def get_arguments(config_file_path):
                         nargs='?', required=True, help='Checkpoint number.')
 
     parser.add_argument('--rollout-time', '-t', dest='rollout_time', type=int,
-                        default=300, nargs='?',
+                        default=86400, nargs='?',
                         help='Experiment runtime to perform evaluation.')
+
+    parser.add_argument('--debug_rollout-time', '-dt', dest='debug_rollout-time', type=int,
+                        default=6000, nargs='?',
+                        help='Debug experiment runtime to perform evaluation.')
+
+    parser.add_argument('--num-rollouts', '-nr', dest='num-rollouts', type=int,
+                        default=3, nargs='?',
+                        help='Debug experiment runtime to perform evaluation.')
+
+    parser.add_argument('--debug_num-rollouts', '-dnr', dest='debug_num-rollouts', type=int,
+                        default=1, nargs='?',
+                        help='Debug experiment runtime to perform evaluation.')
+
 
     parser.add_argument('--sumo-emission', '-e', dest='sumo_emission', type=str2bool,
                         default=True, nargs='?',
@@ -63,6 +76,7 @@ def get_arguments(config_file_path):
                         help='''Sets seed value for both rl agent and Sumo.
                                `None` for rl agent defaults to RandomState() 
                                `None` for Sumo defaults to a fixed but arbitrary seed''')
+
     parsed = parser.parse_args()
     sys.argv = [sys.argv[0]]
 

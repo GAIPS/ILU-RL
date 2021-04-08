@@ -229,7 +229,7 @@ class TrafficLightEnv(Env):
 
         def fn(tid):
 
-            if self.ts_type in ('rl', 'random', 'centralized') and \
+            if self.ts_type in ('rl', 'random') and \
                 (dur == 1 or self.time_counter == 1) and \
                 self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
@@ -272,7 +272,7 @@ class TrafficLightEnv(Env):
                 return dur in self.tls_durations[tid]
             elif self.ts_type == 'webster':
                 return dur in self.webster_timings[tid]
-            elif self.ts_type in ('rl', 'random', 'centralized'):
+            elif self.ts_type in ('rl', 'random'):
                 if self.mdp_params.action_space == 'discrete':
                     # Discrete action space: TLS programs.
                     progid = self._current_rl_action()[tid]

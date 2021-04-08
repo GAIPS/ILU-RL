@@ -18,6 +18,7 @@ import multiprocessing.pool
 import time
 import shutil
 import argparse
+from ilurl.loaders.parser import config_parser
 
 import configparser
 
@@ -95,13 +96,8 @@ def baseline_batch():
     flags = get_arguments()
 
     # Read script arguments from run.config file.
-    run_config = configparser.ConfigParser()
-    run_path = CONFIG_PATH / 'run.config'
-    run_config.read(run_path)
 
-    num_processors = int(run_config.get('run_args', 'num_processors'))
-    num_runs = int(run_config.get('run_args', 'num_runs'))
-    seeds = json.loads(run_config.get("run_args", "train_seeds"))
+    num_processors, num_runs, seeds = config_parser.parse_run_params(print_params=False)
 
     if len(seeds) != num_runs:
         raise configparser.Error('Number of seeds in run.config `seeds`'

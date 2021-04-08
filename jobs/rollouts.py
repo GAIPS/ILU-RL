@@ -15,6 +15,7 @@ import multiprocessing
 import multiprocessing.pool
 from collections import defaultdict
 
+from ilurl.loaders.parser import config_parser
 from ilurl.utils.decorators import processable
 from models.rollout import main as roll
 from ilurl.utils import str2bool
@@ -167,12 +168,8 @@ def rollout_batch(test=False, experiment_dir=None):
 
     # print(rollouts_paths)
 
-    run_config = configparser.ConfigParser()
-    run_config.read(str(CONFIG_PATH / 'run.config'))
+    num_processors, num_runs, train_seeds = config_parser.parse_run_params(print_params=False)
 
-    num_processors = int(run_config.get('run_args', 'num_processors'))
-    num_runs = int(run_config.get('run_args', 'num_runs'))
-    train_seeds = json.loads(run_config.get("run_args", "train_seeds"))
 
     if len(train_seeds) != num_runs:
         raise configparser.Error('Number of seeds in run.config `train_seeds`'
@@ -190,19 +187,18 @@ def rollout_batch(test=False, experiment_dir=None):
     # Read rollouts arguments from rollouts.config file.
     rollouts_config = configparser.ConfigParser()
     rollouts_config.read(str(CONFIG_PATH / 'rollouts.config'))
-    num_rollouts = int(rollouts_config.get('rollouts_args', 'num-rollouts'))
-    rollouts_config.remove_option('rollouts_args', 'num-rollouts')
+
+    rollout_time, num_rollouts = config_parser.parse_rollout_params()
 
     if test:
         # Override rollouts config files with test.config file parameters.
         test_config = configparser.ConfigParser()
         test_config.read(str(CONFIG_PATH / 'test.config'))
 
-        num_rollouts = int(test_config.get('test_args', 'num-rollouts'))
-        rollout_time = test_config.get('test_args', 'rollout-time')
+        rollout_time, num_rollouts = config_parser.parse_rollout_params(test_file=True)
 
         # Overwrite defaults.
-        rollouts_config.set('rollouts_args', 'rollout-time', rollout_time)
+        rollouts_config.set('rollouts_args', 'rollout-time', str(rollout_time))
 
         token = 'test'
 
@@ -218,7 +214,6 @@ def rollout_batch(test=False, experiment_dir=None):
         # Do not write .xml files due to performance and memory issues.
         rollouts_config.set('rollouts_args', 'sumo-emission', str(False))
 
-    rollout_time = rollouts_config.get('rollouts_args', 'rollout-time')
     print(f'\nArguments (jobs/{token}.py):')
     print('-------------------------')
     print(f'Experiment dir: {batch_path}')
@@ -289,3 +284,4 @@ def rollout_job(test=False):
 if __name__ == '__main__':
     #rollout_job()
     rollout_batch() # Use this line for textual output.
+    # rollout_batch(test=True, experiment_dir="../data/emissions/20210408032428.027567")

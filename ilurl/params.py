@@ -457,6 +457,7 @@ class TrainParams(Printable):
 
     def __init__(
             self,
+            debug: bool = False,
             network: str = 'intersection',
             experiment_time: int = 900000,
             experiment_save_agent: bool = False,
