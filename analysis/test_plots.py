@@ -888,7 +888,7 @@ def main(experiment_root_folder=None):
 
         if train_config['train_args']['tls_type'] == 'centralized':
             NUM_ACTIONS = 7
-            tls_names = list(json_data['states'][0].keys())
+            tls_names = list(json_data['rewards'][id][0][0].keys())
             df_temp = pd.DataFrame(columns=tls_names, dtype=int)
             for index, row in df_concat.iterrows():
                 action1 = row[0] % NUM_ACTIONS
@@ -1057,4 +1057,4 @@ def main(experiment_root_folder=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(experiment_root_folder="/home/cube/ILU-RL/data/emissions/central_agent_grid/20210409133901.524084")
