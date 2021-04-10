@@ -304,9 +304,21 @@ def main(experiment_root_folder=None):
         dfs_a = [pd.DataFrame(run) for run in actions]
 
         df_concat = pd.concat(dfs_a)
+        if train_config['train_args']['tls_type'] == 'centralized':
+            NUM_ACTIONS = 7
+            tls_names = list(json_data['states'][0].keys())
+            df_temp = pd.DataFrame(columns=tls_names, dtype=int)
+            for index, row in df_concat.iterrows():
+                action1 = row[0] % NUM_ACTIONS
+                action2 = (row[0] // NUM_ACTIONS) % NUM_ACTIONS
+                action3 = ((row[0] // NUM_ACTIONS) // NUM_ACTIONS) % NUM_ACTIONS
+                df_temp = df_temp.append(
+                    pd.DataFrame({tls_names[0]: action1, tls_names[1]: action2, tls_names[2]: action3}, index=[index]))
+        df_concat = df_temp
 
         by_row_index = df_concat.groupby(df_concat.index)
         df_actions = by_row_index.mean()
+
 
         fig = plt.figure()
         fig.set_size_inches(FIGURE_X, FIGURE_Y)
@@ -323,7 +335,6 @@ def main(experiment_root_folder=None):
         plt.ylabel('Action')
         # plt.title('Actions per intersection')
         plt.legend()
-
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
