@@ -1057,4 +1057,4 @@ def main(experiment_root_folder=None):
 
 
 if __name__ == "__main__":
-    main(experiment_root_folder="/home/cube/ILU-RL/data/emissions/central_agent_grid/20210409133901.524084")
+    main()
