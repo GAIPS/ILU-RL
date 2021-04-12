@@ -1,5 +1,5 @@
 """This module provides common functionality among unit-tests"""
-from ilurl.utils.aux import flatten
+from ilurl.utils.aux_tools import flatten
 
 def process_pressure(kernel_data, incoming, outgoing, fctin=1, fctout=1, is_average=False):
     timesteps = list(range(1,60)) + [0]

@@ -16,3 +16,6 @@ loaders.nets.get_routes..
 
 
 Notas:
+Mudar parametros DQN, especificamente ExplorationVsExploitation e ver se melhora
+Criar network 2x2 com 3 semaforos e correr experiencias aí
+Mudar demand para variable e ver resultados

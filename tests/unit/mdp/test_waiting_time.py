@@ -7,7 +7,7 @@ from ilurl.state.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.rewards import build_rewards
 from ilurl.params import MDPParams
-from ilurl.utils.aux import flatten
+from ilurl.utils.aux_tools import flatten
 from ilurl.utils.properties import lazy_property
 
 from tests.unit.network.test_grid import MAX_VEHS_PER_LANE

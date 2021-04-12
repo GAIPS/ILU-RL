@@ -14,7 +14,7 @@ from ilurl.agents.ql.choice import CHOICE_TYPES
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
 from ilurl.loaders.demands import get_demand
-from ilurl.utils.aux import Printable
+from ilurl.utils.aux_tools import Printable
 
 
 ''' Bounds : namedtuple

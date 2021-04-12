@@ -1,4 +1,4 @@
-from ilurl.utils.aux import flatten as flat
+from ilurl.utils.aux_tools import flatten as flat
 
 from ilurl.state.node import Node
 from ilurl.state.intersection import Intersection
