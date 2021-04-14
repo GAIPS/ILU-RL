@@ -30,10 +30,12 @@
 """
 import os
 import shutil
+import time
 from pathlib import Path
 
 import ilurl.loaders.parser
 from ilurl.loaders.parser import config_parser
+from jobs.finalize import finalize
 from jobs.preprocess import preprocess_batch as preprocess
 from jobs.train import train_batch as train
 from jobs.rollouts import rollout_batch as rollouts
@@ -60,9 +62,11 @@ if __name__ == '__main__':
 
     # 0) Makes discretization bins
     categories = preprocess()
+    start = time.time()
 
     # 1) Train agent(s).
     experiment_root_path = train(categories)
+    end = time.time()
 
     # 2) Create train plots.
     train_plots(experiment_root_path)
@@ -81,6 +85,8 @@ if __name__ == '__main__':
 
     # 7) Create plots with metrics plots for final agent.
     test_plots(experiment_root_path)
+
+    finalize(experiment_dir=experiment_root_path, time=end - start)
 
     # 8) Clean up and compress files.
     print('\nCleaning and compressing files...\n')
