@@ -11,6 +11,9 @@ import os
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from styleframe import StyleFrame
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import make_interp_spline, BSpline
 
 ILURL_HOME = environ['ILURL_HOME']
 CONFIG_PATH = ILURL_HOME + '/data/plots'
@@ -20,7 +23,7 @@ def get_metric_data(dst_folder, metric_name):
     data = pd.read_csv(dst_folder + "/test/" + metric_name + "_stats.csv", names=["name", "data"])
     mean = data[data["name"] == "mean"]["data"].values[0]
     std = data[data["name"] == "std"]["data"].values[0]
-    return '{0:.3f} ± {0:.3f}'.format(mean, std)
+    return '{0:.3f} ± {1:.3f}'.format(mean, std)
 
 
 def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
@@ -122,7 +125,30 @@ def get_arguments():
     return parsed
 
 
-def finalize(experiment_dir=None, time=0):
+def smooth_data(data):
+    x = np.array(list(range(len(data))))
+    y = np.array(list(data))
+
+    xnew = np.linspace(x.min(), x.max(), 1000)
+
+    spl = make_interp_spline(x, y, k=7)
+    y_smooth = spl(xnew)
+    return xnew, y_smooth
+
+def create_loss_graph(data, dst):
+    xnew, y_smooth = smooth_data(data)
+    fig, ax = plt.subplots(figsize=(24, 6))
+    plt.plot(xnew, y_smooth)
+    plt.xlabel('steps')
+    plt.title('loss')
+    plt.ylim([0, max(y_smooth) * 1.1])
+    plt.grid()
+    plt.plot(data, alpha=0.1)
+    plt.savefig(os.path.join(dst, 'loss.png'))
+    return os.path.join(dst, 'loss.png')
+
+
+def finalize(experiment_dir=None, time=0, filename="Results"):
     if not experiment_dir:
         args = get_arguments()
         batch_path = Path(args.experiment_dir)
@@ -134,6 +160,12 @@ def finalize(experiment_dir=None, time=0):
 
     if not path.exists(dst_folder):
         copytree(str(batch_path) + "/plots", dst_folder)
+
+    lossdata =  pd.read_csv(list(Path(batch_path).rglob('logs/*/*learning.csv'))[0])
+    lossdata = lossdata['loss'].map(lambda x: float(x.split("tf.Tensor(")[1].split(", shape=")[0]))[15:]
+
+    # create smooth line chart
+    dst = create_loss_graph(lossdata, dst_folder)
 
     train_config_path = list(Path(batch_path).rglob('train.config'))[0]
     train_config = configparser.ConfigParser()
@@ -162,6 +194,9 @@ def finalize(experiment_dir=None, time=0):
         "data/plots/" + experiment_name + "/train/actions_per_intersection.png", "Image")
     train_rewards_per_intersection = '=HYPERLINK("{}", "{}")'.format(
         "data/plots/" + experiment_name + "/train/rewards_per_intersection.png", "Image")
+    loss = '=HYPERLINK("{}", "{}")'.format(
+        "data/plots/" + experiment_name + "/loss.png", "Image")
+    network_size = train_config['dqn_args']['torso_layers'] + train_config['dqn_args']['head_layers']
 
     data = pd.DataFrame(data=
                         {"Filename": experiment_name, "Network": network, "Demand Type": demand_type,
@@ -180,9 +215,19 @@ def finalize(experiment_dir=None, time=0):
                          "Train: Rewards Per Intersection": train_rewards_per_intersection,
                          "Test: Actions Per Intersection": test_actions_per_intersection,
                          "Test: Rewards Per Intersection": test_rewards_per_intersection,
+                         "Loss": loss,
+                         "Network Size:": network_size,
                          }, index=[0])
-    append_df_to_excel(ILURL_HOME + "/Results.xlsx", data, index=False)
+    append_df_to_excel(ILURL_HOME + "/" + filename + ".xlsx", data, index=False)
+
+
+def redo_file(filename="Results2"):
+
+    for exp in os.listdir(os.path.join(ILURL_HOME, 'data/emissions/')):
+        finalize(os.path.join(ILURL_HOME, 'data/emissions/' + exp), filename=filename)
+
 
 
 if __name__ == '__main__':
-    finalize()
+    # finalize()
+    redo_file()
