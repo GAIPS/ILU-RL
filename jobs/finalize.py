@@ -196,6 +196,8 @@ def finalize(experiment_dir=None, time=0, filename="Results"):
         "data/plots/" + experiment_name + "/train/rewards_per_intersection.png", "Image")
     loss = '=HYPERLINK("{}", "{}")'.format(
         "data/plots/" + experiment_name + "/loss.png", "Image")
+    rewards = '=HYPERLINK("{}", "{}")'.format(
+        "data/plots/train" + experiment_name + "/rewards.png", "Image")
     network_size = train_config['dqn_args']['torso_layers'] + train_config['dqn_args']['head_layers']
 
     data = pd.DataFrame(data=
@@ -216,14 +218,16 @@ def finalize(experiment_dir=None, time=0, filename="Results"):
                          "Test: Actions Per Intersection": test_actions_per_intersection,
                          "Test: Rewards Per Intersection": test_rewards_per_intersection,
                          "Loss": loss,
-                         "Network Size:": network_size,
+                         "Rewards": rewards,
+                         "Network Size": network_size,
                          }, index=[0])
     append_df_to_excel(ILURL_HOME + "/" + filename + ".xlsx", data, index=False)
 
 
-def redo_file(filename="Results2"):
-
-    for exp in os.listdir(os.path.join(ILURL_HOME, 'data/emissions/')):
+def redo_file(filename="Results"):
+    exps = os.listdir(os.path.join(ILURL_HOME, 'data/emissions/'))
+    exps.sort()
+    for exp in exps:
         finalize(os.path.join(ILURL_HOME, 'data/emissions/' + exp), filename=filename)
 
 
