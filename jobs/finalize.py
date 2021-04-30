@@ -233,5 +233,5 @@ def redo_file(filename="Results"):
 
 
 if __name__ == '__main__':
-    # finalize()
-    redo_file()
+    finalize()
+    # redo_file()
