@@ -10,7 +10,7 @@ from operator import mul
 
 class CentralizedAgent(MASInterface):
     """
-        Decentralized multi-agent system wrapper.
+        Centralized multi-agent system wrapper.
     """
 
     def __init__(self, mdp_params, exp_path, seed):
@@ -25,7 +25,7 @@ class CentralizedAgent(MASInterface):
 
         # State space.
         # Period is a "Global" state space
-        has_period = mdp_params.time_period is not None
+        self.has_period = mdp_params.time_period is not None
         states_depth = None # Assign only when discretize_state_space
         agent_params_ = deepcopy(agent_params)
         num_phases = sum(mdp_params.phases_per_traffic_light.values())
@@ -50,7 +50,7 @@ class CentralizedAgent(MASInterface):
         #     feature = mdp_params.features[0]
         #     states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
 
-        states_rank = num_phases * num_variables + int(has_period)
+        states_rank = num_phases * num_variables + int(self.has_period)
         agent_params_.states = Bounds(states_rank, states_depth)
         # Experience path.
         agent_params_.exp_path = exp_path
@@ -88,16 +88,30 @@ class CentralizedAgent(MASInterface):
 
     def act(self, state):
         # Send requests.
-        concat_state = tuple([e for l in state.values() for e in l])
+        if self.has_period:
+            hour = state[next(iter(state))][0]
+            concat_state = [e for l in state.values() for e in l[1:]]
+            concat_state = tuple([hour] + concat_state)
+        else:
+            concat_state = tuple([e for l in state.values() for e in l])
         self.agent.act(concat_state)
 
         return self.agent.receive()
 
     def update(self, s, a, r, s1):
         # Send requests.
-        concat_s = tuple([e for l in s.values() for e in l])
+        if self.has_period:
+            hour = s[next(iter(s))][0]
+            concat_s = [e for l in s.values() for e in l[1:]]
+            concat_s = tuple([hour] + concat_s)
+        else:
+            concat_s = tuple([e for l in s.values() for e in l])
+
         summed_r = sum(r.values())
-        concat_s1 = tuple([e for l in s1.values() for e in l])
+        hour = s1[next(iter(s1))][0]
+        concat_s1 = [e for l in s.values() for e in l[1:]]
+        concat_s1 = tuple([hour] + concat_s1)
+        #concat_s1 = tuple([e for l in s1.values() for e in l])
         self.agent.update(concat_s, a, summed_r, concat_s1)
 
         # Synchronize.
