@@ -135,6 +135,7 @@ def smooth_data(data):
     y_smooth = spl(xnew)
     return xnew, y_smooth
 
+
 def create_loss_graph(data, dst):
     xnew, y_smooth = smooth_data(data)
     fig, ax = plt.subplots(figsize=(24, 6))
@@ -161,9 +162,10 @@ def finalize(experiment_dir=None, time=0, filename="Results"):
     if not path.exists(dst_folder):
         copytree(str(batch_path) + "/plots", dst_folder)
 
-    lossdata =  pd.read_csv(list(Path(batch_path).rglob('logs/*/*learning.csv'))[0])
+    lossdata = pd.read_csv(list(Path(batch_path).rglob('logs/*/*learning.csv'))[0])
     lossdata = lossdata['loss'].map(lambda x: float(x.split("tf.Tensor(")[1].split(", shape=")[0]))[15:]
 
+    rollout_metrics = pd.read_csv(list(Path(dst_folder).rglob('test/*_metrics.csv'))[0], index_col=0)
     # create smooth line chart
     dst = create_loss_graph(lossdata, dst_folder)
 
@@ -197,29 +199,37 @@ def finalize(experiment_dir=None, time=0, filename="Results"):
     loss = '=HYPERLINK("{}", "{}")'.format(
         "data/plots/" + experiment_name + "/loss.png", "Image")
     rewards = '=HYPERLINK("{}", "{}")'.format(
-        "data/plots/train" + experiment_name + "/rewards.png", "Image")
+        "data/plots/" + experiment_name + "/train/rewards.png", "Image")
     network_size = train_config['dqn_args']['torso_layers'] + train_config['dqn_args']['head_layers']
+    time_period = train_config['mdp_args']['time_period']
+    rollout_data_file_name =list(Path(dst_folder).rglob('test/*_metrics.csv'))[0].name
+    rollout_data_file = '=HYPERLINK("{}", "{}")'.format(
+        "data/plots/" + experiment_name + "/test/"+ rollout_data_file_name, "File")
 
+    num_rollouts = len(list(Path(list(Path(batch_path).rglob(network+"_*"))[0]).rglob("eval/*")))
+    min_travel_time = min(rollout_metrics.groupby(np.arange(len(rollout_metrics))//num_rollouts).mean()['travel_time']) #Minimum after averaging all rollouts for a training seed
+    rollout_std = rollout_metrics.groupby(np.arange(len(rollout_metrics))//num_rollouts).mean()['travel_time'].std()
     data = pd.DataFrame(data=
-                        {"Filename": experiment_name, "Network": network, "Demand Type": demand_type,
+                        {"Filename": experiment_name, "Demand Type": demand_type, "TLS Type": tls_type,
+                         "Network Size": network_size, "Travel Time": travel_time, "Min TT": min_travel_time, "Rollout Std": rollout_std,
+                         "Waiting Time": waiting_time,
+                         "Speed": speed, "Stops": stops,
+                         "Train: Actions Per Intersection": train_actions_per_intersection,
+                         "Train: Rewards Per Intersection": train_rewards_per_intersection,
+                         "Test: Rewards Per Intersection": test_rewards_per_intersection,
+                         "Loss": loss,
+                         "Rewards": rewards,
+                         "Time Period": time_period,
+                         "Network": network,
                          "Demand mode": demand_mode,
                          "Exp. Time": exp_time,
                          "Exp. Time2": int(exp_time) / 60,
-                         "TLS Type": tls_type, "Agent Type": agent_type, "Features": features, "Reward": reward,
-                         "Travel Time": travel_time,
-                         "Waiting Time": waiting_time,
-                         "Speed": speed, "Stops": stops,
+                         "Agent Type": agent_type, "Features": features, "Reward": reward,
                          "Epsilon Time": eps_time,
                          "Min Replay": replay_min,
                          "Max Replay": replay_max,
                          "Time": str(datetime.timedelta(seconds=int(time))),
-                         "Train: Actions Per Intersection": train_actions_per_intersection,
-                         "Train: Rewards Per Intersection": train_rewards_per_intersection,
-                         "Test: Actions Per Intersection": test_actions_per_intersection,
-                         "Test: Rewards Per Intersection": test_rewards_per_intersection,
-                         "Loss": loss,
-                         "Rewards": rewards,
-                         "Network Size": network_size,
+                         "Rollout Data":rollout_data_file,
                          }, index=[0])
     append_df_to_excel(ILURL_HOME + "/" + filename + ".xlsx", data, index=False)
 
@@ -231,7 +241,6 @@ def redo_file(filename="Results"):
         finalize(os.path.join(ILURL_HOME, 'data/emissions/' + exp), filename=filename)
 
 
-
 if __name__ == '__main__':
-    finalize()
-    # redo_file()
+    #finalize()
+    redo_file()

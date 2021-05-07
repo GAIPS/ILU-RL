@@ -121,7 +121,6 @@ def main(experiment_root_folder=None):
     """
     rewards = np.array(rewards)
 
-
     fig = plt.figure()
     fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
@@ -146,7 +145,7 @@ def main(experiment_root_folder=None):
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     file_name = '{0}/rewards.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
-    
+
     plt.close()
 
     """
@@ -175,7 +174,7 @@ def main(experiment_root_folder=None):
     plt.savefig('{0}/rewards_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
     plt.savefig('{0}/rewards_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
-    """ 
+    """
         Number of vehicles per cycle.
         (GLOBAL: For all vehicles in simulation)
     """
@@ -205,10 +204,10 @@ def main(experiment_root_folder=None):
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     file_name = '{0}/vehicles.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
-    
+
     plt.close()
 
-    """ 
+    """
         Vehicles' velocity per cycle.
         (GLOBAL: For all vehicles in simulation)
     """
@@ -241,7 +240,7 @@ def main(experiment_root_folder=None):
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
     file_name = '{0}/velocities.png'.format(output_folder_path)
     plt.savefig(file_name, bbox_inches='tight', pad_inches=0)
-    
+
     plt.close()
 
     """ 
@@ -303,18 +302,23 @@ def main(experiment_root_folder=None):
         # Discrete action-schema.
         dfs_a = [pd.DataFrame(run) for run in actions]
 
-        df_concat = pd.concat(dfs_a)
-        # if train_config['train_args']['tls_type'] == 'centralized':
-        #     NUM_ACTIONS = 7
-        #     tls_names = list(json_data['states'][0].keys())
-        #     df_temp = pd.DataFrame(columns=tls_names, dtype=int)
-        #     for index, row in df_concat.iterrows():
-        #         action1 = row[0] % NUM_ACTIONS
-        #         action2 = (row[0] // NUM_ACTIONS) % NUM_ACTIONS
-        #         action3 = ((row[0] // NUM_ACTIONS) // NUM_ACTIONS) % NUM_ACTIONS
-        #         df_temp = df_temp.append(
-        #             pd.DataFrame({tls_names[0]: action1, tls_names[1]: action2, tls_names[2]: action3}, index=[index]))
-        # df_concat = df_temp
+        if train_config['train_args']['tls_type'] == 'centralized':
+            NUM_ACTIONS = 7
+            tls_names = list(json_data['states'][0].keys())
+            d_total = []
+            for df in dfs_a:
+                d = {}
+                for index, row in df.iterrows():
+                    action = row[0]
+                    action1 = action % NUM_ACTIONS
+                    temp = (action // NUM_ACTIONS)
+                    action2 = temp % NUM_ACTIONS
+                    action3 = (temp // NUM_ACTIONS) % NUM_ACTIONS
+                    d[index] = {tls_names[0]: action1, tls_names[1]: action2, tls_names[2]: action3}
+                d_total.append(pd.DataFrame.from_dict(d, "index"))
+                df_concat = pd.concat(d_total)
+        else:
+            df_concat = pd.concat(dfs_a)
 
         by_row_index = df_concat.groupby(df_concat.index)
         df_actions = by_row_index.mean()
@@ -340,6 +344,16 @@ def main(experiment_root_folder=None):
 
         plt.close()
         
+def redo_plots(root_folder=None):
+    if not root_folder:
+        args = get_arguments()
+        root_folder = args.path
+    exps = os.listdir(root_folder)
+    exps.sort()
+    for exp in exps:
+        main(experiment_root_folder=root_folder + "/" + exp)
+
 
 if __name__ == '__main__':
+    #redo_plots()
     main()
