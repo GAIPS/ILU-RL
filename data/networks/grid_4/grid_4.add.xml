@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+  <vType accel="2.6" carFollowModel="IDM" decel="7.5" id="human" impatience="0.5" laneChangeModel="LC2013" lcCooperative="1.0" lcKeepRight="1.0" lcSpeedGain="1.0" lcStrategic="1.0" maxSpeed="30" minGap="2.5" sigma="0.5" speedDev="0.1" speedFactor="1.0" tau="1.0"/>
+  <tlLogic id="center0" programID="1" type="static">
+    <param key="id" value="center0"/>
+    <param key="type" value="static"/>
+    <param key="programID" value="1"/>
+    <phase duration="31" maxDur="45" minDur="8" state="GrGrGrGrGrGr"/>
+    <phase duration="6" maxDur="6" minDur="3" state="yryryryryryr"/>
+    <phase duration="31" maxDur="45" minDur="8" state="rGrGrGrGrGrG"/>
+    <phase duration="6" maxDur="6" minDur="3" state="ryryryryryry"/>
+  </tlLogic>
+  <tlLogic id="center1" programID="1" type="static">
+    <param key="id" value="center1"/>
+    <param key="type" value="static"/>
+    <param key="programID" value="1"/>
+    <phase duration="31" maxDur="45" minDur="8" state="GrGrGrGrGrGr"/>
+    <phase duration="6" maxDur="6" minDur="3" state="yryryryryryr"/>
+    <phase duration="31" maxDur="45" minDur="8" state="rGrGrGrGrGrG"/>
+    <phase duration="6" maxDur="6" minDur="3" state="ryryryryryry"/>
+  </tlLogic>
+  <tlLogic id="center2" programID="1" type="actuated">
+    <param key="id" value="center2"/>
+    <param key="type" value="actuated"/>
+    <param key="programID" value="1"/>
+    <phase duration="31" maxDur="45" minDur="8" state="GrGrGrGrGrGr"/>
+    <phase duration="6" maxDur="6" minDur="3" state="yryryryryryr"/>
+    <phase duration="31" maxDur="45" minDur="8" state="rGrGrGrGrGrG"/>
+    <phase duration="6" maxDur="6" minDur="3" state="ryryryryryry"/>
+    <param key="max-gap" value="3.0"/>
+    <param key="detector-gap" value="0.6"/>
+    <param key="show-detectors" value="True"/>
+  </tlLogic>
+</additional>

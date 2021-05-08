@@ -309,12 +309,14 @@ def main(experiment_root_folder=None):
             for df in dfs_a:
                 d = {}
                 for index, row in df.iterrows():
-                    action = row[0]
-                    action1 = action % NUM_ACTIONS
-                    temp = (action // NUM_ACTIONS)
-                    action2 = temp % NUM_ACTIONS
-                    action3 = (temp // NUM_ACTIONS) % NUM_ACTIONS
-                    d[index] = {tls_names[0]: action1, tls_names[1]: action2, tls_names[2]: action3}
+                    action_index = row[0]
+                    joined_action = {}
+                    for tls in tls_names:
+                        curr_action = action_index % NUM_ACTIONS
+                        joined_action[tls] = curr_action
+                        action_index //= NUM_ACTIONS
+                    d[index] = joined_action
+
                 d_total.append(pd.DataFrame.from_dict(d, "index"))
                 df_concat = pd.concat(d_total)
         else:

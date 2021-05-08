@@ -104,14 +104,15 @@ class CentralizedAgent(MASInterface):
             hour = s[next(iter(s))][0]
             concat_s = [e for l in s.values() for e in l[1:]]
             concat_s = tuple([hour] + concat_s)
+            hour = s1[next(iter(s1))][0]
+            concat_s1 = [e for l in s.values() for e in l[1:]]
+            concat_s1 = tuple([hour] + concat_s1)
         else:
             concat_s = tuple([e for l in s.values() for e in l])
+            concat_s1 = tuple([e for l in s1.values() for e in l])
 
         summed_r = sum(r.values())
-        hour = s1[next(iter(s1))][0]
-        concat_s1 = [e for l in s.values() for e in l[1:]]
-        concat_s1 = tuple([hour] + concat_s1)
-        #concat_s1 = tuple([e for l in s1.values() for e in l])
+
         self.agent.update(concat_s, a, summed_r, concat_s1)
 
         # Synchronize.
