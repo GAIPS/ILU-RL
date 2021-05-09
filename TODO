@@ -24,3 +24,6 @@ O output é calculado individualmente e a loss mudada para representar isso?
 
 Adicionar time_period ao demand variable e ver resultados
 Separar resultados de cada rollout e ver melhor esses resultados (qual o melhor resultado, qual é a variablidade etc). Talvez fazer coluna com a média de cada rollout, o rollout minimo e um link para o ficheiro com os dados.
+
+Correr RL com time_period
+Criar 2x2 e correr modelos.
