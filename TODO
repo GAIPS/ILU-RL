@@ -20,3 +20,7 @@ Notas:
 Acabar de correr modelos na grelha 2x2
 Começar a documentar os resultados que tive desde que começei (com graficos etc) para depois ser mais facil de integrar na tese
 Ver gráficos na tese do Pedro.
+
+
+Adicionar tempo de ciclo ao action space para posivelmente dessincronizar os agentes e obter uma diferença maior entre lower e upper bound.
+Começar apenas com modelo rl.
