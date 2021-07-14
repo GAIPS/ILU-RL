@@ -1,1 +1,0 @@
-15-03-2021: Changed ilurl requirements (sumotools version 0.3.1 to 0.7.2) and flow requirements (redis version 2.10.6 to 3.3.2) due to dependency problems. Everything seems to work fine.
