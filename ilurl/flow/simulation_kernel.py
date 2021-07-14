@@ -1,14 +1,6 @@
 """Script containing the base simulation kernel class."""
-import os
-import json
-import time
-import logging
-import subprocess
-import signal
 from cityflow import Engine
-from pathlib import Path
 
-from ipdb import set_trace
 # Number of retries on restarting SUMO before giving up
 
 class KernelSimulation(object):
@@ -115,11 +107,6 @@ class CityflowSimulation(KernelSimulation):
             sub-kernels)
         """
         super(CityflowSimulation, self).__init__(master_kernel)
-        # # This should contain the cityflow engine
-        # KernelSimulation.__init__(self, master_kernel)
-        # set_trace()
-        # # contains the subprocess.Popen instance used to start traci
-        # self.sumo_proc = None
 
     def pass_api(self, kernel_api):
         """See parent class.
@@ -127,19 +114,6 @@ class CityflowSimulation(KernelSimulation):
         Also initializes subscriptions.
         """
         super(CityflowSimulation, self).pass_api(kernel_api)
-        # set_trace()
-
-        # # subscribe some simulation parameters needed to check for entering,
-        # # exiting, and colliding vehicles
-        # self.kernel_api.simulation.subscribe([
-        #     tc.VAR_DEPARTED_VEHICLES_IDS,
-        #     tc.VAR_ARRIVED_VEHICLES_IDS,
-        #     tc.VAR_TELEPORT_STARTING_VEHICLES_IDS,
-        #     tc.VAR_TIME_STEP,
-        #     tc.VAR_DELTA_T,
-        #     tc.VAR_LOADED_VEHICLES_NUMBER,
-        #     tc.VAR_DEPARTED_VEHICLES_NUMBER
-        # ])
 
     def simulation_step(self):
         """See parent class.
@@ -168,33 +142,8 @@ class CityflowSimulation(KernelSimulation):
 
         Should create the logfiles
         """
-        # Could move this part to network
-        # Emission path is actually the experiment_path
-        # rlTrafficLight allows for set_phase
         seed = 0
         if (sim_params.seed is not None): seed = sim_params.seed
-        # dir_path = Path(network.cfg_path).parent
-
-        # cfg = {
-        #     'interval': sim_params.sim_step,
-        #     'dir': f'{dir_path.as_posix()}/',
-        #     'seed': seed,
-        #     'roadnetFile': f'net/{network.roadnet}',
-        #     'flowFile': f'cfg/{network.flow}',
-        #     'rlTrafficLight': True,
-        #     'saveReplay': sim_params.emission_path is not None,
-        # }
-
-        # TODO: put this on the network
-        # cfg = network.cfg
-        # if cfg['saveReplay']:
-        #     cfg.update({
-        #         'roadnetReplayFile': f'{sim_params.emission_path}/replay.json',
-        #         'replayLogFile': f'{sim_params.emission_path}/replay.txt',
-        #     })
-        # self.cfg_path = f'{network.cfg_path}{network.name}.config.json'
-        # with open(self.cfg_path, 'w') as f:
-        #     json.dump(cfg, f)
 
         self.eng = Engine(network.cfg_rel_path.as_posix(), thread_num=8)
         self.eng.set_random_seed(seed)

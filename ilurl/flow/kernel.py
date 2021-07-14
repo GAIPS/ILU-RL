@@ -95,7 +95,7 @@ class Kernel(object):
             specifies whether the simulator was reset in the last simulation
             step
         """
-        self.vehicle.update(reset)
+        # self.vehicle.update(reset)
         self.traffic_light.update(reset)
         self.network.update(reset)
         self.simulation.update(reset)

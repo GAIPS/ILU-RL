@@ -1,21 +1,7 @@
 """Script containing the Cityflow vehicle kernel class."""
-import traceback
-
-
-# import traci.constants as tc
-# from traci.exceptions import FatalTraCIError, TraCIException
 import numpy as np
 import collections
-import warnings
-from ilurl.flow.controllers.car_following_models import SimCarFollowingController
 from ilurl.flow.controllers.rlcontroller import RLController
-from ilurl.flow.controllers.lane_change_controllers import SimLaneChangeController
-from bisect import bisect_left
-
-import itertools
-from copy import deepcopy
-
-from ipdb import set_trace # TODO: REMOVE
 
 class KernelVehicle(object):
     """Flow vehicle kernel.
@@ -769,17 +755,6 @@ class CityflowVehicle(KernelVehicle):
             for veh_id, rou in zip(veh_ids, route_choices):
                 self.kernel_api.set_vehicle_route(veh_id, rou)
 
-    def get_controlled_ids(self):
-        """Use only for traffic signal control"""
-        # set_trace()
-        # return self.__controlled_ids
-        return []
-
-    def get_controlled_lc_ids(self):
-        """Use only for traffic signal control"""
-        # return self.__controlled_lc_ids
-        return []
-
     def get_edge(self, veh_id, error=""):
         """See parent class."""
         if isinstance(veh_id, (list, np.ndarray)):
@@ -802,12 +777,8 @@ class CityflowVehicle(KernelVehicle):
         """See parent class."""
         # edges are a superset of lanes
         lane_vehs_dict = self.kernel_api.get_lane_vehicles()
-        try:
-            if not isinstance(edges, (list, np.ndarray)):
-                return [veh for k, vehs in lane_vehs_dict.items() if edges in k for veh in vehs]
-        except KeyError:
-            set_trace()
-        set_trace()
+        if not isinstance(edges, (list, np.ndarray)):
+            return [veh for k, vehs in lane_vehs_dict.items() if edges in k for veh in vehs]
         return [veh for edge in edges for k, vehs in lane_vehs_dict.items() if edge in k for veh in vehs]
 
     def get_lane(self, veh_id, error=-1001):
@@ -847,21 +818,6 @@ class CityflowVehicle(KernelVehicle):
             return [self.get_position(_veh_id, error) for _veh_id in veh_id]
         return fn(veh_id)
 
-    def get_rl_ids(self):
-        """See parent class."""
-        set_trace()
-        return self.__rl_ids
-
-    def get_routing_controller(self, veh_id, error=None):
-        """See parent class."""
-        # do not support rerouting
-        # set_trace()
-        # if isinstance(veh_id, (list, np.ndarray)):
-        #     return [
-        #         self.get_routing_controller(vehID, error) for vehID in veh_id
-        #     ]
-        # return self.__vehicles.get(veh_id, {}).get("router", error)
-        return None
 
     def get_speed(self, veh_id, error=-1001):
         """See parent class."""
@@ -870,165 +826,6 @@ class CityflowVehicle(KernelVehicle):
             return [veh_speeds_dict.get(veh_id_, error) for veh_id_ in veh_id]
         return veh_speeds_dict.get(veh_id, error)
 
-    def get_type(self, veh_id):
-        """Return the type of the vehicle of veh_id."""
-        set_trace()
-        return self.__vehicles[veh_id]["type"]
-
-    # def _multi_lane_headways(self):
-    #     """Compute multi-lane data for all vehicles.
-
-    #     This includes the lane leaders/followers/headways/tailways/
-    #     leader velocity/follower velocity for all
-    #     vehicles in the network.
-    #     """
-    #     set_trace()
-    #     edge_list = self.master_kernel.network.get_edge_list()
-    #     junction_list = self.master_kernel.network.get_junction_list()
-    #     tot_list = edge_list + junction_list
-    #     num_edges = (len(self.master_kernel.network.get_edge_list()) + len(
-    #         self.master_kernel.network.get_junction_list()))
-
-    #     # maximum number of lanes in the network
-    #     max_lanes = max([self.master_kernel.network.num_lanes(edge_id)
-    #                      for edge_id in tot_list])
-
-    #     # Key = edge id
-    #     # Element = list, with the ith element containing tuples with the name
-    #     #           and position of all vehicles in lane i
-    #     edge_dict = dict.fromkeys(tot_list)
-
-    #     # add the vehicles to the edge_dict element
-    #     for veh_id in self.get_ids():
-    #         edge = self.get_edge(veh_id)
-    #         lane = self.get_lane(veh_id)
-    #         pos = self.get_position(veh_id)
-    #         if edge:
-    #             if edge_dict[edge] is None:
-    #                 edge_dict[edge] = [[] for _ in range(max_lanes)]
-    #             edge_dict[edge][lane].append((veh_id, pos))
-
-    #     # sort all lanes in each edge by position
-    #     for edge in tot_list:
-    #         if edge_dict[edge] is None:
-    #             del edge_dict[edge]
-    #         else:
-    #             for lane in range(max_lanes):
-    #                 edge_dict[edge][lane].sort(key=lambda x: x[1])
-
-    #     for veh_id in self.get_rl_ids():
-    #         # collect the lane leaders, followers, headways, and tailways for
-    #         # each vehicle
-    #         edge = self.get_edge(veh_id)
-    #         if edge:
-    #             headways, tailways, leaders, followers = \
-    #                 self._multi_lane_headways_util(veh_id, edge_dict,
-    #                                                num_edges)
-
-    #             # add the above values to the vehicles class
-    #             self.set_lane_headways(veh_id, headways)
-    #             self.set_lane_tailways(veh_id, tailways)
-    #             self.set_lane_leaders(veh_id, leaders)
-    #             self.set_lane_followers(veh_id, followers)
-
-    #     self._ids_by_edge = dict().fromkeys(edge_list)
-
-    #     for edge_id in edge_dict:
-    #         edges = list(itertools.chain.from_iterable(edge_dict[edge_id]))
-    #         # check for edges with no vehicles
-    #         if len(edges) > 0:
-    #             edges, _ = zip(*edges)
-    #             self._ids_by_edge[edge_id] = list(edges)
-    #         else:
-    #             self._ids_by_edge[edge_id] = []
-
-
-    # def _multi_lane_headways_util(self, veh_id, edge_dict, num_edges):
-    #     """Compute multi-lane data for the specified vehicle.
-
-    #     Parameters
-    #     ----------
-    #     veh_id : str
-    #         name of the vehicle
-    #     edge_dict : dict < list<tuple> >
-    #         Key = Edge name
-    #             Index = lane index
-    #             Element = list sorted by position of (vehicle id, position)
-
-    #     Returns
-    #     -------
-    #     headway : list<float>
-    #         Index = lane index
-    #         Element = headway at this lane
-    #     tailway : list<float>
-    #         Index = lane index
-    #         Element = tailway at this lane
-    #     lead_speed : list<str>
-    #         Index = lane index
-    #         Element = speed of leader at this lane
-    #     follow_speed : list<str>
-    #         Index = lane index
-    #         Element = speed of follower at this lane
-    #     leader : list<str>
-    #         Index = lane index
-    #         Element = leader at this lane
-    #     follower : list<str>
-    #         Index = lane index
-    #         Element = follower at this lane
-    #     """
-    #     set_trace()
-    #     this_pos = self.get_position(veh_id)
-    #     this_edge = self.get_edge(veh_id)
-    #     this_lane = self.get_lane(veh_id)
-    #     num_lanes = self.master_kernel.network.num_lanes(this_edge)
-
-    #     # set default values for all output values
-    #     headway = [1000] * num_lanes
-    #     tailway = [1000] * num_lanes
-    #     leader = [""] * num_lanes
-    #     follower = [""] * num_lanes
-
-    #     for lane in range(num_lanes):
-    #         # check the vehicle's current  edge for lane leaders and followers
-    #         if len(edge_dict[this_edge][lane]) > 0:
-    #             ids, positions = zip(*edge_dict[this_edge][lane])
-    #             ids = list(ids)
-    #             positions = list(positions)
-    #             index = bisect_left(positions, this_pos)
-
-    #             # if you are at the end or the front of the edge, the lane
-    #             # leader is in the edges in front of you
-    #             if (lane == this_lane and index < len(positions) - 1) \
-    #                     or (lane != this_lane and index < len(positions)):
-    #                 # check if the index does not correspond to the current
-    #                 # vehicle
-    #                 if ids[index] == veh_id:
-    #                     leader[lane] = ids[index + 1]
-    #                     headway[lane] = (positions[index + 1] - this_pos -
-    #                                      self.get_length(leader[lane]))
-    #                 else:
-    #                     leader[lane] = ids[index]
-    #                     headway[lane] = (positions[index] - this_pos
-    #                                      - self.get_length(leader[lane]))
-
-    #             # you are in the back of the queue, the lane follower is in the
-    #             # edges behind you
-    #             if index > 0:
-    #                 follower[lane] = ids[index - 1]
-    #                 tailway[lane] = (this_pos - positions[index - 1]
-    #                                  - self.get_length(veh_id))
-
-    #         # if lane leader not found, check next edges
-    #         if leader[lane] == "":
-    #             headway[lane], leader[lane] = self._next_edge_leaders(
-    #                 veh_id, edge_dict, lane, num_edges)
-
-    #         # if lane follower not found, check previous edges
-    #         if follower[lane] == "":
-    #             tailway[lane], follower[lane] = self._prev_edge_followers(
-    #                 veh_id, edge_dict, lane, num_edges)
-
-    #     return headway, tailway, leader, follower
 
     def initialize(self, vehicles):
         """Initialize vehicle state information.
@@ -1060,310 +857,38 @@ class CityflowVehicle(KernelVehicle):
                 if typ['acceleration_controller'][0] == RLController:
                     self.num_rl_vehicles += 1
 
-    def update(self, reset):
-        """See parent class.
-
-        The following actions are performed:
-
-        * The state of all vehicles is modified to match their state at the
-          current time step. This includes states specified by sumo, and states
-          explicitly defined by flow, e.g. "num_arrived".
-
-        * If vehicles exit the network, they are removed from the vehicles
-          class, and newly departed vehicles are introduced to the class.
-
-        Parameters
-        ----------
-        reset : bool
-            specifies whether the simulator was reset in the last simulation
-            step
-        """
-        # Apparently there's no need for this
-        pass
-        # copy over the previous speeds
-        # vehicle_obs = {}
-        # for veh_id in self.__ids:
-        #     self.previous_speeds[veh_id] = self.get_speed(veh_id)
-        #     vehicle_obs[veh_id] = \
-        #         self.kernel_api.vehicle.getSubscriptionResults(veh_id)
-        # sim_obs = self.kernel_api.simulation.getSubscriptionResults()
-
-        # arrived_rl_ids = []
-        # # remove exiting vehicles from the vehicles class
-        # for veh_id in sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]:
-        #     if veh_id in self.get_rl_ids():
-        #         arrived_rl_ids.append(veh_id)
-        #     if veh_id in sim_obs[tc.VAR_TELEPORT_STARTING_VEHICLES_IDS]:
-        #         # this is meant to resolve the KeyError bug when there are
-        #         # collisions
-        #         vehicle_obs[veh_id] = self.__sumo_obs[veh_id]
-        #     self.remove(veh_id)
-        #     # remove exiting vehicles from the vehicle subscription if they
-        #     # haven't been removed already
-        #     if vehicle_obs[veh_id] is None:
-        #         vehicle_obs.pop(veh_id, None)
-        # self._arrived_rl_ids.append(arrived_rl_ids)
-
-        # # add entering vehicles into the vehicles class
-        # for veh_id in sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS]:
-        #     if veh_id in self.get_ids() and vehicle_obs[veh_id] is not None:
-        #         # this occurs when a vehicle is actively being removed and
-        #         # placed again in the network to ensure a constant number of
-        #         # total vehicles (e.g. TrafficLightGridEnv). In this case, the vehicle
-        #         # is already in the class; its state data just needs to be
-        #         # updated
-        #         pass
-        #     else:
-        #         veh_type = self.kernel_api.vehicle.getTypeID(veh_id)
-        #         obs = self._add_departed(veh_id, veh_type)
-        #         # add the subscription information of the new vehicle
-        #         vehicle_obs[veh_id] = obs
-
-        # if reset:
-        #     self.time_counter = 0
-
-        #     # reset all necessary values
-        #     self.prev_last_lc = dict()
-        #     for veh_id in self.__rl_ids:
-        #         self.__vehicles[veh_id]["last_lc"] = -float("inf")
-        #         self.prev_last_lc[veh_id] = -float("inf")
-        #     self._num_departed.clear()
-        #     self._num_arrived.clear()
-        #     self._departed_ids.clear()
-        #     self._arrived_ids.clear()
-        #     self._arrived_rl_ids.clear()
-        #     self.num_not_departed = 0
-
-        #     # add vehicles from a network template, if applicable
-        #     if hasattr(self.master_kernel.network.network,
-        #                "template_vehicles"):
-        #         for veh_id in self.master_kernel.network.network. \
-        #                 template_vehicles:
-        #             vals = deepcopy(self.master_kernel.network.network.
-        #                             template_vehicles[veh_id])
-        #             # a step is executed during initialization, so add this sim
-        #             # step to the departure time of vehicles
-        #             vals['depart'] = str(
-        #                 float(vals['depart']) + 2 * self.sim_step)
-        #             self.kernel_api.vehicle.addFull(
-        #                 veh_id, 'route{}_0'.format(veh_id), **vals)
-        # else:
-        #     self.time_counter += 1
-        #     # update the "last_lc" variable
-        #     for veh_id in self.__rl_ids:
-        #         prev_lane = self.get_lane(veh_id)
-        #         if vehicle_obs[veh_id][tc.VAR_LANE_INDEX] != prev_lane:
-        #             self.__vehicles[veh_id]["last_lc"] = self.time_counter
-
-        #     # updated the list of departed and arrived vehicles
-        #     self._num_departed.append(
-        #         len(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS]))
-        #     self._num_arrived.append(len(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))
-        #     self._departed_ids.append(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS])
-        #     self._arrived_ids.append(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS])
-
-        #     # update the number of not departed vehicles
-        #     self.num_not_departed += sim_obs[tc.VAR_LOADED_VEHICLES_NUMBER] - \
-        #         sim_obs[tc.VAR_DEPARTED_VEHICLES_NUMBER]
-
-        # # update the "headway", "leader", and "follower" variables
-        # for veh_id in self.__ids:
-        #     try:
-        #         _position = vehicle_obs.get(veh_id, {}).get(
-        #             tc.VAR_POSITION, -1001)
-        #         _angle = vehicle_obs.get(veh_id, {}).get(tc.VAR_ANGLE, -1001)
-        #         _time_step = sim_obs[tc.VAR_TIME_STEP]
-        #         _time_delta = sim_obs[tc.VAR_DELTA_T]
-        #         self.__vehicles[veh_id]["orientation"] = \
-        #             list(_position) + [_angle]
-        #         self.__vehicles[veh_id]["timestep"] = _time_step
-        #         self.__vehicles[veh_id]["timedelta"] = _time_delta
-        #     except TypeError:
-        #         print(traceback.format_exc())
-        #     headway = vehicle_obs.get(veh_id, {}).get(tc.VAR_LEADER, None)
-        #     # check for a collided vehicle or a vehicle with no leader
-        #     if headway is None:
-        #         self.__vehicles[veh_id]["leader"] = None
-        #         self.__vehicles[veh_id]["follower"] = None
-        #         self.__vehicles[veh_id]["headway"] = 1e+3
-        #         self.__vehicles[veh_id]["follower_headway"] = 1e+3
-        #     else:
-        #         min_gap = self.min_gap[self.get_type(veh_id)]
-        #         self.__vehicles[veh_id]["headway"] = headway[1] + min_gap
-        #         self.__vehicles[veh_id]["leader"] = headway[0]
-        #         if headway[0] in self.__vehicles:
-        #             leader = self.__vehicles[headway[0]]
-        #             # if veh_id is closer from leader than another follower
-        #             # (in case followers are in different converging edges)
-        #             if ("follower_headway" not in leader or
-        #                     headway[1] + min_gap < leader["follower_headway"]):
-        #                 leader["follower"] = veh_id
-        #                 leader["follower_headway"] = headway[1] + min_gap
-
-        # # update the sumo observations variable
-        # self.__sumo_obs = vehicle_obs.copy()
-
-        # # update the lane leaders data for each vehicle
-        # self._multi_lane_headways()
-
-        # # make sure the rl vehicle list is still sorted
-        # self.__rl_ids.sort()
-
-    # def _add_departed(self, veh_id, veh_type):
-    #     """Add a vehicle that entered the network from an inflow or reset.
-
-    #     Parameters
-    #     ----------
-    #     veh_id: str
-    #         name of the vehicle
-    #     veh_type: str
-    #         type of vehicle, as specified to sumo
-
-    #     Returns
-    #     -------
-    #     dict
-    #         subscription results from the new vehicle
-    #     """
-    #     set_trace()
-    #     if veh_type not in self.type_parameters:
-    #         raise KeyError("Entering vehicle is not a valid type.")
-
-    #     if veh_id not in self.__ids:
-    #         self.__ids.append(veh_id)
-    #     if veh_id not in self.__vehicles:
-    #         self.num_vehicles += 1
-    #         self.__vehicles[veh_id] = dict()
-
-    #     # specify the type
-    #     self.__vehicles[veh_id]["type"] = veh_type
-
-    #     car_following_params = \
-    #         self.type_parameters[veh_type]["car_following_params"]
-
-    #     # specify the acceleration controller class
-    #     accel_controller = \
-    #         self.type_parameters[veh_type]["acceleration_controller"]
-    #     self.__vehicles[veh_id]["acc_controller"] = \
-    #         accel_controller[0](veh_id,
-    #                             car_following_params=car_following_params,
-    #                             **accel_controller[1])
-
-    #     # specify the lane-changing controller class
-    #     lc_controller = \
-    #         self.type_parameters[veh_type]["lane_change_controller"]
-    #     self.__vehicles[veh_id]["lane_changer"] = \
-    #         lc_controller[0](veh_id=veh_id, **lc_controller[1])
-
-    #     # specify the routing controller class
-    #     rt_controller = self.type_parameters[veh_type]["routing_controller"]
-    #     if rt_controller is not None:
-    #         self.__vehicles[veh_id]["router"] = \
-    #             rt_controller[0](veh_id=veh_id, router_params=rt_controller[1])
-    #     else:
-    #         self.__vehicles[veh_id]["router"] = None
-
-    #     # add the vehicle's id to the list of vehicle ids
-    #     if accel_controller[0] == RLController:
-    #         if veh_id not in self.__rl_ids:
-    #             self.__rl_ids.append(veh_id)
-    #     else:
-    #         if veh_id not in self.__human_ids:
-    #             self.__human_ids.append(veh_id)
-    #             if accel_controller[0] != SimCarFollowingController:
-    #                 self.__controlled_ids.append(veh_id)
-    #             if lc_controller[0] != SimLaneChangeController:
-    #                 self.__controlled_lc_ids.append(veh_id)
-
-    #     # subscribe the new vehicle
-    #     self.kernel_api.vehicle.subscribe(veh_id, [
-    #         tc.VAR_LANE_INDEX, tc.VAR_LANEPOSITION,
-    #         tc.VAR_ROAD_ID,
-    #         tc.VAR_SPEED,
-    #         tc.VAR_EDGES,
-    #         tc.VAR_POSITION,
-    #         tc.VAR_ANGLE,
-    #         tc.VAR_SPEED_WITHOUT_TRACI
-    #     ])
-    #     self.kernel_api.vehicle.subscribeLeader(veh_id, 2000)
-
-    #     # some constant vehicle parameters to the vehicles class
-    #     self.__vehicles[veh_id]["length"] = self.kernel_api.vehicle.getLength(
-    #         veh_id)
-
-    #     # set the "last_lc" parameter of the vehicle
-    #     self.__vehicles[veh_id]["last_lc"] = -float("inf")
-
-    #     # specify the initial speed
-    #     self.__vehicles[veh_id]["initial_speed"] = \
-    #         self.type_parameters[veh_type]["initial_speed"]
-
-    #     # set the speed mode for the vehicle
-    #     speed_mode = self.type_parameters[veh_type][
-    #         "car_following_params"].speed_mode
-    #     self.kernel_api.vehicle.setSpeedMode(veh_id, speed_mode)
-
-    #     # set the lane changing mode for the vehicle
-    #     lc_mode = self.type_parameters[veh_type][
-    #         "lane_change_params"].lane_change_mode
-    #     self.kernel_api.vehicle.setLaneChangeMode(veh_id, lc_mode)
-
-    #     # get initial state info
-    #     self.__sumo_obs[veh_id] = dict()
-    #     self.__sumo_obs[veh_id][tc.VAR_ROAD_ID] = \
-    #         self.kernel_api.vehicle.getRoadID(veh_id)
-    #     self.__sumo_obs[veh_id][tc.VAR_LANEPOSITION] = \
-    #         self.kernel_api.vehicle.getLanePosition(veh_id)
-    #     self.__sumo_obs[veh_id][tc.VAR_LANE_INDEX] = \
-    #         self.kernel_api.vehicle.getLaneIndex(veh_id)
-    #     self.__sumo_obs[veh_id][tc.VAR_SPEED] = \
-    #         self.kernel_api.vehicle.getSpeed(veh_id)
-
-    #     # make sure that the order of rl_ids is kept sorted
-    #     self.__rl_ids.sort()
-    #     self.num_rl_vehicles = len(self.__rl_ids)
-
-    #     # get the subscription results from the new vehicle
-    #     new_obs = self.kernel_api.vehicle.getSubscriptionResults(veh_id)
-
-    #     return new_obs
-
     def reset(self):
-        """See parent class."""
         pass
-        # set_trace()
-        # self.previous_speeds = {}
+    # def remove(self, veh_id):
+    #     """See parent class."""
+    #     # remove from sumo
+    #     if veh_id in self.kernel_api.vehicle.getIDList():
+    #         self.kernel_api.vehicle.unsubscribe(veh_id)
+    #         self.kernel_api.vehicle.remove(veh_id)
 
-    def remove(self, veh_id):
-        """See parent class."""
-        # remove from sumo
-        set_trace()
-        if veh_id in self.kernel_api.vehicle.getIDList():
-            self.kernel_api.vehicle.unsubscribe(veh_id)
-            self.kernel_api.vehicle.remove(veh_id)
+    #     if veh_id in self.__ids:
+    #         self.__ids.remove(veh_id)
 
-        if veh_id in self.__ids:
-            self.__ids.remove(veh_id)
+    #     # remove from the vehicles kernel
+    #     if veh_id in self.__vehicles:
+    #         del self.__vehicles[veh_id]
 
-        # remove from the vehicles kernel
-        if veh_id in self.__vehicles:
-            del self.__vehicles[veh_id]
+    #     if veh_id in self.__sumo_obs:
+    #         del self.__sumo_obs[veh_id]
 
-        if veh_id in self.__sumo_obs:
-            del self.__sumo_obs[veh_id]
+    #     # remove it from all other id lists (if it is there)
+    #     if veh_id in self.__human_ids:
+    #         self.__human_ids.remove(veh_id)
+    #         if veh_id in self.__controlled_ids:
+    #             self.__controlled_ids.remove(veh_id)
+    #         if veh_id in self.__controlled_lc_ids:
+    #             self.__controlled_lc_ids.remove(veh_id)
+    #     elif veh_id in self.__rl_ids:
+    #         self.__rl_ids.remove(veh_id)
+    #         # make sure that the rl ids remain sorted
+    #         self.__rl_ids.sort()
 
-        # remove it from all other id lists (if it is there)
-        if veh_id in self.__human_ids:
-            self.__human_ids.remove(veh_id)
-            if veh_id in self.__controlled_ids:
-                self.__controlled_ids.remove(veh_id)
-            if veh_id in self.__controlled_lc_ids:
-                self.__controlled_lc_ids.remove(veh_id)
-        elif veh_id in self.__rl_ids:
-            self.__rl_ids.remove(veh_id)
-            # make sure that the rl ids remain sorted
-            self.__rl_ids.sort()
-
-        # modify the number of vehicles and RL vehicles
-        self.num_vehicles = len(self.get_ids())
-        self.num_rl_vehicles = len(self.get_rl_ids())
+    #     # modify the number of vehicles and RL vehicles
+    #     self.num_vehicles = len(self.get_ids())
+    #     self.num_rl_vehicles = len(self.get_rl_ids())
 

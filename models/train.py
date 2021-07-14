@@ -5,6 +5,10 @@
     It is responsible to setup all the experiment's components and run it for
     a given number of steps, as well as storing experiment-related info.
 
+    TODO: Change SumoParams for CityFlowParams
+        * Switch render for replay.
+        * Option to use default demand or create new demand.
+
     References:
     ==========
 
@@ -60,6 +64,7 @@ def main(train_config_path=None):
     os.makedirs(experiment_path, exist_ok=True)
     print(f'Experiment: {str(experiment_path)}\n')
 
+    # FIXME: change sumo_render to cityflow_replay
     sumo_args = {
         'render': train_args.sumo_render,
         'print_warnings': False,
@@ -75,8 +80,9 @@ def main(train_config_path=None):
         sumo_args['seed'] = train_args.experiment_seed
 
     # Setup emission path.
-    if train_args.sumo_emission:
-        sumo_args['emission_path'] = experiment_path.as_posix()
+    # TODO: Change this for replay
+    # if train_args.sumo_emission:
+    sumo_args['emission_path'] = experiment_path.as_posix()
 
     sim_params = SumoParams(**sumo_args)
 

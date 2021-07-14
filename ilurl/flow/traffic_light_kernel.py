@@ -1,4 +1,10 @@
-"""Script containing the base traffic light kernel class."""
+"""Script containing the base traffic light kernel class.
+
+    TODO:
+        * Remove dependencies with SUMO's .net.xml 
+        (Needed to read policies)
+        * Remove KernelTrafficLight
+"""
 
 
 class KernelTrafficLight(object):
@@ -105,7 +111,6 @@ from pathlib import Path
 from cityflow import Engine
 
 from ilurl.flow.traffic_light_kernel import KernelTrafficLight
-# import traci.constants as tc # TODO: REMOVE
 
 class CityflowTrafficLight(KernelTrafficLight):
     """Cityflow traffic light kernel.
@@ -142,10 +147,6 @@ class CityflowTrafficLight(KernelTrafficLight):
         """
         super(CityflowTrafficLight, self).pass_api(kernel_api)
 
-        # names of nodes with traffic lights
-        # self.__ids = kernel_api.trafficlight.getIDList()
-        # road_path = Path(network_kernel.roadnet_path) / network_kernel.roadnet
-        # with road_path.open() as f: roadnet = json.load(f)
         roadnet = network_kernel.roadnet
 
         self.__ids = [it['id'] for it in roadnet['intersections'] if not it['virtual']]
@@ -153,10 +154,6 @@ class CityflowTrafficLight(KernelTrafficLight):
         self.num_traffic_lights = len(self.__ids)
 
         # subscribe the traffic light signal data
-        # for node_id in self.__ids:
-        #     self.kernel_api.trafficlight.subscribe(
-        #         node_id, [tc.TL_RED_YELLOW_GREEN_STATE])
-        # TODO: find a way to map 
         tls_properties = network_kernel.network.traffic_lights.get_properties()
         self.__sumo_to_cityflow = {}
         for node_id in self.__ids:
@@ -166,12 +163,6 @@ class CityflowTrafficLight(KernelTrafficLight):
     def update(self, reset):
         """See parent class."""
         pass
-        # set_trace()
-        # tls_obs = {}
-        # for tl_id in self.__ids:
-        #     tls_obs[tl_id] = \
-        #         self.kernel_api.trafficlight.getSubscriptionResults(tl_id)
-        # self.__tls = tls_obs.copy()
 
     def get_ids(self):
         """See parent class."""
@@ -180,18 +171,11 @@ class CityflowTrafficLight(KernelTrafficLight):
     def set_state(self, node_id, state, link_index="all"):
         """See parent class."""
         if link_index == "all":
-            # if lights on all lanes are changed
-            # self.kernel_api.trafficlight.setRedYellowGreenState(
-            #     tlsID=node_id, state=state)
             phase_id = self.__sumo_to_cityflow[node_id][state]
             self.kernel_api.set_tl_phase(node_id, phase_id)
         else:
             raise ValueError('link_index must be equal to "all"')
-            # if lights on a single lane is changed
-            # self.kernel_api.trafficlight.setLinkState(
-            #     tlsID=node_id, tlsLinkIndex=link_index, state=state)
 
     def get_state(self, node_id):
         """See parent class."""
-        set_trace()
         return self.__tls[node_id][tc.TL_RED_YELLOW_GREEN_STATE]
