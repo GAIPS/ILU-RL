@@ -25,7 +25,7 @@ from ilurl.flow.params import EnvParams, SumoParams
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
-from ilurl.networks.base import Network
+from ilurl.networks.cityflow import CityflowNetwork as Network
 
 from ilurl.loaders.parser import config_parser
 
