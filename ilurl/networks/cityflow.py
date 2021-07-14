@@ -26,8 +26,6 @@ from ilurl.flow.params import TrafficLightParams
 from ilurl.flow.params import SumoCarFollowingParams
 from ilurl.flow.params import SumoLaneChangeParams
 import time
-# import xml.etree.ElementTree as ElementTree
-# from lxml import etree
 from collections import defaultdict
 
 # default sumo probability value  TODO (ak): remove
@@ -201,7 +199,7 @@ class Network(object):
     the following commands (note if this this unclear please refer to Tutorial
     1):
 
-    >>> from ilurl.flow.networks import RingNetwork
+    >>> from ilurl.flow.network_kernels import RingNetwork
     >>> from ilurl.flow.params import NetParams, VehicleParams
     >>>
     >>> network = RingNetwork(

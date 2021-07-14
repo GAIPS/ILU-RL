@@ -1,28 +1,16 @@
 # deployment variables
 # This is the virtual environment which should not be copied
 *venv/
-*flow/
 *sumo_binaries/
 
 # macos nonsensical files
 *.DS_Store
-
-# prevent sensitive data to into repo
-data/sensors/
 
 # prevent data growth
 data/emissions/
 data/outputs
 data/experiments
 analysis/plots
-
-# prevent experiments batches to 
-# be tracked and avoid .git file
-# growth
-data/experiments/0x??/**
-!data/experiments/0x??/README.*
-!data/experiments/0x??/*.png
-data/experiments.zip
 
 # Flow's emission files
 *emission.xml
