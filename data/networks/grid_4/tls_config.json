@@ -1,0 +1,132 @@
+{
+	"rl": {
+		    "cycle_time": 60,
+		    "center0": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			},
+		    "center1": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			},
+		    "center2": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			},
+		    "center3": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			}
+	},
+	"actuated": {
+		"cycle_time": 60,
+		"center0": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GrGr"
+				}, {
+				"duration": "6",
+				"state": "yryr"
+				}, {
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rGrG"
+				}, {
+				"duration": "6",
+				"state": "ryry"
+			}]
+		},
+		"center1": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GrGr"
+				}, {
+				"duration": "6",
+				"state": "yryr"
+				}, {
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rGrG"
+				}, {
+				"duration": "6",
+				"state": "ryry"
+			}]
+        },
+		"center2": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GrGr"
+				}, {
+				"duration": "6",
+				"state": "yryr"
+				}, {
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rGrG"
+				}, {
+				"duration": "6",
+				"state": "ryry"
+			}]
+		},
+		"center3": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GrGr"
+				}, {
+				"duration": "6",
+				"state": "yryr"
+				}, {
+				"duration": "31", 
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rGrG"
+				}, {
+				"duration": "6",
+				"state": "ryry"
+			}]
+		}
+	}
+}

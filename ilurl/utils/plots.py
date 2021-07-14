@@ -7,7 +7,7 @@ import matplotlib.cm as cmx
 from matplotlib import colors as mcolors
 
 
-from ilurl.utils.aux import TIMESTAMP, snakefy
+from ilurl.utils.aux_tools import TIMESTAMP, snakefy
 
 def plot_times(times, series, series_labels, xy_labels, title):
     """ Makes an hourly plot of series

@@ -7,7 +7,7 @@ from ilurl.state.state import State
 from ilurl.envs.elements import build_vehicles
 from ilurl.params import MDPParams
 from ilurl.networks.base import Network
-from ilurl.utils.aux import flatten
+from ilurl.utils.aux_tools import flatten
 
 
 class TestStateReward(unittest.TestCase):

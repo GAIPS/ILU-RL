@@ -219,7 +219,7 @@ def get_tls_custom(network_id, baseline=False):
             network id
 
         tls_type: string
-            ('rl', 'static', 'webster', 'random' or 'actuated')
+            ('rl',' 'static', 'webster', 'random' or 'actuated')
 
         Return:
         -------

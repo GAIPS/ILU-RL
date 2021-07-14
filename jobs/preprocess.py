@@ -20,6 +20,7 @@ import re
 
 import configparser
 
+from ilurl.loaders.parser import config_parser
 from models.preprocess import main as preprocess
 
 # Pipeline components.
@@ -85,15 +86,10 @@ def delay_preprocess(args):
 def preprocess_batch(tls_type='webster'):
     # Preprocess is a run with some presets
     # Read script arguments from run.config file.
-    run_config = configparser.ConfigParser()
-    run_path = CONFIG_PATH / 'run.config'
-    run_config.read(run_path)
 
     data = {}
     if do_preprocess():
-        num_processors = int(run_config.get('run_args', 'num_processors'))
-        num_runs = int(run_config.get('run_args', 'num_runs'))
-        seeds = json.loads(run_config.get("run_args", "train_seeds"))
+        num_processors, num_runs, seeds = config_parser.parse_run_params(print_params=False)
 
         if len(seeds) != num_runs:
             raise configparser.Error('Number of seeds in run.config `seeds`'

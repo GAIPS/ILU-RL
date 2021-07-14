@@ -24,14 +24,20 @@
         7) analysis/test_plots.py: Create plots with metrics
                              for the final agent.
 
-        8) Clean up and compress the experiment folder in
+        8) jobs/finalize.py: Creates plots folder in data and appends experiment results and info to Results Excel.
+
+        9) Clean up and compress the experiment folder in
             order to optimize disk space usage.
 
 """
 import os
 import shutil
+import time
 from pathlib import Path
 
+import ilurl.loaders.parser
+from ilurl.loaders.parser import config_parser
+from jobs.finalize import finalize
 from jobs.preprocess import preprocess_batch as preprocess
 from jobs.train import train_batch as train
 from jobs.rollouts import rollout_batch as rollouts
@@ -47,22 +53,22 @@ from ilurl.utils.decorators import safe_run
 _ERROR_MESSAGE_TRAIN = ("ERROR: Caught an exception while "
                         "executing analysis/train_plots.py script.")
 _ERROR_MESSAGE_ROLLOUTS = ("ERROR: Caught an exception while "
-                    "executing analysis/rollouts_plots.py script.")
+                           "executing analysis/rollouts_plots.py script.")
 _ERROR_MESSAGE_TEST = ("ERROR: Caught an exception while "
-                    "executing analysis/test_plots.py script.")
+                       "executing analysis/test_plots.py script.")
 train_plots = safe_run(train_plots, error_message=_ERROR_MESSAGE_TRAIN)
 rollouts_plots = safe_run(rollouts_plots, error_message=_ERROR_MESSAGE_ROLLOUTS)
 test_plots = safe_run(test_plots, error_message=_ERROR_MESSAGE_TEST)
 
-
 if __name__ == '__main__':
-
 
     # 0) Makes discretization bins
     categories = preprocess()
+    start = time.time()
 
     # 1) Train agent(s).
     experiment_root_path = train(categories)
+    end = time.time()
 
     # 2) Create train plots.
     train_plots(experiment_root_path)
@@ -82,16 +88,19 @@ if __name__ == '__main__':
     # 7) Create plots with metrics plots for final agent.
     test_plots(experiment_root_path)
 
-    # 8) Clean up and compress files.
+    # 8) jobs/finalize.py: Creates plots folder in data and appends experiment results and info to Results Excel.
+    finalize(experiment_dir=experiment_root_path, time=end - start)
+
+    # 9) Clean up and compress files.
     print('\nCleaning and compressing files...\n')
     experiment_root_path = Path(experiment_root_path)
     for csv_path in experiment_root_path.rglob('*-emission.csv'):
         Path(csv_path).unlink()
 
     shutil.make_archive(experiment_root_path,
-                    'gztar',
-                    os.path.dirname(experiment_root_path),
-                    experiment_root_path.name)
+                        'gztar',
+                        os.path.dirname(experiment_root_path),
+                        experiment_root_path.name)
     shutil.rmtree(experiment_root_path)
 
     print('Experiment folder: {0}'.format(experiment_root_path))

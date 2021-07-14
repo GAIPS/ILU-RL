@@ -12,6 +12,7 @@ import configparser
 import multiprocessing
 import multiprocessing.pool
 
+from ilurl.loaders.parser import config_parser
 from models.train import main as train
 from ilurl.utils.decorators import processable, benchmarked
 
@@ -66,14 +67,8 @@ def delay_train(args):
 def train_batch(categories={}):
 
     print('\nRUNNING jobs/train.py\n')
+    num_processors, num_runs, train_seeds = config_parser.parse_run_params(print_params=False)
 
-    # Read script arguments from run.config file.
-    run_config = configparser.ConfigParser()
-    run_config.read(os.path.join(CONFIG_PATH, 'run.config'))
-
-    num_processors = int(run_config.get('run_args', 'num_processors'))
-    num_runs = int(run_config.get('run_args', 'num_runs'))
-    train_seeds = json.loads(run_config.get("run_args","train_seeds"))
 
     if len(train_seeds) != num_runs:
         raise configparser.Error('Number of seeds in run.config `train_seeds`'

@@ -2,6 +2,7 @@
 # This is the virtual environment which should not be copied
 *venv/
 *flow/
+env_*/
 *sumo_binaries/
 
 # macos nonsensical files
@@ -9,8 +10,12 @@
 
 # prevent sensitive data to into repo
 data/sensors/
+notes
+TODO
+Results.xlsx
 
 # prevent data growth
+data/plots/
 data/emissions/
 data/outputs
 data/experiments

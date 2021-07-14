@@ -24,7 +24,7 @@ import seaborn as sns
 plt.style.use('ggplot')
 
 from ilurl.utils.digitize import digitize
-from ilurl.utils.aux import snakefy
+from ilurl.utils.aux_tools import snakefy
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)

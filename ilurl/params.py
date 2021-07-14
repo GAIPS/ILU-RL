@@ -14,7 +14,7 @@ from ilurl.agents.ql.choice import CHOICE_TYPES
 from ilurl.loaders.nets import get_edges, get_routes, get_path
 from ilurl.loaders.vtypes import get_vehicle_types
 from ilurl.loaders.demands import get_demand
-from ilurl.utils.aux import Printable
+from ilurl.utils.aux_tools import Printable
 
 
 ''' Bounds : namedtuple
@@ -31,7 +31,7 @@ Bounds = namedtuple('Bounds', 'rank depth')
 
 # Traffic light system types.
 TLS_TYPES = ('rl', 'static', 'webster',
-             'actuated', 'random', 'max_pressure')
+             'actuated', 'random', 'max_pressure', 'centralized')
 
 # Traffic demand types (flows).
 DEMAND_TYPES = ('constant', 'variable')
@@ -457,6 +457,7 @@ class TrainParams(Printable):
 
     def __init__(
             self,
+            debug: bool = False,
             network: str = 'intersection',
             experiment_time: int = 900000,
             experiment_save_agent: bool = False,

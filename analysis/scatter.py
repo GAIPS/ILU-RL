@@ -26,7 +26,7 @@ import configparser
 import matplotlib.pyplot as plt
 
 # project dependencies
-from ilurl.utils.aux import TIMESTAMP, snakefy
+from ilurl.utils.aux_tools import TIMESTAMP, snakefy
 from ilurl.utils.plots import (scatter_states, scatter_phases)
 import ilurl.rewards as rew
 
