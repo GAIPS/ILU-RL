@@ -85,3 +85,5 @@ notebook==6.0.3
 ConfigArgParse==1.2
 statsmodels==0.11.1
 seaborn==0.10.0
+openpyxl==3.0.7
+styleframe==4.0.0

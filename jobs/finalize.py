@@ -162,12 +162,13 @@ def finalize(experiment_dir=None, time=0, filename="Results"):
     if not path.exists(dst_folder):
         copytree(str(batch_path) + "/plots", dst_folder)
 
-    lossdata = pd.read_csv(list(Path(batch_path).rglob('logs/*/*learning.csv'))[0])
-    lossdata = lossdata['loss'].map(lambda x: float(x.split("tf.Tensor(")[1].split(", shape=")[0]))[15:]
+    # lossdata = pd.read_csv(list(Path(batch_path).rglob('logs/*/*learning.csv'))[0])
+    # lossdata = lossdata['loss'].map(lambda x: float(x.split("tf.Tensor(")[1].split(", shape=")[0]))[15:]
+    # create smooth line chart
+    # dst = create_loss_graph(lossdata, dst_folder)
 
     rollout_metrics = pd.read_csv(list(Path(dst_folder).rglob('test/*_metrics.csv'))[0], index_col=0)
-    # create smooth line chart
-    dst = create_loss_graph(lossdata, dst_folder)
+
 
     train_config_path = list(Path(batch_path).rglob('train.config'))[0]
     train_config = configparser.ConfigParser()
