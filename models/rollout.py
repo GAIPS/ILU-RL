@@ -16,7 +16,7 @@ import configargparse
 import numpy as np
 import random
 
-from flow.core.params import SumoParams, EnvParams
+from ilurl.flow.params import SumoParams, EnvParams
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv

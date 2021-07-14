@@ -26,7 +26,7 @@ def build_vehicles(node_id, components, veh_kernel):
         * components: tuple<str, int>
             edge_id, lane
 
-        * veh_kernel: flow.core.kernel.vehicle
+        * veh_kernel: flow.kernel.vehicle
             See definition
 
         Returns:

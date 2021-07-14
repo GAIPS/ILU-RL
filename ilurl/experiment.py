@@ -1,6 +1,6 @@
 """
     Experiment class to run simulations.
-    (See flow.core.experiment)
+    (See flow.experiment)
 """
 import os
 from pathlib import Path
@@ -23,7 +23,7 @@ class Experiment:
 
     This class acts as a runner for a scenario and environment:
 
-        >>> from flow.envs import Env
+        >>> from ilurl.flow.envs import Env
         >>> env = Env(...)
         >>> exp = Experiment(env, ...)  # for some env and scenario
         >>> exp.run(num_steps=1000)
@@ -36,7 +36,7 @@ class Experiment:
     In order to ensure that the simulator constructs an emission file, set the
     ``emission_path`` attribute in ``SimParams`` to some path.
 
-        >>> from flow.core.params import SimParams
+        >>> from ilurl.flow.params import SimParams
         >>> sim_params = SimParams(emission_path="./data")
 
     Once you have included this in your environment, run your Experiment object.

@@ -17,7 +17,7 @@
 """
 import numpy as np
 
-from flow.envs.base import Env
+from ilurl.flow.envs.base import Env
 
 from ilurl.envs.elements import build_vehicles
 from ilurl.state.state import State

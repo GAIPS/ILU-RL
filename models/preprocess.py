@@ -21,7 +21,7 @@ from shutil import copyfile
 
 import numpy as np
 
-from flow.core.params import EnvParams, SumoParams
+from ilurl.flow.params import EnvParams, SumoParams
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv

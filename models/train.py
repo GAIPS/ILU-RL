@@ -21,11 +21,11 @@ from shutil import copyfile
 
 import numpy as np
 
-from flow.core.params import EnvParams, SumoParams
+from ilurl.flow.params import EnvParams, SumoParams
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
-from ilurl.networks.base import Network
+from ilurl.networks.cityflow import CityflowNetwork
 
 from ilurl.loaders.parser import config_parser
 
@@ -53,7 +53,7 @@ def main(train_config_path=None):
         'demand_mode': train_args.demand_mode,
         'tls_type': train_args.tls_type
     }
-    network = Network(**network_args)
+    network = CityflowNetwork(**network_args)
 
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
@@ -98,6 +98,7 @@ def main(train_config_path=None):
         network=network,
         exp_path=experiment_path.as_posix(),
         seed=train_args.experiment_seed,
+        simulator='cityflow'
     )
 
     exp = Experiment(
