@@ -10,8 +10,12 @@ env_*/
 
 # prevent sensitive data to into repo
 data/sensors/
+notes
+TODO
+Results.xlsx
 
 # prevent data growth
+data/plots/
 data/emissions/
 data/outputs
 data/experiments

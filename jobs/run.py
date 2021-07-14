@@ -24,7 +24,9 @@
         7) analysis/test_plots.py: Create plots with metrics
                              for the final agent.
 
-        8) Clean up and compress the experiment folder in
+        8) jobs/finalize.py: Creates plots folder in data and appends experiment results and info to Results Excel.
+
+        9) Clean up and compress the experiment folder in
             order to optimize disk space usage.
 
 """
@@ -86,9 +88,10 @@ if __name__ == '__main__':
     # 7) Create plots with metrics plots for final agent.
     test_plots(experiment_root_path)
 
+    # 8) jobs/finalize.py: Creates plots folder in data and appends experiment results and info to Results Excel.
     finalize(experiment_dir=experiment_root_path, time=end - start)
 
-    # 8) Clean up and compress files.
+    # 9) Clean up and compress files.
     print('\nCleaning and compressing files...\n')
     experiment_root_path = Path(experiment_root_path)
     for csv_path in experiment_root_path.rglob('*-emission.csv'):

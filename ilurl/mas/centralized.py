@@ -18,9 +18,6 @@ class CentralizedAgent(MASInterface):
         # Load agent parameters from config file (train.config).
         agent_type, agent_params = config_parser.parse_agent_params()
 
-        # Create agents.
-        agents = {}
-
         num_variables = len(mdp_params.features)
 
         # State space.
@@ -44,11 +41,6 @@ class CentralizedAgent(MASInterface):
             # In the continuous action space each agent is allowed to select
             # the portion of the cycle length allocated for each of the phases.
             agent_params_.num_phases = num_phases
-
-        #TODO: Fix for discretize state space
-        # if mdp_params.discretize_state_space:
-        #     feature = mdp_params.features[0]
-        #     states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
 
         states_rank = num_phases * num_variables + int(self.has_period)
         agent_params_.states = Bounds(states_rank, states_depth)

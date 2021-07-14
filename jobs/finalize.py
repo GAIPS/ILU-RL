@@ -234,7 +234,7 @@ def finalize(experiment_dir=None, time=0, filename="Results"):
                          }, index=[0])
     append_df_to_excel(ILURL_HOME + "/" + filename + ".xlsx", data, index=False)
 
-
+# Redo file for all experiments
 def redo_file(filename="Results"):
     exps = os.listdir(os.path.join(ILURL_HOME, 'data/emissions/'))
     exps.sort()
@@ -242,6 +242,6 @@ def redo_file(filename="Results"):
         finalize(os.path.join(ILURL_HOME, 'data/emissions/' + exp), filename=filename)
 
 
-if __name__ == '__main__':
-    #finalize()
-    redo_file()
+# if __name__ == '__main__':
+#     finalize()
+#    #redo_file()

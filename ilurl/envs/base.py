@@ -150,6 +150,8 @@ class TrafficLightEnv(Env):
             for tid, durations in self.network.tls_durations.items()
         }
 
+    # Obtains central agent action (0-7^N), unpacks each agent's action (0-7) and returns if each agent should switch
+    # in this timestep
     def get_joined_actions(self):
         dur = int(self.duration)
         joined_action = []
