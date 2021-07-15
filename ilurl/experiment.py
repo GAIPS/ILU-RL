@@ -11,11 +11,15 @@ import logging
 from tqdm import tqdm
 
 import numpy as np
+import pandas as pd
 
 from ilurl.utils.precision import action_to_double_precision
 
 # TODO: Track those anoying warning
 warnings.filterwarnings('ignore')
+
+# prevent randomization
+PYTHONHASHSEED=-1
 
 class Experiment:
     """
@@ -89,7 +93,8 @@ class Experiment:
             self,
             num_steps : int,
             rl_actions = None,
-            stop_on_teleports : bool = False
+            stop_on_teleports : bool = False,
+            emit : bool = False,
     ):
         """
         Run the given scenario (env) for a given number of steps.
@@ -109,6 +114,10 @@ class Experiment:
             -time-to-teleport seconds (default 300) which is caused by
             wrong lane, yield or jam.
 
+        emit : boolean
+            Make a SUMO-like emission file. Active only during testing
+            As it slows down the process.
+
         Returns:
         -------
         info_dict : dict
@@ -121,6 +130,9 @@ class Experiment:
         http://sumo.sourceforge.net/userdoc/Simulation/Why_Vehicles_are_teleporting.html
 
         """
+        if emit and self.exp_path is None:
+            raise ValueError('Both emission and experiment path')
+
         if rl_actions is None:
 
             def rl_actions(*_):
@@ -135,6 +147,7 @@ class Experiment:
 
         veh_ids = []
         veh_speeds = []
+        emissions = []
 
         agent_updates_counter = 0
 
@@ -175,6 +188,9 @@ class Experiment:
                 self._is_save_agent_step(agent_updates_counter):
                 self.env.tsc.save_checkpoint(self.exp_path)
 
+            if emit:
+                self._update_emissions(emissions)
+
         # Save train log (data is aggregated per traffic signal).
         info_dict["rewards"] = rewards
         info_dict["velocities"] = vels
@@ -182,6 +198,11 @@ class Experiment:
         info_dict["observation_spaces"] = observation_spaces
         info_dict["actions"] = action_to_double_precision([a for a in self.env.actions_log.values()])
         info_dict["states"] = [s for s in self.env.states_log.values()]
+        
+        if emit:
+            pd.DataFrame. \
+               from_dict(data=emissions). \
+               to_csv(f'{self.exp_path}/{self.env.network.name}-emission.csv', sep=';')
 
         if self.tls_type not in ('static', 'actuated'):
             self.env.tsc.terminate()
@@ -198,3 +219,25 @@ class Experiment:
         if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
             return self.train and self.exp_path
         return False
+
+    def _update_emissions(self, emissions):
+        """Builds sumo like emission file"""
+        eng = self.env.k.simulation.eng
+        for veh_id in eng.get_vehicles(include_waiting=False):
+            data = eng.get_vehicle_info(veh_id)
+
+            emission_dict = {
+                'time': eng.get_current_time(),
+                'id': veh_id,
+                'lane': data['drivable'],
+                'pos': float(data['distance']),
+                'route': simple_hash(data['route']),
+                'speed': float(data['speed']),
+                'type': 'human',
+                'x': 0,
+                'y': 0
+            }
+            emissions.append(emission_dict)
+
+def simple_hash(x):
+    return hash(x) % (11 * 255)

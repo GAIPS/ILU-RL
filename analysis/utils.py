@@ -32,7 +32,6 @@ def get_emissions(file_path, exclude_emissions=EXCLUDE_EMISSION):
     # referece sumo/tools/xml2csv
     df.columns = [str.replace(str(name), 'vehicle_', '') for name in df.columns]
     df.columns = [str.replace(str(name), 'timestep_', '') for name in df.columns]
-
     df.set_index(['time'], inplace=True)
 
     # Drop rows where there's no vehicle
@@ -42,7 +41,8 @@ def get_emissions(file_path, exclude_emissions=EXCLUDE_EMISSION):
     if exclude_emissions is not None:
         df = df.drop(exclude_emissions, axis=1, errors='ignore')
 
-    df = df.drop(['waiting'], axis=1)
+    if 'waiting' in df.columns:
+        df = df.drop(['waiting'], axis=1)
 
     return df
 

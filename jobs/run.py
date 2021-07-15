@@ -77,7 +77,7 @@ if __name__ == '__main__':
     rollouts(test=True, experiment_dir=experiment_root_path)
 
     # 6) Convert .xml files to .csv files.
-    xml2csv(experiment_root_path=experiment_root_path)
+    # xml2csv(experiment_root_path=experiment_root_path)
 
     # 7) Create plots with metrics plots for final agent.
     test_plots(experiment_root_path)

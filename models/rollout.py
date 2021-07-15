@@ -156,7 +156,8 @@ def main(config_file_path=None):
         mdp_params=mdp_params,
         network=network,
         exp_path=experiment_path.as_posix(),
-        seed=args.seed
+        seed=args.seed,
+        simulator='cityflow'
     )
 
     # Setup checkpoints.
@@ -174,7 +175,7 @@ def main(config_file_path=None):
     )
 
     # Run the experiment.
-    info_dict = exp.run(args.rollout_time)
+    info_dict = exp.run(args.rollout_time, emit=True)
     info_dict['id'] = args.chkpt_number
 
     return info_dict
