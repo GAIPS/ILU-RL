@@ -723,7 +723,9 @@ class CityflowKernelNetwork(BaseKernelNetwork):
             self.cfg_path = source_path / 'config.json'
             self.cfg_rel_path = Path(rel_dir) / 'config.json'
 
-        if self.cfg_path != (source_path / 'config.json'):
+        # TODO: Breakdown all those functions into
+        # gen_net, gen_flow, gen_cfg
+        if self.cfg_path != (source_path / 'config.json') or self.flow is None:
             # II. Process flow
             # II.1 translate attributes
             vehicles = self.network.vehicles
@@ -753,6 +755,9 @@ class CityflowKernelNetwork(BaseKernelNetwork):
                         'endTime':inflow['end'],
                     })
             self.flow = flows
+            # Creates a default flow file.
+            if not (source_path / 'flow.json').exists():
+                with (source_path / 'flow.json').open('w') as f: json.dump(self.flow, f)
 
             # gets the relative path
             path_parts = [pp for pp in self.cfg_path.parent.parts if pp not in ILURL_PATH.parts]
@@ -825,7 +830,8 @@ class CityflowKernelNetwork(BaseKernelNetwork):
         source_path = Path(NETWORKS_PATH) / self.orig_name
         with (source_path / 'config.json').open() as f: self.cfg = json.load(f)
         with (source_path / 'roadnet.json').open() as f: self.roadnet = json.load(f)
-        with (source_path / 'flow.json').open() as f: self.flow = json.load(f)
+        if (source_path / 'flow.json').exists():
+            with (source_path / 'flow.json').open() as f: self.flow = json.load(f)
 
         # can only provide one of osm path or template path to the network
         assert self.network.net_params.template is None \
