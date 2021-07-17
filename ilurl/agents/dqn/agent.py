@@ -30,7 +30,7 @@ def _make_network(num_actions : int,
         # Torso MLP.
         snt.nets.MLP(torso_layers, activate_final=True),
         # Dueling MLP head.
-        networks.DuellingMLP(num_actions=num_actions,
+        networks.DuellingMLP(num_actions=2,
                                       hidden_sizes=head_layers)  
     ])
     return network
@@ -64,12 +64,12 @@ class DQN(AgentWorker,AgentInterface):
         self._stop = False
 
         # Define specs. Everything needs to be single precision by default.
-        observation_spec = specs.Array(shape=(params.states.rank,),
+        observation_spec = specs.Array(shape=(4,),
                                   dtype=np.float32,
                                   name='obs'
         )
         action_spec = specs.DiscreteArray(dtype=np.int32,
-                                          num_values=params.actions.depth,
+                                          num_values=2,
                                           name="action"
         )
         reward_spec = specs.Array(shape=(),
@@ -126,7 +126,7 @@ class DQN(AgentWorker,AgentInterface):
 
     def act(self, s):
         s = double_to_single_precision(np.array(s))
-
+        print(f'actor at {s}')
         # Make first observation.
         if self._obs_counter == 0:
             t_1 = dm_env.restart(s)

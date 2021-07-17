@@ -71,6 +71,30 @@ def build_rewards(mdp_params):
 
     return ret
 
+def reward_min_wave(state, *args):
+    """Min. speed distance to max_speed
+
+    Params:
+    ------
+    * state: ilurl.state.State or dict<str, tuple>
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    Reference:
+    ----------
+
+    """
+    wave = {key:
+        {v for i, v in enumerate(values) if i > 2}
+        for key, values in state.items() 
+    }
+    # Unpacks & performs -<speed, count>.
+    ret = {k:-sum(v) for k, v in wave.items()}
+
+    return ret
 
 def reward_min_speed_delta(state, *args):
     """Min. speed distance to max_speed

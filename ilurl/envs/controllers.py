@@ -8,10 +8,11 @@ from collections import namedtuple
 PressurePhase = namedtuple('PressurePhase', 'id time yellow')
 
 def is_controller_periodic(ts_type):
-    if ts_type in ('rl', 'random', 'static', 'webster'):
+    # if ts_type in ('rl', 'random', 'static', 'webster'):
+    if ts_type in ('random', 'static', 'webster'):
         return True
 
-    if ts_type in ('actuated', 'max_pressure'):
+    if ts_type in ('actuated', 'max_pressure', 'rl'):
         return False
 
     raise ValueError(f'Unknown ts_type:{ts_type}')
