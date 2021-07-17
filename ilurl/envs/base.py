@@ -15,6 +15,8 @@
     For more info see flow.envs.base.Env class.
 
 """
+from operator import itemgetter
+from collections import defaultdict
 import numpy as np
 
 from ilurl.flow.envs.base import Env
@@ -81,11 +83,16 @@ class TrafficLightEnv(Env):
         # Reward function.
         self.reward = build_rewards(mdp_params)
 
+        # Overrides GYM's observation space.
+        # self.observation_space = State(network, mdp_params)
         self.actions_log = {}
         self.states_log = {}
 
-        # Overrides GYM's observation space.
-        self.observation_space = State(network, mdp_params)
+        # state WAVE
+        # |state|  = |p| + 2
+        self._cached_state = {tlid: tuple([0] * (np + 2)) for tlid, np in network.phases_per_tls.items()}
+        self._duration = defaultdict(lambda : 0)
+        self._duration_counter = -1
 
         # Continuous action space signal plans.
         self.signal_plans_continous = {}
@@ -98,23 +105,55 @@ class TrafficLightEnv(Env):
 
     @property
     def duration(self):
-        if self.time_counter == 0:
-            return 0.0
+        return self._duration
 
+    # @property
+    # def active_duration(self):
+    #     # Counts the time since last switch has taken place.
+    #     if not any(self.active_phases):
+    #         self._active_duration = defaultdict(lambda : 0)
+    #     return self._active_duration
+
+    @property
+    def active_phases(self):
+        # Defines the phase
+        return self._active_phases
+
+    def update_active_phases(self, active_phases):
+        """ Phases which are active on this timestep
+            Where either:
+            1) Were active previous time step. 
+            2) Have been active as a consequence of
+            decision making by the agent and NOT low
+            level traffic signal control.
+        """
+        # Prevents function to be called twice on the same time step.
         if self._duration_counter != self.time_counter:
-            self._duration = \
-                round(self._duration + self.sim_step, 2) % self.cycle_time
+            assert self._active_phases.keys() == active_phases.keys()
+
+            # "Aliasing": keep notation shorter
+            prev = self._active_phases
+            this = active_phases
+            dur = self._duration
+
+            # this == prev -> increment duration
+            for tid, p in this.items():
+                dur[tid] = (dur[tid] + 1) if p == prev[tid] else 0
+                prev[tid] = p
+
+            # Prevents being updated twice
             self._duration_counter = self.time_counter
         return self._duration
 
     # overrides GYM's observation space
-    @property
-    def observation_space(self):
-        return self._observation_space
+    # @property
+    # def observation_space(self):
+    #     return self._observation_space
 
-    @observation_space.setter
-    def observation_space(self, observation_space):
-        self._observation_space = observation_space
+    # @observation_space.setter
+    # def observation_space(self, observation_space):
+    #     self._observation_space = observation_space
+
 
     # TODO: create a delegate class
     @property
@@ -147,21 +186,37 @@ class TrafficLightEnv(Env):
             for tid, durations in self.network.tls_durations.items()
         }
 
+
     def update_observation_space(self):
         """ Query kernel to retrieve vehicles' information
         and send it to ilurl.State object for state computation.
 
+        TODO: Choose Phase transform in get
         Returns:
         -------
         observation_space: ilurl.State object
 
         """
+        print(f'{self.time_counter}:update_observation_space')
         # Query kernel and retrieve vehicles' data.
         vehs = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
                     for p, data in self.tls_phases[nid].items()}
                         for nid in self.tls_ids}
 
-        self.observation_space.update(self.duration, vehs)
+         
+        # TODO: Optimize this computation by using CityFlowSimulatorKernel
+        new_vehs = {
+            nid: {p: len(phase) for p, phase in phases.items()}
+            for nid, phases  in vehs.items()
+        }
+        state = {}
+        self._this_state = {}
+        for tlid, phases_dict  in new_vehs.items():
+            # order by phase(num) and get values (counts).
+            _, wave = zip(*sorted(phases_dict.items(), key=itemgetter(0)))
+            state[tlid] = (self.active_phases[tlid], self.duration[tlid]) + wave 
+        self._cached_state = state
+        # self.observation_space.update(self.duration, vehs)
 
     def get_state(self):
         """ Return the state of the simulation as perceived by the RL agent(s).
@@ -171,11 +226,29 @@ class TrafficLightEnv(Env):
         state : dict
 
         """
-        obs = self.observation_space.feature_map(
-            categorize=self.mdp_params.discretize_state_space,
-            flatten=True
-        )
-        return obs
+        print(f'{self.time_counter}:get_state()')
+        # TODO: Choose Phase
+        # Make value function approximation here
+        # min_green and max_green contraint
+        # if self.mdp_params.discretize_state_space:
+        #    def fn(dur):
+        #        if dur < self.min_green: return 0 
+        #        if dur < int(self.max_green / 2): return 1
+        #        if dur < self.max_green: return 2 
+        #        return 3 
+        # active_state = {
+        #         tlid: [fn(value) if itr == 2 else value
+        #         for itr, value in enumerate(values)]
+        #     for tlid, values in self._cached_state.items()
+        # }
+        # k, v
+        return self._cached_state
+        # obs = self.observation_space.feature_map(
+        #     categorize=self.mdp_params.discretize_state_space,
+        #     flatten=True
+        # )
+        # return obs
+
 
     def _rl_actions(self, state):
         """ Return the selected action(s) given the state of the environment.
@@ -191,7 +264,21 @@ class TrafficLightEnv(Env):
         actions: dict
 
         """
-        return self.tsc.act(state) # Delegate to Multi-Agent System.
+
+        # Choose Phases: add some tensorflow sheneningans
+        # tf_state = {k: np.array(values).astype(np.float32).reshape((1, len(values)))
+        #           for k, values in state.items()}
+        # if self.time_counter >= 4:
+        #     import ipdb; ipdb.set_trace()
+
+        # TUPLE
+        tf_state = {tlid: tuple([float(s) for s in sta]) for tlid, sta in state.items()}
+        # tf_state = {tlid: np.array([s for s in sta]).astype(np.float32).reshape((1, len(sta))) for tlid, sta in state.items()}
+        # print(tf_state['247123161'], tf_state['247123161'].shape, tf_state['247123161'].dtype)
+        # Delegate to Multi-Agent System. 
+        this_actions = self.tsc.act(state) 
+
+        return this_actions
 
     def _periodic_control_actions(self):
         """ Executes pre-timed periodic control actions.
@@ -306,6 +393,7 @@ class TrafficLightEnv(Env):
                     reward = self.compute_reward(None)
                     prev_state = self.states_log[cycle_number - 1]
                     prev_action = self.actions_log[cycle_number - 1]
+
                     self.tsc.update(prev_state, prev_action, reward, state)
 
             if self.ts_type == 'webster':
@@ -321,6 +409,71 @@ class TrafficLightEnv(Env):
 
         else:
             # Aperiodic controller.
+            # TODO: Choose Phase is aperiodic.
+            if self.ts_type == 'rl' and self.step_counter >= self.min_green - 1:
+                # Get the number of the current cycle.
+                N = int((self.step_counter + 1)/ 5)
+                if (self.step_counter + 1) % 5  == 0:
+
+                    print(f'apply_rl_actions#{self.step_counter}:')
+
+                    # Every five time steps is a possible candidate for action
+                    state = self.get_state()
+
+                    if self.time_counter > 5:
+                        import ipdb; ipdb.set_trace()
+
+                    # Select new action.
+                    if rl_actions is None:
+                        this_actions = self._rl_actions(state)
+                    else:
+                        this_actions = rl_actions
+
+                    if N > 0:
+
+                        self.actions_log[N] = this_actions
+                        self.states_log[N] = state
+                        # RL-agent update.
+                        reward = self.compute_reward(None)
+                        prev_state = self.states_log[N - 1]
+                        prev_action = self.actions_log[N - 1]
+                        # TODO: Prevent agent from taking actions
+                        # that violate constraints
+                        
+                        # TODO: Choose Phase
+                        # Soft constraint on minimum and maximum
+                        # -1o should be a very large penalty
+                        def softr(x, y):
+                            if x[1] < self.min_green + 5 and x[1] >= self.max_green: return -10
+                            return y
+
+                        soft_reward = {
+                            tlid: softr(state[tlid], rwd) for tlid, rwd in reward.items()
+                        }
+                        self.tsc.update(prev_state, prev_action, soft_reward, state)
+                else:
+                    this_actions = self.actions_log[N - 1]
+
+                # TODO: Choose Phases controller action mapping.
+                # controller actions usually have twice as many phases.
+                def fn(x):
+                    if x[1] <= self.min_green: return True
+                    return False
+
+                def ctrl(x):
+                    if x[1] < self.min_green: return 2 * x[0] + 1
+                    return 2 * x[0]
+
+                controller_actions = {
+                    tlid: ctrl(sta)
+                    for tlid, sta in self._cached_state.items() if fn(sta)
+                }
+
+                # Update traffic lights' control signals.
+                self._apply_tsc_actions(controller_actions)
+
+                self.update_active_phases(this_actions)
+
             if self.ts_type == 'max_pressure':
                 controller_actions = self.tsc.act(self.observation_space, self.time_counter)
 
@@ -340,14 +493,22 @@ class TrafficLightEnv(Env):
             True; switch to next state
 
         """
-        for i, tid in enumerate(self.tls_ids):
-            if controller_actions[i]:
-                states = self.tls_states[tid]
-                self._tls_phase_indicator[tid] = \
-                        (self._tls_phase_indicator[tid] + 1) % len(states)
-                next_state = states[self._tls_phase_indicator[tid]]
+        # TODO: Choose Phase
+        # for i, tlid in enumerate(self.tls_ids):
+        #     if controller_actions[i]:
+        #         states = self.tls_states[tlid]
+        #         next_state = states[controller_actions[i]]
+        #         self.k.traffic_light.set_state(
+        #             node_id=tlid, state=next_state)
+
+        for i, tlid in enumerate(self.tls_ids):
+            if controller_actions[tlid]:
+                states = self.tls_states[tlid]
+                self._tls_phase_indicator[tlid] = \
+                        (self._tls_phase_indicator[tlid] + 1) % len(states)
+                next_state = states[self._tls_phase_indicator[tlid]]
                 self.k.traffic_light.set_state(
-                    node_id=tid, state=next_state)
+                    node_id=tlid, state=next_state)
 
     def _current_rl_action(self):
         """ Returns current action. """
@@ -374,7 +535,7 @@ class TrafficLightEnv(Env):
             Reward at each TSC.
 
         """
-        return self.reward(self.observation_space)
+        return self.reward(self.get_state())
 
     def reset(self):
         super(TrafficLightEnv, self).reset()
@@ -385,8 +546,15 @@ class TrafficLightEnv(Env):
         # the beggining of the cycle, i.e. it measures (in seconds)
         # for how long the current configuration has been going on.
         self._duration_counter = -1
-        self._duration = self.time_counter * self.sim_step
+        self._duration = defaultdict(lambda : 0)
+        self._active_phases = defaultdict(lambda : 0)
 
+        # Choose Phase:
+        # Always same inital state 0 (no yellow).
+        self.min_green = 5
+        self.max_green = 90
+
+        
         # Stores the state index.
         self._tls_phase_indicator = {}
         for node_id in self.tls_ids:
@@ -395,7 +563,9 @@ class TrafficLightEnv(Env):
                 s0 = self.tls_states[node_id][0]
                 self.k.traffic_light.set_state(node_id=node_id, state=s0)
 
-                # Notify controller.
+                self.actions_log[0] = {tlid: 0 for tlid in self.tls_ids}
+                self.states_log[0] = self._cached_state
 
+        # FIXME: Deprecate
         # Observation space.
-        self.observation_space.reset()
+        # self.observation_space.reset()
