@@ -156,8 +156,9 @@ class Experiment:
         for step in tqdm(range(num_steps)):
 
             # WARNING: Env reset is not synchronized with agents' cycle time.
-            # if step % 86400 == 0 and agent_updates_counter != 0: # 24 hours
+            # if step % 5000 == 0 and agent_updates_counter != 0: # 24 hours
             #     self.env.reset()
+            #     self.env.k.simulation.eng.reset()
 
             state, reward, done, _ = self.env.step(rl_actions(state))
 
@@ -167,10 +168,9 @@ class Experiment:
             veh_ids.append(len(step_speeds))
             veh_speeds.append(np.nanmean(step_speeds))
 
-            if self._is_save_step():
+            if step  %  5 == 0:
 
-                observation_spaces.append(
-                    self.env.observation_space.feature_map())
+                observation_spaces.append(self.env.get_state())
 
                 rewards.append(reward)
 
@@ -186,7 +186,11 @@ class Experiment:
 
             if self.save_agent and self.tls_type == 'rl' and \
                 self._is_save_agent_step(agent_updates_counter):
+
                 self.env.tsc.save_checkpoint(self.exp_path)
+
+                self.env.reset()
+                self.env.k.simulation.eng.reset()
 
             if emit:
                 self._update_emissions(emissions)
@@ -198,7 +202,7 @@ class Experiment:
         info_dict["observation_spaces"] = observation_spaces
         info_dict["actions"] = action_to_double_precision([a for a in self.env.actions_log.values()])
         info_dict["states"] = [s for s in self.env.states_log.values()]
-        
+
         if emit:
             pd.DataFrame. \
                from_dict(data=emissions). \
@@ -210,13 +214,10 @@ class Experiment:
 
         return info_dict
 
-    def _is_save_step(self):
-        if self.cycle is not None:
-            return self.env.duration == 0.0
-        return False
 
     def _is_save_agent_step(self, counter):
-        if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
+        # if self.env.duration == 0.0 and counter % self.save_agent_interval == 0:
+        if counter % self.save_agent_interval == 0:
             return self.train and self.exp_path
         return False
 
