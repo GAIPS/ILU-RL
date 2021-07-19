@@ -205,7 +205,6 @@ class TrafficLightEnv(Env):
                     for p, data in self.tls_phases[nid].items()}
                         for nid in self.tls_ids}
 
-         
         # TODO: Optimize this computation by using CityFlowSimulatorKernel
         new_vehs = {
             nid: {p: len(phase) for p, phase in phases.items()}
@@ -218,7 +217,7 @@ class TrafficLightEnv(Env):
             _, wave = zip(*sorted(phases_dict.items(), key=itemgetter(0)))
             duration_active = self.step_counter - self.duration[tlid]
 
-            _state = (self.active_phases[tlid], duration_active) + wave 
+            _state = (self.active_phases[tlid], duration_active) + wave
             _state = tuple([float(sta) for sta in _state])
             state[tlid] = _state
         self._cached_state = state
@@ -247,14 +246,7 @@ class TrafficLightEnv(Env):
         #     for tlid, values in self._cached_state.items()
         # }
         # k, v
-        # FIXME: Apparently python has problems with integers
-        # stored as float.
         return {tlid: tuple([sta for sta in state]) for tlid, state in self._cached_state.items()}
-        # obs = self.observation_space.feature_map(
-        #     categorize=self.mdp_params.discretize_state_space,
-        #     flatten=True
-        # )
-        # return obs
 
 
     def _rl_actions(self, state):
@@ -273,9 +265,9 @@ class TrafficLightEnv(Env):
         """
 
         # Choose Phases: TUPLE
-        tf_state = {tlid: tuple([float(s) for s in sta]) for tlid, sta in state.items()}
+        # tf_state = {tlid: tuple([float(s) for s in sta]) for tlid, sta in state.items()}
         # Delegate to Multi-Agent System. 
-        this_actions = self.tsc.act(tf_state) 
+        this_actions = self.tsc.act(state)
 
         return this_actions
 
@@ -409,15 +401,15 @@ class TrafficLightEnv(Env):
         else:
             # Aperiodic controller.
             # TODO: Choose Phase is aperiodic.
-            # TODO: Decide Should be 0-4?
-            if self.ts_type == 'rl' and self.step_counter >= self.min_green:
-                # Get the number of the current cycle.
-                N = int((self.step_counter + 1)/ 5)
-                if ((self.step_counter) % 5  == 0):
 
+            # Get the number of the current cycle.
+            N = int((self.step_counter + 1)/ 5)
+            if self.ts_type == 'rl' and N > 0:
+                if ((self.step_counter) % 5  == 0):
 
                     # Every five time steps is a possible candidate for action
                     state = self.get_state()
+
 
                     # Select new action.
                     if rl_actions is None:
@@ -425,57 +417,61 @@ class TrafficLightEnv(Env):
                     else:
                         this_actions = rl_actions
 
+                    # Enforce actions constraints.
+                    # 1) Prevent switching to a new phase before min_green.
+                    # 2) Prevent keeping a phase after max_green.
+                    def keep(x):
+                        return int(state[x][1]) <= (self.min_green + self.yellow)
+                    def switch(x):
+                        return int(state[x][1]) >= (self.max_green + self.yellow)
+
+                    for tlid in self.tls_ids:
+                        if keep(tlid):
+                            this_actions[tlid] = int(state[tlid][0])
+                        elif switch(tlid):
+                            num_phases = self.mdp_params.phases_per_traffic_light[tlid]
+                            this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
+
 
                     self.actions_log[N] = this_actions
                     self.states_log[N] = state
-                    # RL-agent update.
-                    reward = self.compute_reward(None)
-                    prev_state = self.states_log[N - 1]
-                    prev_action = self.actions_log[N - 1]
-                    # TODO: Prevent agent from taking actions
-                    # that violate constraints
-                    
-                    # TODO: Choose Phase
-                    # Soft constraint on minimum and maximum
-                    # -1o should be a very large penalty
-                    def softr(x, y):
-                        if x[1] < self.min_green + 5 and x[1] >= self.max_green: return -10
-                        return y
 
-                    soft_reward = {
-                        tlid: softr(state[tlid], rwd) for tlid, rwd in reward.items()
-                    }
-                    self.tsc.update(prev_state, prev_action, soft_reward, state)
+                    if N > 1:
+                        # RL-agent update.
+                        reward = self.compute_reward(None)
+                        prev_state = self.states_log[N - 1]
+                        prev_action = self.actions_log[N - 1]
+                        self.tsc.update(prev_state, prev_action, reward, state)
 
-                    # TODO: Choose Phases controller action mapping.
-                    # TODO: Add yellow (yellow==min_green)
+                        # TODO: Choose Phases controller action mapping.
+                        # TODO: Add yellow (yellow==min_green)
 
-                    def fn(x, u):
-                        # Switch to yellow
-                        if int(x[0]) != u: return True
-                        # First cycle ignore yellow transitions
-                        if self.step_counter <= self.min_green: return False
-                        if int(x[1])  == self.min_green: return True
-                        return False
+                        def fn(x, u):
+                            # Switch to yellow
+                            if int(x[0]) != u: return True
+                            # First cycle ignore yellow transitions
+                            if self.step_counter <= self.min_green: return False
+                            if int(x[1])  == self.min_green: return True
+                            return False
 
-                    def ctrl(x, u):
-                        # Switch to yellow
-                        # in conflicts 
-                        if int(x[0]) != u: return int(2 * u + 1)
-                        # Switch to green
-                        if int(x[1]) == self.min_green: return int(2 * x[0])
+                        def ctrl(x, u):
+                            # Switch to yellow
+                            # in conflicts 
+                            if int(x[0]) != u: return int(2 * u + 1)
+                            # Switch to green
+                            if int(x[1]) == self.min_green: return int(2 * x[0])
 
-                    controller_actions = {
-                        tlid: ctrl(sta, this_actions[tlid])
-                        for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
-                    }
+                        controller_actions = {
+                            tlid: ctrl(sta, this_actions[tlid])
+                            for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
+                        }
 
-                    # print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
-                    # import ipdb; ipdb.set_trace()
-                    # Update traffic lights' control signals.
-                    self._apply_tsc_actions(controller_actions)
+                        # print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
+                        # import ipdb; ipdb.set_trace()
+                        # Update traffic lights' control signals.
+                        self._apply_tsc_actions(controller_actions)
 
-                    self.update_active_phases(this_actions)
+                        self.update_active_phases(this_actions)
 
             if self.ts_type == 'max_pressure':
                 controller_actions = self.tsc.act(self.observation_space, self.time_counter)
@@ -507,9 +503,6 @@ class TrafficLightEnv(Env):
         for i, tlid in enumerate(self.tls_ids):
             if tlid in controller_actions:
                 states = self.tls_states[tlid]
-                # self._tls_phase_indicator[tlid] = \
-                #         (self._tls_phase_indicator[tlid] + 1) % len(states)
-                # next_state = states[self._tls_phase_indicator[tlid]]
                 next_state = states[controller_actions[tlid]]
                 self.k.traffic_light.set_state(
                     node_id=tlid, state=next_state)
@@ -557,19 +550,10 @@ class TrafficLightEnv(Env):
         # Always same inital state 0 (no yellow).
         self.min_green = 5
         self.max_green = 90
+        self.yellow = 5
 
-        
         # Stores the state index.
-        self._tls_phase_indicator = {}
         for node_id in self.tls_ids:
             if self.ts_type != 'actuated':
-                self._tls_phase_indicator[node_id] = 0
-                s0 = self.tls_states[node_id][0]
-                self.k.traffic_light.set_state(node_id=node_id, state=s0)
-
-                self.actions_log[0] = {tlid: 0 for tlid in self.tls_ids}
-                self.states_log[0] = self._cached_state
-
-        # FIXME: Deprecate
-        # Observation space.
-        # self.observation_space.reset()
+                start_state = self.tls_states[node_id][0]
+                self.k.traffic_light.set_state(node_id=node_id, state=start_state)
