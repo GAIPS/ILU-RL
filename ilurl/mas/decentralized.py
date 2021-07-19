@@ -29,37 +29,29 @@ class DecentralizedMAS(MASInterface):
         for tid in mdp_params.phases_per_traffic_light:
             agent_params_ = deepcopy(agent_params)
             num_phases = mdp_params.phases_per_traffic_light[tid]
-            # agent_params_.actions = Bounds(rank=1, depth=actions_depth)
-
+            # Action space.
             if mdp_params.action_space == 'discrete':
                 # Discrete action space.
                 # In the discrete action space each agent is allowed to pick
                 # the signal plan(s) from a set of candidate signal plans given
                 # a priori to the system by a user. The candidate signal plans
                 # are defined in data/networks/{NETWORK_NAME}/tls_config.json
-
-                # TODO: Choose Phase: Action space.
-                # actions_depth = mdp_params.num_actions[tid]
-                 agent_params_.actions = Bounds(rank=1, depth= num_phases)
-                # FIXME: Deprecate
-                # agent_params_.actions = Bounds(rank=1,
-                #                               depth=actions_depth)
+                actions_depth = mdp_params.num_actions[tid]
+                agent_params_.actions = Bounds(rank=1,
+                                               depth=actions_depth)
             else:
                 # Continuous action space.
                 # In the continuous action space each agent is allowed to select
                 # the portion of the cycle length allocated for each of the phases.
                 agent_params_.num_phases = mdp_params.phases_per_traffic_light[tid]
 
-            # FIXME: Deprecate
-            # if mdp_params.discretize_state_space:
-            #     feature = mdp_params.features[0]
-            #     states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
+            if mdp_params.discretize_state_space:
+                feature = mdp_params.features[0]
+                states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
 
             # states_rank = num_phases * num_variables + int(has_period)
-            
-            agent_params_.states = Bounds(1, num_phases + 2)
-            # FIXME: Deprecate
-            # agent_params_.states = Bounds(states_rank, states_depth)
+            states_rank = num_phases * num_variables + 2
+            agent_params_.states = Bounds(states_rank, states_depth)
             # Experience path.
             agent_params_.exp_path = exp_path
 
@@ -100,17 +92,6 @@ class DecentralizedMAS(MASInterface):
             agent.receive()
 
     def act(self, state):
-        # TODO: Choose Phase:
-        # Only the agents with state are going to act
-        # Send requests.
-        # for (tlid, state) in state.items():
-        #     self.agent[tlid].act(state[tid])
-        # 
-
-        # # Retrieve requests.
-        # choices = {tid: agent.receive()
-        #             for (tid, agent) in self.agents.items() if tid in states}
-
         # Send requests.
         for (tid, agent) in self.agents.items():
             agent.act(state[tid])

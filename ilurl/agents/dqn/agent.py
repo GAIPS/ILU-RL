@@ -126,7 +126,6 @@ class DQN(AgentWorker,AgentInterface):
 
     def act(self, s):
         s = double_to_single_precision(np.array(s))
-        print(f'actor at {s}')
         # Make first observation.
         if self._obs_counter == 0:
             t_1 = dm_env.restart(s)
