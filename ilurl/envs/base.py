@@ -17,6 +17,7 @@
 """
 from operator import itemgetter
 from collections import defaultdict
+from copy import deepcopy
 import numpy as np
 
 from ilurl.flow.envs.base import Env
@@ -87,6 +88,7 @@ class TrafficLightEnv(Env):
         # self.observation_space = State(network, mdp_params)
         self.actions_log = {}
         self.states_log = {}
+        self.controller_log = {}
 
         # state WAVE
         # |state|  = |p| + 2
@@ -455,9 +457,7 @@ class TrafficLightEnv(Env):
                             return False
 
                         def ctrl(x, u):
-                            # Switch to yellow
-                            # in conflicts 
-                            if int(x[0]) != u: return int(2 * u + 1)
+                            if int(x[0]) != u: return int(2 * x[0] + 1)
                             # Switch to green
                             if int(x[1]) == self.min_green: return int(2 * x[0])
 
@@ -466,10 +466,12 @@ class TrafficLightEnv(Env):
                             for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
                         }
 
-                        # print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
-                        # import ipdb; ipdb.set_trace()
+                        print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
+                        import ipdb; ipdb.set_trace()
                         # Update traffic lights' control signals.
                         self._apply_tsc_actions(controller_actions)
+                        num_logs = len(self.controller_log)
+                        print(f'{self.controller_log[num_logs - 1]}')
 
                         self.update_active_phases(this_actions)
 
@@ -493,19 +495,17 @@ class TrafficLightEnv(Env):
 
         """
         # TODO: Choose Phase
-        # for i, tlid in enumerate(self.tls_ids):
-        #     if controller_actions[i]:
-        #         states = self.tls_states[tlid]
-        #         next_state = states[controller_actions[i]]
-        #         self.k.traffic_light.set_state(
-        #             node_id=tlid, state=next_state)
-
+        num_logs = len(self.controller_log)
+        ctrl_log = deepcopy(self.controller_log[num_logs - 1])
         for i, tlid in enumerate(self.tls_ids):
             if tlid in controller_actions:
                 states = self.tls_states[tlid]
                 next_state = states[controller_actions[tlid]]
                 self.k.traffic_light.set_state(
                     node_id=tlid, state=next_state)
+                ctrl_log[tlid] = next_state
+        self.controller_log[num_logs] = ctrl_log
+
 
     def _current_rl_action(self):
         """ Returns current action. """
@@ -551,9 +551,13 @@ class TrafficLightEnv(Env):
         self.min_green = 5
         self.max_green = 90
         self.yellow = 5
+        num_logs = len(self.controller_log)
 
         # Stores the state index.
+        starting_control = {}
         for node_id in self.tls_ids:
             if self.ts_type != 'actuated':
                 start_state = self.tls_states[node_id][0]
                 self.k.traffic_light.set_state(node_id=node_id, state=start_state)
+                starting_control[node_id] = start_state
+            self.controller_log[num_logs] = starting_control
