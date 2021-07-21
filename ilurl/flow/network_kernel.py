@@ -930,6 +930,9 @@ class CityflowKernelNetwork(BaseKernelNetwork):
                           self.network.traffic_lights,
                           self.network.routes)
 
+    def max_speed(self):
+        return self.__max_speed
+
     def get_edge_list(self):
         """See parent class."""
         return self._edge_list

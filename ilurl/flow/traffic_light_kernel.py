@@ -155,10 +155,10 @@ class CityflowTrafficLight(KernelTrafficLight):
 
         # subscribe the traffic light signal data
         tls_properties = network_kernel.network.traffic_lights.get_properties()
-        self.__sumo_to_cityflow = {}
+        self.state_to_phase = {}
         for node_id in self.__ids:
             phases = tls_properties[node_id]['phases']
-            self.__sumo_to_cityflow[node_id] = {p['state']: i for i, p in enumerate(phases)}
+            self.state_to_phase[node_id] = {p['state']: i for i, p in enumerate(phases)}
 
     def update(self, reset):
         """See parent class."""
@@ -171,7 +171,7 @@ class CityflowTrafficLight(KernelTrafficLight):
     def set_state(self, node_id, state, link_index="all"):
         """See parent class."""
         if link_index == "all":
-            phase_id = self.__sumo_to_cityflow[node_id][state]
+            phase_id = self.state_to_phase[node_id][state]
             self.kernel_api.set_tl_phase(node_id, phase_id)
         else:
             raise ValueError('link_index must be equal to "all"')

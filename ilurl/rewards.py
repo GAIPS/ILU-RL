@@ -193,16 +193,9 @@ def reward_min_delay(state, *args):
         "Multi-agent reinforcement learning for traffic light control."
 
     """
-    try:
-        delays = state.feature_map(
-            filter_by=('delay',)
-        )
-    except AttributeError:
-        delays = state
-
     ret = {}
-    for tls_id, phase_obs in delays.items():
-        ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    for tls_id, values in state.items():
+        ret[tls_id] = -sum(values[2:])
     return ret
 
 def reward_min_waiting_time(state, *args):

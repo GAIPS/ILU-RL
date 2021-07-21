@@ -32,6 +32,11 @@ from ilurl.envs.controllers import get_ts_controller, is_controller_periodic
 # TODO: make this a factory in the future.
 from ilurl.mas.decentralized import DecentralizedMAS
 
+def delay(x):
+    if x >= 1.0:
+        return 0.0
+    else:
+        return np.exp(-5.0*x)
 
 class TrafficLightEnv(Env):
     """
@@ -95,6 +100,9 @@ class TrafficLightEnv(Env):
         self._cached_state = {tlid: tuple([float(0) for _ in range(np + 2)])
                               for tlid, np in network.phases_per_tls.items()}
 
+        self._cached_delay = defaultdict(lambda : {})
+        self._cached_delay[0] = {tlid: tuple([float(0) for _ in range(np)])
+                              for tlid, np in network.phases_per_tls.items()}
         self._duration = defaultdict(lambda : 0)
         self._duration_counter = -1
 
@@ -110,13 +118,6 @@ class TrafficLightEnv(Env):
     @property
     def duration(self):
         return self._duration
-
-    # @property
-    # def active_duration(self):
-    #     # Counts the time since last switch has taken place.
-    #     if not any(self.active_phases):
-    #         self._active_duration = defaultdict(lambda : 0)
-    #     return self._active_duration
 
     @property
     def active_phases(self):
@@ -134,7 +135,7 @@ class TrafficLightEnv(Env):
         # Prevents function to be called twice on the same time step.
         if self._duration_counter != self.step_counter:
             assert self._active_phases.keys() == active_phases.keys()
-            
+
             # "Aliasing": keep notation shorter
             prev = self._active_phases
             this = active_phases
@@ -203,27 +204,38 @@ class TrafficLightEnv(Env):
 
         """
         # Query kernel and retrieve vehicles' data.
-        vehs = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
+        data = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
                     for p, data in self.tls_phases[nid].items()}
                         for nid in self.tls_ids}
 
-        # TODO: Optimize this computation by using CityFlowSimulatorKernel
-        new_vehs = {
-            nid: {p: len(phase) for p, phase in phases.items()}
-            for nid, phases  in vehs.items()
-        }
         state = {}
-        self._this_state = {}
-        for tlid, phases_dict  in new_vehs.items():
-            # order by phase(num) and get values (counts).
-            _, wave = zip(*sorted(phases_dict.items(), key=itemgetter(0)))
-            duration_active = self.step_counter - self.duration[tlid]
+        max_speed = self.k.network.max_speed()
+        for tlid, phases_dict  in data.items():
+            duration = self.duration[tlid]
+            duration_active = self.time_counter - self.duration[tlid]
+            phase_active = self.active_phases[tlid]
+            phase_features = (float(phase_active), float(duration_active))
 
-            _state = (self.active_phases[tlid], duration_active) + wave
-            _state = tuple([float(sta) for sta in _state])
-            state[tlid] = _state
+            delay_list = []
+            # order by phase(num) and get values (counts).
+            # Computes and stores delays for the current time step.
+            for pid, vehs in phases_dict.items():
+                this_delay = sum([delay(veh.speed /  max_speed) for veh in vehs])
+                delay_list.append(round(float(this_delay), 4))
+            self._cached_delay[self.step_counter][tlid] = tuple(delay_list)
+
+            # Cumulates delays per phase.
+            # Exclude duration that the decision was taken.
+            for pid in phases_dict:
+                for dur in range(duration + 1, self.step_counter):
+                    delay_list[pid] += self._cached_delay[dur][tlid][pid]
+                delay_list[pid] = round(delay_list[pid] / duration_active, 4)
+
+
+            state[tlid] = phase_features + tuple(delay_list)
+            # print(f'[{self.time_counter}, {self.duration[tlid]}]: {state[tlid]} -- {[dur for dur in range(duration + 1, self.step_counter)]}')
+            # import ipdb; ipdb.set_trace()
         self._cached_state = state
-        # self.observation_space.update(self.duration, vehs)
 
     def get_state(self):
         """ Return the state of the simulation as perceived by the RL agent(s).
@@ -266,8 +278,6 @@ class TrafficLightEnv(Env):
 
         """
 
-        # Choose Phases: TUPLE
-        # tf_state = {tlid: tuple([float(s) for s in sta]) for tlid, sta in state.items()}
         # Delegate to Multi-Agent System. 
         this_actions = self.tsc.act(state)
 
@@ -457,6 +467,7 @@ class TrafficLightEnv(Env):
                             return False
 
                         def ctrl(x, u):
+                            # Switch to yellow
                             if int(x[0]) != u: return int(2 * x[0] + 1)
                             # Switch to green
                             if int(x[1]) == self.min_green: return int(2 * x[0])
@@ -466,12 +477,12 @@ class TrafficLightEnv(Env):
                             for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
                         }
 
-                        print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
-                        import ipdb; ipdb.set_trace()
+                        # print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
+                        # import ipdb; ipdb.set_trace()
                         # Update traffic lights' control signals.
                         self._apply_tsc_actions(controller_actions)
-                        num_logs = len(self.controller_log)
-                        print(f'{self.controller_log[num_logs - 1]}')
+                        # num_logs = len(self.controller_log)
+                        # print(f'{self.controller_log[num_logs - 1]}')
 
                         self.update_active_phases(this_actions)
 
@@ -495,16 +506,18 @@ class TrafficLightEnv(Env):
 
         """
         # TODO: Choose Phase
-        num_logs = len(self.controller_log)
-        ctrl_log = deepcopy(self.controller_log[num_logs - 1])
+        key_log = max(self.controller_log)
+        ctrl_log = deepcopy(self.controller_log[key_log])
         for i, tlid in enumerate(self.tls_ids):
             if tlid in controller_actions:
                 states = self.tls_states[tlid]
                 next_state = states[controller_actions[tlid]]
                 self.k.traffic_light.set_state(
                     node_id=tlid, state=next_state)
-                ctrl_log[tlid] = next_state
-        self.controller_log[num_logs] = ctrl_log
+
+                next_phase = self.k.traffic_light.state_to_phase[tlid][next_state]
+                ctrl_log[tlid] = (next_state, next_phase)
+        self.controller_log[self.time_counter] = ctrl_log
 
 
     def _current_rl_action(self):
@@ -551,13 +564,14 @@ class TrafficLightEnv(Env):
         self.min_green = 5
         self.max_green = 90
         self.yellow = 5
-        num_logs = len(self.controller_log)
+
 
         # Stores the state index.
         starting_control = {}
         for node_id in self.tls_ids:
             if self.ts_type != 'actuated':
-                start_state = self.tls_states[node_id][0]
+                start_phase = 0
+                start_state = self.tls_states[node_id][start_phase]
                 self.k.traffic_light.set_state(node_id=node_id, state=start_state)
-                starting_control[node_id] = start_state
-            self.controller_log[num_logs] = starting_control
+                starting_control[node_id] = (start_state, start_phase)
+            self.controller_log[self.time_counter] = starting_control

@@ -179,23 +179,23 @@ def main():
     """
         throughput_per_cycle
     """
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+    # fig = plt.figure()
+    # fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    for l, df in zip(lbls, dfs.values()):
-        plt.plot(df['throughput_per_cycle', 'x'],
-                 df['throughput_per_cycle', 'y'],
-                 label=l)
+    # for l, df in zip(lbls, dfs.values()):
+    #     plt.plot(df['throughput_per_cycle', 'x'],
+    #              df['throughput_per_cycle', 'y'],
+    #              label=l)
 
-    plt.xlabel('Cycle')
-    plt.ylabel('Number of vehicles')
-    plt.legend()
-    # plt.title('Throughput')
+    # plt.xlabel('Cycle')
+    # plt.ylabel('Number of vehicles')
+    # plt.legend()
+    # # plt.title('Throughput')
 
-    plt.savefig('analysis/plots/compare/compare_throughput.pdf', bbox_inches='tight', pad_inches=0)
-    plt.savefig('analysis/plots/compare/compare_throughput.png', bbox_inches='tight', pad_inches=0)
+    # plt.savefig('analysis/plots/compare/compare_throughput.pdf', bbox_inches='tight', pad_inches=0)
+    # plt.savefig('analysis/plots/compare/compare_throughput.png', bbox_inches='tight', pad_inches=0)
 
-    plt.close()
+    # plt.close()
 
     """
         vehicles_per_cycle
