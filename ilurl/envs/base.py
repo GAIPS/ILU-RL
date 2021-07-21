@@ -100,9 +100,6 @@ class TrafficLightEnv(Env):
         self._cached_state = {tlid: tuple([float(0) for _ in range(np + 2)])
                               for tlid, np in network.phases_per_tls.items()}
 
-        self._cached_delay = defaultdict(lambda : {})
-        self._cached_delay[0] = {tlid: tuple([float(0) for _ in range(np)])
-                              for tlid, np in network.phases_per_tls.items()}
         self._duration = defaultdict(lambda : 0)
         self._duration_counter = -1
 
@@ -222,19 +219,8 @@ class TrafficLightEnv(Env):
             for pid, vehs in phases_dict.items():
                 this_delay = sum([delay(veh.speed /  max_speed) for veh in vehs])
                 delay_list.append(round(float(this_delay), 4))
-            self._cached_delay[self.step_counter][tlid] = tuple(delay_list)
-
-            # Cumulates delays per phase.
-            # Exclude duration that the decision was taken.
-            for pid in phases_dict:
-                for dur in range(duration + 1, self.step_counter):
-                    delay_list[pid] += self._cached_delay[dur][tlid][pid]
-                delay_list[pid] = round(delay_list[pid] / duration_active, 4)
-
 
             state[tlid] = phase_features + tuple(delay_list)
-            # print(f'[{self.time_counter}, {self.duration[tlid]}]: {state[tlid]} -- {[dur for dur in range(duration + 1, self.step_counter)]}')
-            # import ipdb; ipdb.set_trace()
         self._cached_state = state
 
     def get_state(self):
@@ -245,21 +231,6 @@ class TrafficLightEnv(Env):
         state : dict
 
         """
-        # TODO: Choose Phase
-        # Make value function approximation here
-        # min_green and max_green contraint
-        # if self.mdp_params.discretize_state_space:
-        #    def fn(dur):
-        #        if dur < self.min_green: return 0 
-        #        if dur < int(self.max_green / 2): return 1
-        #        if dur < self.max_green: return 2 
-        #        return 3 
-        # active_state = {
-        #         tlid: [fn(value) if itr == 2 else value
-        #         for itr, value in enumerate(values)]
-        #     for tlid, values in self._cached_state.items()
-        # }
-        # k, v
         return {tlid: tuple([sta for sta in state]) for tlid, state in self._cached_state.items()}
 
 
@@ -477,12 +448,7 @@ class TrafficLightEnv(Env):
                             for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
                         }
 
-                        # print(f'TimeCounter: {self.time_counter}, from {prev_state} to state: {state}, This action: {this_actions}, controller action: {controller_actions},')
-                        # import ipdb; ipdb.set_trace()
-                        # Update traffic lights' control signals.
                         self._apply_tsc_actions(controller_actions)
-                        # num_logs = len(self.controller_log)
-                        # print(f'{self.controller_log[num_logs - 1]}')
 
                         self.update_active_phases(this_actions)
 
