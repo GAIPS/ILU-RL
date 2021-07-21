@@ -71,6 +71,30 @@ def build_rewards(mdp_params):
 
     return ret
 
+def reward_min_wave(state, *args):
+    """Min. speed distance to max_speed
+
+    Params:
+    ------
+    * state: ilurl.state.State or dict<str, tuple>
+
+    Returns:
+    --------
+    * ret: dict<str, float>
+        keys: tls_ids, values: rewards
+
+    Reference:
+    ----------
+
+    """
+    wave = {key:
+        {v for i, v in enumerate(values) if i > 2}
+        for key, values in state.items() 
+    }
+    # Unpacks & performs -<speed, count>.
+    ret = {k:-sum(v) for k, v in wave.items()}
+
+    return ret
 
 def reward_min_speed_delta(state, *args):
     """Min. speed distance to max_speed
@@ -169,16 +193,9 @@ def reward_min_delay(state, *args):
         "Multi-agent reinforcement learning for traffic light control."
 
     """
-    try:
-        delays = state.feature_map(
-            filter_by=('delay',)
-        )
-    except AttributeError:
-        delays = state
-
     ret = {}
-    for tls_id, phase_obs in delays.items():
-        ret[tls_id] = -sum([dly for obs in phase_obs for dly in obs])
+    for tls_id, values in state.items():
+        ret[tls_id] = -sum(values[2:])
     return ret
 
 def reward_min_waiting_time(state, *args):

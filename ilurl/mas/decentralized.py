@@ -49,7 +49,8 @@ class DecentralizedMAS(MASInterface):
                 feature = mdp_params.features[0]
                 states_depth = len(mdp_params.categories[tid][feature]['0']) + 1
 
-            states_rank = num_phases * num_variables + int(has_period)
+            # states_rank = num_phases * num_variables + int(has_period)
+            states_rank = num_phases * num_variables + 2
             agent_params_.states = Bounds(states_rank, states_depth)
             # Experience path.
             agent_params_.exp_path = exp_path

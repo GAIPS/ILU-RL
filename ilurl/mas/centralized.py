@@ -19,6 +19,7 @@ class CentralizedAgent(MASInterface):
         agent_type, agent_params = config_parser.parse_agent_params()
 
         num_variables = len(mdp_params.features)
+        num_tls = len(mdp_params.phases_per_traffic_light)
 
         # State space.
         # Period is a "Global" state space
@@ -42,7 +43,9 @@ class CentralizedAgent(MASInterface):
             # the portion of the cycle length allocated for each of the phases.
             agent_params_.num_phases = num_phases
 
-        states_rank = num_phases * num_variables + int(self.has_period)
+
+        states_rank = num_phases * num_variables + 2 * num_tls
+        # states_rank = num_phases * num_variables + int(self.has_period)
         agent_params_.states = Bounds(states_rank, states_depth)
         # Experience path.
         agent_params_.exp_path = exp_path

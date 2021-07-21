@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import numpy as np
 
-import flow.core.params
+import ilurl.flow.params
 
 from ilurl.rewards import get_rewards
 from ilurl.agents.ql.choice import CHOICE_TYPES
@@ -540,7 +540,7 @@ class TrainParams(Printable):
             if attr not in ('self'):
                 setattr(self, attr, value)
 
-class InFlows(flow.core.params.InFlows, Printable):
+class InFlows(ilurl.flow.params.InFlows, Printable):
     """
         InFlows.
     """

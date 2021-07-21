@@ -5,6 +5,10 @@
     It is responsible to setup all the experiment's components and run it for
     a given number of steps, as well as storing experiment-related info.
 
+    TODO: Change SumoParams for CityFlowParams
+        * Switch render for replay.
+        * Option to use default demand or create new demand.
+
     References:
     ==========
 
@@ -21,11 +25,11 @@ from shutil import copyfile
 
 import numpy as np
 
-from flow.core.params import EnvParams, SumoParams
+from ilurl.flow.params import EnvParams, SumoParams
 
 from ilurl.experiment import Experiment
 from ilurl.envs.base import TrafficLightEnv
-from ilurl.networks.base import Network
+from ilurl.networks.cityflow import CityflowNetwork
 
 from ilurl.loaders.parser import config_parser
 
@@ -53,13 +57,14 @@ def main(train_config_path=None):
         'demand_mode': train_args.demand_mode,
         'tls_type': train_args.tls_type
     }
-    network = Network(**network_args)
+    network = CityflowNetwork(**network_args)
 
     # Create directory to store data.
     experiment_path = EMISSION_PATH / network.name
     os.makedirs(experiment_path, exist_ok=True)
     print(f'Experiment: {str(experiment_path)}\n')
 
+    # FIXME: change sumo_render to cityflow_replay
     sumo_args = {
         'render': train_args.sumo_render,
         'print_warnings': False,
@@ -75,8 +80,9 @@ def main(train_config_path=None):
         sumo_args['seed'] = train_args.experiment_seed
 
     # Setup emission path.
-    if train_args.sumo_emission:
-        sumo_args['emission_path'] = experiment_path.as_posix()
+    # TODO: Change this for replay
+    # if train_args.sumo_emission:
+    sumo_args['emission_path'] = experiment_path.as_posix()
 
     sim_params = SumoParams(**sumo_args)
 
@@ -98,6 +104,7 @@ def main(train_config_path=None):
         network=network,
         exp_path=experiment_path.as_posix(),
         seed=train_args.experiment_seed,
+        simulator='cityflow'
     )
 
     exp = Experiment(

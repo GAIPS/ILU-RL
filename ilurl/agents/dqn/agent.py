@@ -30,7 +30,7 @@ def _make_network(num_actions : int,
         # Torso MLP.
         snt.nets.MLP(torso_layers, activate_final=True),
         # Dueling MLP head.
-        networks.DuellingMLP(num_actions=num_actions,
+        networks.DuellingMLP(num_actions=2,
                                       hidden_sizes=head_layers)  
     ])
     return network
@@ -126,7 +126,6 @@ class DQN(AgentWorker,AgentInterface):
 
     def act(self, s):
         s = double_to_single_precision(np.array(s))
-
         # Make first observation.
         if self._obs_counter == 0:
             t_1 = dm_env.restart(s)

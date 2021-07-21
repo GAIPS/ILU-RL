@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from analysis.utils import str2bool, get_emissions, get_vehicles, get_throughput
-from ilurl.networks.base import Network
+from ilurl.networks.cityflow import CityflowNetwork as Network
 
 plt.style.use('ggplot')
 

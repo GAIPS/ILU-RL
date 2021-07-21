@@ -77,7 +77,7 @@ def get_routes(network_id):
 
         References:
         ----------
-        flow.networks.base
+        flow.network
 
         Update:
         ------
@@ -188,7 +188,7 @@ def get_edges(network_id):
 
         Reference:
         ----------
-            flow.networks.base
+            flow.network
     """
     edges = get_generic_element(
         network_id, 'edge', ignore='function', child_key='lane')

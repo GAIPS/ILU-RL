@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from analysis.utils import str2bool, get_emissions, get_vehicles, get_throughput
-from ilurl.networks.base import Network
+from ilurl.networks.cityflow import CityflowNetwork as Network
 
 plt.style.use('ggplot')
 
@@ -150,7 +150,6 @@ def main(experiment_root_folder=None):
                                         'travel_time_free_flow': df_free_flow_period_mean['total'],
                                         'throughput': len(df_per_vehicle)})
         else:
-
             mean_values_per_eval.append({'train_run': Path(csv_file).parts[-4],
                                         'speed': df_per_vehicle_mean['speed'],
                                         'velocity': df_per_vehicle_mean['velocity'],
@@ -158,6 +157,7 @@ def main(experiment_root_folder=None):
                                         'waiting_time': df_per_vehicle_mean['waiting'],
                                         'travel_time': df_per_vehicle_mean['total'],
                                         'throughput': len(df_per_vehicle)})
+                
 
 
         vehicles_appended.append(df_per_vehicle)
@@ -755,32 +755,34 @@ def main(experiment_root_folder=None):
 
     """
         Throughput per cycle.
+        TODO: Enable throughput computation
     """
-    # Throughput per cycle.
-    fig = plt.figure()
-    fig.set_size_inches(FIGURE_X, FIGURE_Y)
+    # # Throughput per cycle.
+    # fig = plt.figure()
+    # fig.set_size_inches(FIGURE_X, FIGURE_Y)
 
-    intervals = np.arange(0, df_throughputs_appended['time'].max(), cycle_time)
-    df = df_throughputs_appended.groupby(pd.cut(df_throughputs_appended["time"], intervals)).count()
+    # import ipdb; ipdb.set_trace()
+    # intervals = np.arange(0, df_throughputs_appended['time'].max(), cycle_time)
+    # df = df_throughputs_appended.groupby(pd.cut(df_throughputs_appended["time"], intervals)).count()
 
-    Y = df['time'].values
-    X = np.linspace(1, len(Y), len(Y))
+    # Y = df['time'].values
+    # X = np.linspace(1, len(Y), len(Y))
 
-    # Store data in dataframe for further materialization.
-    throughput_per_cycle = pd.DataFrame()
-    throughput_per_cycle['x'] = X
-    throughput_per_cycle['y'] = Y
+    # # Store data in dataframe for further materialization.
+    # throughput_per_cycle = pd.DataFrame()
+    # throughput_per_cycle['x'] = X
+    # throughput_per_cycle['y'] = Y
 
-    plt.plot(X,Y)
+    # plt.plot(X,Y)
 
-    plt.xlabel('Cycle')
-    plt.ylabel('Number of vehicles')
-    # plt.title('Throughput')
+    # plt.xlabel('Cycle')
+    # plt.ylabel('Number of vehicles')
+    # # plt.title('Throughput')
 
-    plt.savefig('{0}/throughput.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
-    plt.savefig('{0}/throughput.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    # plt.savefig('{0}/throughput.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+    # plt.savefig('{0}/throughput.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
-    plt.close()
+    # plt.close()
 
     # Get test eval json file from experiment root folder.
     json_file = Path(experiment_root_folder) / 'rollouts_test.json'
@@ -987,6 +989,7 @@ def main(experiment_root_folder=None):
 
     # Materialize processed data.
     if demand_type not in ('constant'):
+        # TODO: throughput_per_cycle, keys='throughput_per_cycle'
         processed_data = pd.concat([waiting_time_hist_kde,
                                     travel_time_hist_kde,
                                     speed_hist_kde,
@@ -1004,7 +1007,6 @@ def main(experiment_root_folder=None):
                                     stops_free_flow_hist_kde,
                                     waiting_time_per_cycle,
                                     travel_time_per_cycle,
-                                    throughput_per_cycle,
                                     vehicles_per_cycle,
                                     velocities_per_cycle]
                                     , keys=['waiting_time_hist_kde',
@@ -1024,7 +1026,6 @@ def main(experiment_root_folder=None):
                                     'stops_free_flow_hist_kde',
                                     'waiting_time_per_cycle',
                                     'travel_time_per_cycle',
-                                    'throughput_per_cycle',
                                     'vehicles_per_cycle',
                                     'velocities_per_cycle']
                                     , axis=1)
@@ -1036,7 +1037,6 @@ def main(experiment_root_folder=None):
                                     stops_hist_kde,
                                     waiting_time_per_cycle,
                                     travel_time_per_cycle,
-                                    throughput_per_cycle,
                                     vehicles_per_cycle,
                                     velocities_per_cycle]
                                     , keys=['waiting_time_hist_kde',
@@ -1046,7 +1046,6 @@ def main(experiment_root_folder=None):
                                     'stops_hist_kde',
                                     'waiting_time_per_cycle',
                                     'travel_time_per_cycle',
-                                    'throughput_per_cycle',
                                     'vehicles_per_cycle',
                                     'velocities_per_cycle']
                                     , axis=1)
