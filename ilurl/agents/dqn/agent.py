@@ -64,12 +64,12 @@ class DQN(AgentWorker,AgentInterface):
         self._stop = False
 
         # Define specs. Everything needs to be single precision by default.
-        observation_spec = specs.Array(shape=(4,),
+        observation_spec = specs.Array(shape=(params.states.rank,),
                                   dtype=np.float32,
                                   name='obs'
         )
         action_spec = specs.DiscreteArray(dtype=np.int32,
-                                          num_values=2,
+                                          num_values=params.actions.depth,
                                           name="action"
         )
         reward_spec = specs.Array(shape=(),
