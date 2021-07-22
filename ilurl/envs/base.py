@@ -262,6 +262,10 @@ class TrafficLightEnv(Env):
 
         # Transform action index
         if self.ts_type == 'centralized':
+            N = int((self.step_counter + 1) / 5)
+
+            self.actions_log[N] = this_actions
+
             action_index = this_actions
             joined_action = []
             for tid in self.tls_ids:
@@ -436,8 +440,8 @@ class TrafficLightEnv(Env):
                             num_phases = self.mdp_params.phases_per_traffic_light[tlid]
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
 
-
-                    self.actions_log[N] = this_actions
+                    if self.ts_type != "centralized":
+                        self.actions_log[N] = this_actions
                     self.states_log[N] = state
 
                     if N > 1:
@@ -445,8 +449,8 @@ class TrafficLightEnv(Env):
                         reward = self.compute_reward(None)
                         prev_state = self.states_log[N - 1]
                         prev_action = self.actions_log[N - 1]
-                        if self.ts_type == 'centralized':
-                            prev_action =  tuple(prev_action[tlid] for tlid in self.tls_ids)
+                        # if self.ts_type == 'centralized':
+                        #     prev_action =  tuple(prev_action[tlid] for tlid in self.tls_ids)
                         self.tsc.update(prev_state, prev_action, reward, state)
 
                         # TODO: Choose Phases controller action mapping.

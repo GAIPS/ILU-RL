@@ -2,6 +2,7 @@ alabaster==0.7.12
 appnope==0.1.0
 atomicwrites==1.3.0
 attrs==19.3.0
+-e git+https://github.com/cityflow-project/CityFlow@75f31b8ccc04bf0dd2952b704fdd3e20982cc78f#egg=CityFlow
 Babel==2.7.0
 backcall==0.1.0
 boto3==1.4.8
