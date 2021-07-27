@@ -31,7 +31,7 @@ Bounds = namedtuple('Bounds', 'rank depth')
 
 # Traffic light system types.
 TLS_TYPES = ('rl', 'static', 'webster',
-             'actuated', 'random', 'max_pressure', 'centralized')
+             'actuated', 'random', 'max_pressure', 'centralized', 'cg')
 
 # Traffic demand types (flows).
 DEMAND_TYPES = ('constant', 'variable')
@@ -524,7 +524,7 @@ class TrainParams(Printable):
 
         if tls_type not in TLS_TYPES:
             raise ValueError(f'''
-                The tls_type must be in ('rl', 'webster', 'static', 'random', 'actuated' or 'max-pressure'). Got tls_type = {tls_type}.''')
+                The tls_type must be in ('rl', 'centralized', 'cg', 'webster', 'static', 'random', 'actuated' or 'max-pressure'). Got tls_type = {tls_type}.''')
 
         if demand_type not in DEMAND_TYPES:
             raise ValueError(f'''

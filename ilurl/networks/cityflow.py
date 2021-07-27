@@ -1,5 +1,5 @@
 """This module acts as a wrapper for networks generated from network data"""
-
+import json
 import operator as op
 from itertools import groupby
 from copy import deepcopy
@@ -27,7 +27,7 @@ from ilurl.flow.params import SumoCarFollowingParams
 from ilurl.flow.params import SumoLaneChangeParams
 import time
 from collections import defaultdict
-
+import os
 # default sumo probability value  TODO (ak): remove
 DEFAULT_PROBABILITY = 0
 # default sumo vehicle length value (in meters) TODO (ak): remove
@@ -902,6 +902,8 @@ class CityflowNetwork(Network):
         self.connections = self.specify_connections(net_params)
         self.types = self.specify_types(net_params)
 
+        with open(os.environ["ILURL_HOME"] + "data/networks/" + self.network_id + "/coordination_graph.json", "r") as f:
+            self.coordination_graph = json.load(f)
 
     def specify_nodes(self, net_params):
         return get_nodes(self.network_id)

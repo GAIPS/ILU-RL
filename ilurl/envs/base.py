@@ -32,6 +32,7 @@ from ilurl.envs.controllers import get_ts_controller, is_controller_periodic
 # TODO: make this a factory in the future.
 from ilurl.mas.decentralized import DecentralizedMAS
 from ilurl.mas.centralized import CentralizedAgent
+from ilurl.mas.coordination_graphs import CoordinationGraphsMAS
 
 def delay(x):
     if x >= 1.0:
@@ -81,6 +82,8 @@ class TrafficLightEnv(Env):
             self.tsc = DecentralizedMAS(mdp_params, exp_path, seed)
         elif self.ts_type == "centralized":
             self.tsc = CentralizedAgent(mdp_params, exp_path, seed)
+        elif self.ts_type == "cg":
+            self.tsc = CoordinationGraphsMAS(mdp_params, exp_path, seed, network)
         elif self.ts_type in ('max_pressure', 'webster'):
             self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls,
                                         self.tls_phases, self.cycle_time)
@@ -409,7 +412,7 @@ class TrafficLightEnv(Env):
 
             # Get the number of the current cycle.
             N = int((self.step_counter + 1)/ 5)
-            if self.ts_type in ('rl', 'centralized')  and N > 0:
+            if self.ts_type in ('rl', 'centralized', 'cg')  and N > 0:
                 if ((self.step_counter) % 5  == 0):
 
                     # Every five time steps is a possible candidate for action
