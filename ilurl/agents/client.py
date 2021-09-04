@@ -44,7 +44,15 @@ class AgentClient(object):
         # Synchronize.
         self.pipe.recv()
 
+
+
     # TODO: make decorator (or simplify = *args) the stuff below.
+
+    def get_network(self):
+        args = ()
+        func_call = ('get_network', args)
+        self.pipe.send(func_call)
+
 
     def get_stop(self):
         args = ()

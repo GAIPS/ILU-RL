@@ -5,6 +5,8 @@ from ilurl.loaders.parser import config_parser
 from ilurl.agents.client import AgentClient
 from ilurl.agents.factory import AgentFactory
 from ilurl.interfaces.mas import MASInterface
+from ilurl.mas.VariableElimination import variable_elimination
+from ilurl.mas.CGAgent import CGAgent
 
 
 class CoordinationGraphsMAS(MASInterface):
@@ -18,7 +20,12 @@ class CoordinationGraphsMAS(MASInterface):
         agent_type, agent_params = config_parser.parse_agent_params()
 
         # Create agents.
-        agents = {}
+        self.agents = {}
+        for agent in network.coordination_graph["agents"]:
+            self.agents[agent] = CGAgent(agent, list(range(len(network.programs[agent]))))
+
+
+        payout_functions = {}
         num_variables = len(mdp_params.features)
         self.tls_ids = network.coordination_graph["agents"]
         # State space.
@@ -60,85 +67,101 @@ class CoordinationGraphsMAS(MASInterface):
             # Discount factor (gamma).
             agent_params_.discount_factor = mdp_params.discount_factor
 
-            agent = AgentClient(AgentFactory.get(agent_type),
+            payout_function = AgentClient(AgentFactory.get(agent_type),
                         params=agent_params_)
 
-            agent.agent1 = link[0]
-            agent.agent2 = link[1]
+            payout_function.agent1 = link[0]
+            payout_function.agent2 = link[1]
 
             # Create agent client.
-            agents[link[0] + "_" + link[1]] = agent
+            payout_functions[link[0] + "_" + link[1]] = payout_function
 
-        self.agents = agents
+            self.agents[link[0]].payout_functions.append(payout_function)
+            self.agents[link[0]].dependant_agents.append(link[1])
+
+            self.agents[link[1]].payout_functions.append(payout_function)
+            self.agents[link[1]].dependant_agents.append(link[0])
+
+        self.payout_functions = payout_functions
 
     @property
     def stop(self):
         # Send requests.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.get_stop()
 
         # Retrieve requests.
-        stops = [agent.stop for (_, agent) in self.agents.items()]
+        stops = [agent.stop for (_, agent) in self.payout_functions.items()]
 
         return all(stops)
 
     @stop.setter
     def stop(self, stop):
         # Send requests.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.set_stop(stop)
 
         # Synchronize.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.receive()
 
     def act(self, state):
         # Send requests.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             concat_state = state[agent.agent1] + state[agent.agent2]
             agent.act(concat_state)
 
         #VE
-
+        # actions = variable_elimination(self.agents)
         # Retrieve requests.
-        choices = {tid: "0"
-                    for tid in self.tls_ids}
+        choices = {tid: agent.receive()
+                    for (tid, agent) in self.payout_functions.items()}
+
+        return choices
+
+    def network(self):
+        for (tid, agent) in self.payout_functions.items():
+            agent.get_network()
+
+
+        choices = {tid: agent.receive()
+                    for (tid, agent) in self.payout_functions.items()}
 
         return choices
 
     def update(self, s, a, r, s1):
         # Send requests.
-        for (tid, agent) in self.agents.items():
+        test = self.network()
+        for (tid, agent) in self.payout_functions.items():
             concat_s = s[agent.agent1] + s[agent.agent2]
             concat_s1 = s1[agent.agent1] + s1[agent.agent2]
             summed_r = r[agent.agent1] + r[agent.agent2]
-
             agent.update(concat_s, a[tid], summed_r, concat_s1)
 
         # Synchronize.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.receive()
 
     def save_checkpoint(self, path):
         # Send requests.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.save_checkpoint(path)
 
         # Synchronize.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.receive()
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
         # Send requests.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.load_checkpoint(chkpts_dir_path, chkpt_num)
 
         # Synchronize.
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.receive()
 
     def terminate(self):
         # Send terminate request for each agent.
         # (also waits for termination)
-        for (tid, agent) in self.agents.items():
+        for (tid, agent) in self.payout_functions.items():
             agent.terminate()

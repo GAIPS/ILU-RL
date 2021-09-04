@@ -31,6 +31,7 @@ from acme.utils import loggers
 import reverb
 import sonnet as snt
 import tensorflow as tf
+
 import trfl
 
 from ilurl.utils import tf2_savers
@@ -185,3 +186,5 @@ class DQN(agent.Agent):
     def tear_down(self):
         self._adder.reset()
         self._server.stop()
+
+

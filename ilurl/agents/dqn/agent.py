@@ -11,13 +11,15 @@ import sonnet as snt
 
 import acme
 from acme import specs
-from acme.tf import networks
+
 
 from ilurl.agents.dqn import acme_agent
 from ilurl.agents.worker import AgentWorker
 from ilurl.interfaces.agents import AgentInterface
 from ilurl.utils.default_logger import make_default_logger
 from ilurl.utils.precision import double_to_single_precision
+
+import ilurl.agents.dqn.duelling as duelling
 
 _TF_USE_GPU = False
 _TF_NUM_THREADS = 32
@@ -26,13 +28,16 @@ _TF_NUM_THREADS = 32
 def _make_network(num_actions : int,
                   torso_layers : Sequence[int] = [5],
                   head_layers  : Sequence[int] = [5]):
+    
     network = snt.Sequential([
         # Torso MLP.
         snt.nets.MLP(torso_layers, activate_final=True),
         # Dueling MLP head.
-        networks.DuellingMLP(num_actions=2,
+        duelling.DuellingMLP(num_actions=num_actions,
                                       hidden_sizes=head_layers)  
     ])
+    
+    
     return network
 
 
@@ -93,12 +98,13 @@ class DQN(AgentWorker,AgentInterface):
         self._logger = make_default_logger(directory=dir_path, label=self._name)
         agent_logger = make_default_logger(directory=dir_path, label=f'{self._name}-learning')
 
-        network = _make_network(num_actions=env_spec.actions.num_values,
+        self.network = _make_network(num_actions=env_spec.actions.num_values,
                                 torso_layers=params.torso_layers,
                                 head_layers=params.head_layers)
 
+
         self.agent = acme_agent.DQN(environment_spec=env_spec,
-                                    network=network,
+                                    network=self.network,
                                     batch_size=params.batch_size,
                                     prefetch_size=params.prefetch_size,
                                     target_update_period=params.target_update_period,
@@ -123,6 +129,22 @@ class DQN(AgentWorker,AgentInterface):
 
     def set_stop(self, stop):
         self._stop = stop
+
+    def get_network(self):
+        return self.network._layers[-1].q_values
+
+    def score(self, s):
+        s = double_to_single_precision(np.array(s))
+        # Make first observation.
+        if self._obs_counter == 0:
+            #Generate zero array
+            pass
+
+        # Forward pass, compute Q-values
+
+
+        return 0
+
 
     def act(self, s):
         s = double_to_single_precision(np.array(s))

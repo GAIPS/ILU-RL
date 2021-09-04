@@ -8,6 +8,7 @@ class AgentInterface(abc.ABC):
         Defines the interface for a single agent.
     """
 
+
     @abc.abstractmethod
     def init(self, params):
         """ Instantiate agent.
@@ -28,6 +29,18 @@ class AgentInterface(abc.ABC):
                 state representation.
 
         """
+
+    @abc.abstractmethod
+    def get_network(self, ):
+        """ Returns the Q-values given a state.
+
+             Parameters:
+             ----------
+             * s: tuple
+                 state representation.
+
+         """
+
 
     @abc.abstractmethod
     def update(self, s, a, r, s1): 
