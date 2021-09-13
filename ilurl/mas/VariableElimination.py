@@ -4,33 +4,6 @@ from itertools import product
 from ilurl.mas.CGAgent import CGAgent
 from ilurl.mas.ActionTable import ActionTable
 
-
-def init_agents():
-    with open("grid_4/coordination_graph.json") as f:
-        data = json.load(f)
-
-    agents = {}
-
-    # Agent initialization
-    for agent_name in data["agents"]:
-        agents[agent_name] = CGAgent(agent_name)
-
-    for link in data["connections"]:
-        agent1 = agents[link[0]]
-        agent2 = agents[link[1]]
-
-        payoutFunction = ActionTable([agent1, agent2], qTable.get_table().data)
-
-        agent1.payout_functions.append(payoutFunction)
-        agent1.dependant_agents.append(agent2.name)
-
-        agent2.payout_functions.append(payoutFunction)
-        agent2.dependant_agents.append(agent1.name)
-    return agents
-
-
-
-
 def variable_elimination(agents, order=None, locked_actions={}, debug=False):
 
     if order is not None:
@@ -113,10 +86,16 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False):
     if locked_actions:
         actions = locked_actions
     for agent in list(elimination_agents)[::-1]:
-        actions[agent.name] = agent.best_response.get_value(actions)
+        actions[agent.name] = int(agent.best_response.get_value(actions))
     if debug:
         print("\nVariable Elimination Result:")
         for key, value in sorted(actions.items(), key=lambda x: x[0]):
             print("{} : {}".format(key, value), end=', ')
+
+    cleanup(agents)
+
     return actions
 
+def cleanup(agents):
+    for agent in agents.values():
+        agent.payout_functions = [agent.qtable]

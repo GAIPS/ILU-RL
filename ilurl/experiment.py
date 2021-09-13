@@ -184,7 +184,7 @@ class Experiment:
             if done and stop_on_teleports:
                 break
 
-            if self.save_agent and (self.tls_type == 'rl' or self.tls_type == 'centralized') and \
+            if self.save_agent and (self.tls_type in ['rl', 'centralized', 'cg']) and \
                 self._is_save_agent_step(agent_updates_counter):
 
                 self.env.tsc.save_checkpoint(self.exp_path)

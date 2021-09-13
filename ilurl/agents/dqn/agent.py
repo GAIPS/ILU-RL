@@ -133,19 +133,6 @@ class DQN(AgentWorker,AgentInterface):
     def get_network(self):
         return self.network._layers[-1].q_values
 
-    def score(self, s):
-        s = double_to_single_precision(np.array(s))
-        # Make first observation.
-        if self._obs_counter == 0:
-            #Generate zero array
-            pass
-
-        # Forward pass, compute Q-values
-
-
-        return 0
-
-
     def act(self, s):
         s = double_to_single_precision(np.array(s))
         # Make first observation.

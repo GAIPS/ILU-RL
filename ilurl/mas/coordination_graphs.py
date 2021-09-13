@@ -1,5 +1,8 @@
 from copy import deepcopy
 
+import numpy as np
+
+from ilurl.mas.ActionTable import ActionTable
 from ilurl.params import Bounds
 from ilurl.loaders.parser import config_parser
 from ilurl.agents.client import AgentClient
@@ -22,10 +25,10 @@ class CoordinationGraphsMAS(MASInterface):
         # Create agents.
         self.agents = {}
         for agent in network.coordination_graph["agents"]:
-            self.agents[agent] = CGAgent(agent, list(range(len(network.programs[agent]))))
+            self.agents[agent] = CGAgent(agent, list(range(mdp_params.num_actions[agent])))
 
 
-        payout_functions = {}
+        edges = {}
         num_variables = len(mdp_params.features)
         self.tls_ids = network.coordination_graph["agents"]
         # State space.
@@ -67,101 +70,131 @@ class CoordinationGraphsMAS(MASInterface):
             # Discount factor (gamma).
             agent_params_.discount_factor = mdp_params.discount_factor
 
-            payout_function = AgentClient(AgentFactory.get(agent_type),
+            edge = AgentClient(AgentFactory.get(agent_type),
                         params=agent_params_)
 
-            payout_function.agent1 = link[0]
-            payout_function.agent2 = link[1]
+            edge.agent1 = link[0]
+            edge.agent2 = link[1]
+
+            qTable = ActionTable([self.agents[link[0]], self.agents[link[1]]])
 
             # Create agent client.
-            payout_functions[link[0] + "_" + link[1]] = payout_function
+            edges[link[0] + "_" + link[1]] = edge
 
-            self.agents[link[0]].payout_functions.append(payout_function)
+            self.agents[link[0]].edges.append(edge)
             self.agents[link[0]].dependant_agents.append(link[1])
+            self.agents[link[0]].payout_functions.append(qTable)
+            self.agents[link[0]].qtable = qTable
 
-            self.agents[link[1]].payout_functions.append(payout_function)
+            self.agents[link[1]].edges.append(edge)
             self.agents[link[1]].dependant_agents.append(link[0])
+            self.agents[link[1]].payout_functions.append(qTable)
+            self.agents[link[1]].qtable = qTable
 
-        self.payout_functions = payout_functions
+
+        self.edges = edges
 
     @property
     def stop(self):
         # Send requests.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.get_stop()
 
         # Retrieve requests.
-        stops = [agent.stop for (_, agent) in self.payout_functions.items()]
+        stops = [agent.stop for (_, agent) in self.edges.items()]
 
         return all(stops)
 
     @stop.setter
     def stop(self, stop):
         # Send requests.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.set_stop(stop)
 
         # Synchronize.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.receive()
 
     def act(self, state):
         # Send requests.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             concat_state = state[agent.agent1] + state[agent.agent2]
             agent.act(concat_state)
+            agent.receive()
 
         #VE
-        # actions = variable_elimination(self.agents)
+        choices = variable_elimination(self.agents)
+        # choices = self.tuple_to_int_actions(actions)
         # Retrieve requests.
-        choices = {tid: agent.receive()
-                    for (tid, agent) in self.payout_functions.items()}
 
         return choices
+
+    def tuple_to_int_actions(self, actions):
+
+        return {tid: actions[agent.agent1] * 2^1 + actions[agent.agent2] * 2^2
+         for (tid, agent) in self.edges.items()}
+
+
+
+    def softmax(self, x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum(axis=0)
+
 
     def network(self):
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.get_network()
 
-
-        choices = {tid: agent.receive()
-                    for (tid, agent) in self.payout_functions.items()}
+        choices = {tid: self.softmax(agent.receive()[0])
+                   for (tid, agent) in self.edges.items()}
 
         return choices
+
 
     def update(self, s, a, r, s1):
         # Send requests.
-        test = self.network()
-        for (tid, agent) in self.payout_functions.items():
+
+        a = self.tuple_to_int_actions(a)
+        for (tid, agent) in self.edges.items():
             concat_s = s[agent.agent1] + s[agent.agent2]
             concat_s1 = s1[agent.agent1] + s1[agent.agent2]
             summed_r = r[agent.agent1] + r[agent.agent2]
             agent.update(concat_s, a[tid], summed_r, concat_s1)
 
         # Synchronize.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.receive()
+
+        qTables = self.network()
+        for edge in qTables:
+            agent1 = self.agents[self.edges[edge].agent1]
+            agent2 = self.agents[self.edges[edge].agent2]
+            payoutFunction = ActionTable([agent1, agent2], qTables[edge])
+            agent1.qtable = payoutFunction
+            agent1.payout_functions.append(payoutFunction)
+            agent2.payout_functions.append(payoutFunction)
+            agent2.qtable = payoutFunction
 
     def save_checkpoint(self, path):
         # Send requests.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.save_checkpoint(path)
 
         # Synchronize.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.receive()
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
         # Send requests.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.load_checkpoint(chkpts_dir_path, chkpt_num)
 
         # Synchronize.
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.receive()
 
     def terminate(self):
         # Send terminate request for each agent.
         # (also waits for termination)
-        for (tid, agent) in self.payout_functions.items():
+        for (tid, agent) in self.edges.items():
             agent.terminate()
