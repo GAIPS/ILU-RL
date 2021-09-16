@@ -208,7 +208,7 @@ class Experiment:
                from_dict(data=emissions). \
                to_csv(f'{self.exp_path}/{self.env.network.name}-emission.csv', sep=';')
 
-        if self.tls_type not in ('static', 'actuated'):
+        if self.tls_type not in ('static', 'actuated', 'random'):
             self.env.tsc.terminate()
         self.env.terminate()
 

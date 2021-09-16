@@ -78,7 +78,7 @@ class TrafficLightEnv(Env):
         mdp_params.phases_per_traffic_light = network.phases_per_tls
         mdp_params.num_actions = network.phases_per_tls
 
-        if self.ts_type in ('rl', 'random'):
+        if self.ts_type in ('rl'):
             self.tsc = DecentralizedMAS(mdp_params, exp_path, seed)
         elif self.ts_type == "centralized":
             self.tsc = CentralizedAgent(mdp_params, exp_path, seed)
@@ -87,7 +87,7 @@ class TrafficLightEnv(Env):
         elif self.ts_type in ('max_pressure', 'webster'):
             self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls,
                                         self.tls_phases, self.cycle_time)
-        elif self.ts_type in ('static', 'actuated'):
+        elif self.ts_type in ('static', 'actuated', 'random'):
             pass # Nothing to do here.
         else:
             raise ValueError(f'Unknown ts_type:{self.ts_type}')
@@ -419,14 +419,16 @@ class TrafficLightEnv(Env):
                     state = self.get_state()
 
                     # Select new action.
-                    if rl_actions is None:
-                        this_actions = self._rl_actions(state)
+                    if self.ts_type != 'random':
+                        if rl_actions is None:
+                            this_actions = self._rl_actions(state)
+                        else:
+                            this_actions = rl_actions
                     else:
-                        this_actions = rl_actions
+                        this_actions = {}
 
                     if self.ts_type == 'centralized':
                         this_actions = dict(zip(self.tls_ids, this_actions))
-
                     # Enforce actions constraints.
                     # 1) Prevent switching to a new phase before min_green.
                     # 2) Prevent keeping a phase after max_green.
@@ -441,6 +443,11 @@ class TrafficLightEnv(Env):
                         elif switch(tlid):
                             num_phases = self.mdp_params.phases_per_traffic_light[tlid]
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
+                        elif self.ts_type == 'random' and np.random.rand() < 0.5:
+                            num_phases = self.mdp_params.phases_per_traffic_light[tlid]
+                            this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
+
+
 
                     if self.ts_type != "centralized":
                         self.actions_log[N] = this_actions
@@ -487,8 +494,59 @@ class TrafficLightEnv(Env):
                 # Update traffic lights' control signals.
                 self._apply_tsc_actions(controller_actions)
 
-            if self.ts_type == 'actuated':
-                pass # Nothing to do here.
+            if self.ts_type == 'random' and ((self.step_counter) % 5 == 0):
+                state = self.get_state()
+                this_actions = {}
+
+                # Enforce actions constraints.
+                # 1) Prevent switching to a new phase before min_green.
+                # 2) Prevent keeping a phase after max_green.
+                def keep(x):
+                    return int(state[x][1]) <= (self.min_green + self.yellow)
+
+                def switch(x):
+                    return int(state[x][1]) >= (self.max_green + self.yellow)
+
+                for tlid in self.tls_ids:
+                    if keep(tlid):
+                        this_actions[tlid] = int(state[tlid][0])
+                    elif switch(tlid):
+                        num_phases = self.mdp_params.phases_per_traffic_light[tlid]
+                        this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
+                    elif np.random.rand() < 0.5:
+                        num_phases = self.mdp_params.phases_per_traffic_light[tlid]
+                        this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
+                    else:
+                        this_actions[tlid] = int(state[tlid][0])
+
+                def fn(x, u):
+                    # Switch to yellow
+                    if int(x[0]) != u: return True
+                    # First cycle ignore yellow transitions
+                    if self.step_counter <= self.min_green: return False
+                    if int(x[1]) == self.min_green: return True
+                    return False
+
+                def ctrl(x, u):
+                    # Switch to yellow
+                    if int(x[0]) != u: return int(2 * x[0] + 1)
+                    # Switch to green
+                    if int(x[1]) == self.min_green: return int(2 * x[0])
+
+                controller_actions = {
+                    tlid: ctrl(sta, this_actions[tlid])
+                    for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
+                }
+
+                self._apply_tsc_actions(controller_actions)
+
+                self.update_active_phases(this_actions)
+
+        if self.ts_type == 'actuated':
+                raise NotImplementedError # Nothing to do here.
+
+
+
 
     def _apply_tsc_actions(self, controller_actions):
         """ For each TSC shift phase or keep phase.
