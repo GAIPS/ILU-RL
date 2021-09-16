@@ -184,6 +184,11 @@ class Experiment:
             if done and stop_on_teleports:
                 break
 
+            if self.save_agent and (self.tls_type == 'random') and \
+                    self._is_save_agent_step(agent_updates_counter):
+                self.env.reset()
+                self.env.k.simulation.eng.reset()
+
             if self.save_agent and (self.tls_type in ['rl', 'centralized', 'cg']) and \
                 self._is_save_agent_step(agent_updates_counter):
 
@@ -203,7 +208,7 @@ class Experiment:
         info_dict["actions"] = action_to_double_precision([a for a in self.env.actions_log.values()])
         info_dict["states"] = [s for s in self.env.states_log.values()]
 
-        if emit:
+        if emit or self.tls_type == 'random':
             pd.DataFrame. \
                from_dict(data=emissions). \
                to_csv(f'{self.exp_path}/{self.env.network.name}-emission.csv', sep=';')
