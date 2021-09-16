@@ -13,12 +13,7 @@ class MASInterface(abc.ABC):
         """ Act. """
 
     @abc.abstractmethod
-    def network(self):
-        """ Network. """
-
-
-    @abc.abstractmethod
-    def update(self, s, a, r, s1): 
+    def update(self, s, a, r, s1):
         """ Update. """
 
     @abc.abstractmethod
