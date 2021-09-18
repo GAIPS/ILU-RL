@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2021-09-16 20:35:05 by Eclipse SUMO duarouter Version 1.10.0
+<!-- generated on 2021-09-18 10:16:05 by Eclipse SUMO duarouter Version 1.10.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
 
     <input>
-        <net-file value="ilurl/data/networks/grid/grid.net.xml"/>
-        <route-files value="ilurl/data/networks/grid/grid.trips.xml"/>
+        <net-file value="1_3.net.xml"/>
+        <route-files value="1_3.trips.xml"/>
     </input>
 
     <output>
-        <output-file value="ilurl/data/networks/grid/grid.rou.xml"/>
-        <alternatives-output value="ilurl/data/networks/grid/grid.rou.alt.xml"/>
+        <output-file value="1_3.rou.xml"/>
+        <alternatives-output value="1_3.rou.alt.xml"/>
     </output>
 
     <time>
