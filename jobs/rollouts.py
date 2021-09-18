@@ -284,4 +284,3 @@ def rollout_job(test=False):
 if __name__ == '__main__':
     #rollout_job()
     rollout_batch() # Use this line for textual output.
-    # rollout_batch(test=True, experiment_dir="../data/emissions/20210408032428.027567")

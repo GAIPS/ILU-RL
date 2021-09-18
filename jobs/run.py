@@ -63,15 +63,15 @@ test_plots = safe_run(test_plots, error_message=_ERROR_MESSAGE_TEST)
 if __name__ == '__main__':
 
     # 0) Makes discretization bins
-    #categories = preprocess()
-    #start = time.time()
+    categories = preprocess()
+    start = time.time()
 
     # 1) Train agent(s).
-   #experiment_root_path = train(categories)
-   #end = time.time()
+    experiment_root_path = train(categories)
+    end = time.time()
 
     # 2) Create train plots.
-    #train_plots(experiment_root_path)
+    train_plots(experiment_root_path)
 
     # 3) Execute rollouts.
     # eval_path = rollouts(experiment_dir=experiment_root_path)
@@ -80,7 +80,6 @@ if __name__ == '__main__':
     # rollouts_plots(eval_path)
 
     # 5) Execute rollouts with last saved checkpoints (test).
-    experiment_root_path = "data/emissions/20210915234247.541871"
     rollouts(test=True, experiment_dir=experiment_root_path)
 
     # 6) Convert .xml files to .csv files.
@@ -90,7 +89,7 @@ if __name__ == '__main__':
     test_plots(experiment_root_path)
 
     # 8) jobs/finalize.py: Creates plots folder in data and appends experiment results and info to Results Excel.
-    #finalize(experiment_dir=experiment_root_path, time=end - start)
+    # finalize(experiment_dir=experiment_root_path, time=end - start)
 
     # 9) Clean up and compress files.
     print('\nCleaning and compressing files...\n')
@@ -99,9 +98,9 @@ if __name__ == '__main__':
     #     Path(csv_path).unlink()
 
     # shutil.make_archive(experiment_root_path,
-    #                     'gztar',
-    #                     os.path.dirname(experiment_root_path),
-    #                     experiment_root_path.name)
+    #                             'gztar',
+    #                             os.path.dirname(experiment_root_path),
+    #                             experiment_root_path.name)
     # shutil.rmtree(experiment_root_path)
 
     print('Experiment folder: {0}'.format(experiment_root_path))

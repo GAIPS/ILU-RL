@@ -447,6 +447,7 @@ class Env(gym.Env):
             self.sim_params.seed = random.randint(0, 1e5)
 
             self.k.vehicle = deepcopy(self.initial_vehicles)
+            self.k.kernel_api.reset()
             self.k.vehicle.master_kernel = self.k
             # restart the sumo instance
             self.restart_simulation(self.sim_params)

@@ -1056,4 +1056,4 @@ def main(experiment_root_folder=None):
 
 
 if __name__ == "__main__":
-    main(experiment_root_folder="../data/emissions/grid_test")
+    main()

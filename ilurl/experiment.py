@@ -197,7 +197,7 @@ class Experiment:
                 self.env.reset()
                 self.env.k.simulation.eng.reset()
 
-            if emit:
+            if emit or self.tls_type == 'random':
                 self._update_emissions(emissions)
 
         # Save train log (data is aggregated per traffic signal).
