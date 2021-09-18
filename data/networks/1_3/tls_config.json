@@ -1,0 +1,101 @@
+{
+	"rl": {
+		    "cycle_time": 60,
+		    "247123161": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			},
+		    "247123464": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			},
+		    "247123468": {
+				"0": [12, 18, 54, 60],
+				"1": [16, 22, 54, 60],
+				"2": [20, 26, 54, 60],
+				"3": [24, 30, 54, 60],
+				"4": [28, 34, 54, 60],
+				"5": [32, 38, 54, 60],
+				"6": [36, 42, 54, 60]
+			}
+	},
+	"actuated": {
+		"cycle_time": 60,
+		"247123161": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GGGrrrGGGrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyrrryyyrrr"
+				}, {
+				"duration": "31",
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rrrGGGrrrGGG"
+				}, {
+				"duration": "6",
+				"state": "rrryyyrrryyy"
+			}]
+		},
+		"247123464": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rrrGGGGGrr"
+				}, {
+				"duration": "6",
+				"state": "rrryyyyyrr"
+				}, {
+				"duration": "31",
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GGGrrrrrGG"
+				}, {
+				"duration": "6",
+				"state": "yyyrrrrryy"
+			}]
+		},
+		"247123468": {
+			"programID": 1,
+			"tls_type": "actuated",
+			"showDetectors": true,
+			"phases": [{
+				"duration": "31",      
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "GGGGGrrrrr"
+				}, {
+				"duration": "6",
+				"state": "yyyyyrrrrr"
+				}, {
+				"duration": "31",
+				"minDur": "12",
+				"maxDur": "54",
+				"state": "rrrrrGGGGG"
+				}, {
+				"duration": "6",
+				"state": "rrrrryyyyy"
+			}]
+		}
+	}
+}
