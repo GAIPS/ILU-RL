@@ -181,7 +181,7 @@ def get_throughput(df_emission):
 
     in_junction = df_emission[col_edge].str.contains('_TO_')
 
-    df_junction = df_emission[in_junction].sort_values(by=['id' 'time'])
+    df_junction = df_emission[in_junction].sort_values(by=['id', 'time'])
 
     df_junction = df_junction.drop_duplicates(subset=['id'], keep='first').reset_index()
 
