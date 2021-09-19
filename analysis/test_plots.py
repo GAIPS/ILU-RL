@@ -108,7 +108,7 @@ def main(experiment_root_folder=None):
     def fn(x):
         return get_length(x, lanes_lengths)
 
-    for csv_file in csv_files:
+    for idx, csv_file in enumerate(csv_files):
 
         print('Processing CSV file: {0}'.format(csv_file))
 
@@ -116,7 +116,7 @@ def main(experiment_root_folder=None):
         df_csv = get_emissions(csv_file)
         df_csv['length'] = df_csv.apply(fn, axis=1)
 
-        df_per_vehicle = get_vehicles(df_csv)
+        df_per_vehicle = get_vehicles(df_csv, str(idx))
 
         df_per_vehicle_mean = df_per_vehicle.mean()
 
@@ -1056,4 +1056,4 @@ def main(experiment_root_folder=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(experiment_root_folder='../data/emissions/20210918173829.384928')

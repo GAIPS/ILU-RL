@@ -19,7 +19,7 @@
     ],
     "interval": 198,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -41,7 +41,7 @@
     ],
     "interval": 402,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -61,7 +61,7 @@
     ],
     "interval": 24,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -83,7 +83,7 @@
     ],
     "interval": 12,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -105,7 +105,7 @@
     ],
     "interval": 104,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -125,7 +125,7 @@
     ],
     "interval": 104,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -146,7 +146,7 @@
     ],
     "interval": 244,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -167,7 +167,7 @@
     ],
     "interval": 511,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -188,7 +188,7 @@
     ],
     "interval": 511,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -209,7 +209,7 @@
     ],
     "interval": 244,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -229,7 +229,7 @@
     ],
     "interval": 26,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -249,7 +249,7 @@
     ],
     "interval": 273,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -269,7 +269,7 @@
     ],
     "interval": 28,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -290,7 +290,7 @@
     ],
     "interval": 273,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -312,7 +312,7 @@
     ],
     "interval": 582,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -334,7 +334,7 @@
     ],
     "interval": 273,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -355,7 +355,7 @@
     ],
     "interval": 582,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -377,7 +377,7 @@
     ],
     "interval": 104,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -399,7 +399,7 @@
     ],
     "interval": 12,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -420,7 +420,7 @@
     ],
     "interval": 104,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -440,7 +440,7 @@
     ],
     "interval": 22,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   },
   {
     "vehicle": {
@@ -460,6 +460,6 @@
     ],
     "interval": 181,
     "startTime": 1,
-    "endTime": 3000000
+    "endTime": 1000
   }
 ]

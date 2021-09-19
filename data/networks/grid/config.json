@@ -7,5 +7,5 @@
   "replayLogFile": "replay.txt",
   "flowFile": "flow.json",
   "rlTrafficLight": true,
-  "saveReplay": true
+  "saveReplay": false
 }

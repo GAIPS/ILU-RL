@@ -1,17 +1,17 @@
 {
   "agents": [
-    "247123161",
-    "247123464",
-    "247123468"
+    "intersection_1_1",
+    "intersection_2_1",
+    "intersection_3_1"
   ],
   "connections": [
     [
-      "247123464",
-      "247123468"
+      "intersection_2_1",
+      "intersection_3_1"
     ],
     [
-      "247123161",
-      "247123464"
+      "intersection_1_1",
+      "intersection_2_1"
     ]
   ]
 }

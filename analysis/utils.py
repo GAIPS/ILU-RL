@@ -49,7 +49,7 @@ def get_emissions(file_path, exclude_emissions=EXCLUDE_EMISSION):
     return df
 
 
-def get_vehicles(emissions_df):
+def get_vehicles(emissions_df, file_index=''):
     """Returns vehicle data
 
     Parameters:
@@ -70,20 +70,20 @@ def get_vehicles(emissions_df):
     flow_00.4  route309265401#0_2   36.1   25.6   0.0   10.5
     """
     emissions_df = emissions_df.reset_index()
-
+    emissions_df['id'] = emissions_df['id'].astype(str) + "_" + emissions_df["route"].astype(str) + "_" + file_index
     # Builds a dataframe with vehicle starts
     start_df = pd.pivot_table(
         emissions_df,
-        index=['id', 'route'], values='time',
+        index=['id'], values='time',
         aggfunc=min
     ). \
-        reset_index('route'). \
+        reset_index(). \
         rename(columns={'time': 'start'}, inplace=False)
 
     # Builds a dataframe with vehicle finish
     finish_df = pd.pivot_table(
         emissions_df,
-        index=['id', 'route'], values='time',
+        index=['id'], values='time',
         aggfunc=max
     ). \
         rename(columns={'time': 'finish'}, inplace=False)
@@ -92,7 +92,7 @@ def get_vehicles(emissions_df):
     emissions_df['isStopped'] = (emissions_df['speed'] <= 0.1).astype(float)
     wait_df = pd.pivot_table(
         emissions_df,
-        index=['id', 'route'], values='isStopped',
+        index=['id'], values='isStopped',
         aggfunc=sum
     ). \
         rename(columns={'isStopped': 'waiting'}, inplace=False)
@@ -100,17 +100,16 @@ def get_vehicles(emissions_df):
     # Builds a dataframe with speeds
     speed_df = pd.pivot_table(
         emissions_df,
-        index=['id', 'route'], values='speed',
+        index=['id'], values='speed',
         aggfunc=np.mean
-    ). \
-        rename(columns={'time': 'speed'}, inplace=False)
+    )
 
     # Builds a dataframe with the number of stops
     emissions_df['pos_rounded'] = emissions_df.pos.round(decimals=1)
 
     stops_df = pd.pivot_table(
         emissions_df,
-        index=['id', 'route', 'lane', 'pos_rounded'], values='speed',
+        index=['id', 'lane', 'pos_rounded'], values='speed',
         aggfunc='count'
     ). \
         reset_index('pos_rounded'). \
@@ -121,15 +120,15 @@ def get_vehicles(emissions_df):
     stops_df['stops'] = (stops_df['stops'] > 3).astype(float)
     stops_df = pd.pivot_table(
         stops_df.reset_index(),
-        index=['id', 'route'], values='stops',
+        index=['id'], values='stops',
         aggfunc=sum
     )
 
     vehs_df = start_df.join(
-        finish_df, on=['id', 'route'], how='inner',
+        finish_df, on=['id'], how='inner',
     ). \
         sort_values('start', inplace=False). \
-        join(wait_df, on=['id', 'route'], how='left')
+        join(wait_df, on=['id'], how='left')
 
     # Remove trips ending in the last timestep.
     # (because the vehicle may not have reached its destination)
@@ -139,11 +138,11 @@ def get_vehicles(emissions_df):
     vehs_df['total'] = vehs_df['finish'] - vehs_df['start']
 
     vehs_df = vehs_df.join(
-        speed_df, on=['id', 'route'], how='inner',
+        speed_df, on=['id'], how='inner',
     )
 
     vehs_df = vehs_df.join(
-        stops_df, on=['id', 'route'], how='inner',
+        stops_df, on=['id'], how='inner',
     )
 
     if 'length' in emissions_df:
@@ -151,20 +150,20 @@ def get_vehicles(emissions_df):
         # Gets unique timestamp for length
         dist_df = pd.pivot_table(
             emissions_df,
-            index=('id', 'route', 'lane', 'length'),
+            index=('id', 'lane', 'length'),
             values='time',
             aggfunc=np.max
         )
         dist_df = pd.pivot_table(
             dist_df.reset_index(),
-            index=['id', 'route'],
+            index=['id'],
             values='length',
             aggfunc=np.sum
         ). \
             rename(columns={'length': 'dist'}, inplace=False)
 
         vehs_df = vehs_df.join(
-            dist_df, on=['id', 'route'], how='inner',
+            dist_df, on=['id'], how='inner',
         )
         vehs_df['velocity'] = vehs_df.apply(lambda x: x['dist'] / x['total'], axis=1)
 
@@ -182,10 +181,10 @@ def get_throughput(df_emission):
 
     in_junction = df_emission[col_edge].str.contains('_TO_')
 
-    df_junction = df_emission[in_junction].sort_values(by=['id', 'route', 'time'])
+    df_junction = df_emission[in_junction].sort_values(by=['id' 'time'])
 
-    df_junction = df_junction.drop_duplicates(subset=['id', 'route'], keep='first').reset_index()
+    df_junction = df_junction.drop_duplicates(subset=['id'], keep='first').reset_index()
 
-    df_junction = df_junction[['time', 'id', 'route']]
+    df_junction = df_junction[['time', 'id']]
 
     return df_junction
