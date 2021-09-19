@@ -17,7 +17,7 @@
       "-309265400",
       "-309265402"
     ],
-    "interval": 396,
+    "interval": 792,
     "startTime": 1,
     "endTime": 1000
   },
@@ -39,7 +39,7 @@
       "-309265400",
       "309265396#1"
     ],
-    "interval": 804,
+    "interval": 1608,
     "startTime": 1,
     "endTime": 1000
   },
@@ -58,6 +58,28 @@
     "route": [
       "-238059324",
       "-383432312"
+    ],
+    "interval": 96,
+    "startTime": 1,
+    "endTime": 1000
+  },
+  {
+    "vehicle": {
+      "length": 5,
+      "width": 2,
+      "headwayTime": 1.5,
+      "maxPosAcc": 2.6,
+      "maxNegAcc": 7.5,
+      "usualPosAcc": 2.6,
+      "usualNegAcc": 7.5,
+      "minGap": 2.5,
+      "maxSpeed": 30
+    },
+    "route": [
+      "-238059328",
+      "-309265401",
+      "-309265400",
+      "-309265402"
     ],
     "interval": 48,
     "startTime": 1,
@@ -79,31 +101,9 @@
       "-238059328",
       "-309265401",
       "-309265400",
-      "-309265402"
-    ],
-    "interval": 24,
-    "startTime": 1,
-    "endTime": 1000
-  },
-  {
-    "vehicle": {
-      "length": 5,
-      "width": 2,
-      "headwayTime": 1.5,
-      "maxPosAcc": 2.6,
-      "maxNegAcc": 7.5,
-      "usualPosAcc": 2.6,
-      "usualNegAcc": 7.5,
-      "minGap": 2.5,
-      "maxSpeed": 30
-    },
-    "route": [
-      "-238059328",
-      "-309265401",
-      "-309265400",
       "309265396#1"
     ],
-    "interval": 208,
+    "interval": 416,
     "startTime": 1,
     "endTime": 1000
   },
@@ -123,7 +123,7 @@
       "-238059328",
       "238059324"
     ],
-    "interval": 208,
+    "interval": 416,
     "startTime": 1,
     "endTime": 1000
   },
@@ -144,7 +144,7 @@
       "-309265400",
       "-309265402"
     ],
-    "interval": 488,
+    "interval": 976,
     "startTime": 1,
     "endTime": 1000
   },
@@ -165,7 +165,7 @@
       "-309265400",
       "309265396#1"
     ],
-    "interval": 1022,
+    "interval": 2044,
     "startTime": 1,
     "endTime": 1000
   },
@@ -186,7 +186,7 @@
       "309265401",
       "-383432312"
     ],
-    "interval": 1022,
+    "interval": 2044,
     "startTime": 1,
     "endTime": 1000
   },
@@ -207,7 +207,7 @@
       "309265401",
       "238059328"
     ],
-    "interval": 488,
+    "interval": 976,
     "startTime": 1,
     "endTime": 1000
   },
@@ -227,7 +227,7 @@
       "22941893",
       "3092655395#1"
     ],
-    "interval": 52,
+    "interval": 104,
     "startTime": 1,
     "endTime": 1000
   },
@@ -247,7 +247,7 @@
       "23148196",
       "-309265402"
     ],
-    "interval": 546,
+    "interval": 1092,
     "startTime": 1,
     "endTime": 1000
   },
@@ -267,7 +267,7 @@
       "23148196",
       "309265396#1"
     ],
-    "interval": 56,
+    "interval": 112,
     "startTime": 1,
     "endTime": 1000
   },
@@ -288,7 +288,7 @@
       "309265400",
       "309265401"
     ],
-    "interval": 546,
+    "interval": 1092,
     "startTime": 1,
     "endTime": 1000
   },
@@ -310,7 +310,7 @@
       "309265401",
       "-383432312"
     ],
-    "interval": 1164,
+    "interval": 2328,
     "startTime": 1,
     "endTime": 1000
   },
@@ -332,7 +332,7 @@
       "309265401",
       "238059328"
     ],
-    "interval": 546,
+    "interval": 1092,
     "startTime": 1,
     "endTime": 1000
   },
@@ -353,7 +353,7 @@
       "309265400",
       "3092655395#1"
     ],
-    "interval": 1164,
+    "interval": 2328,
     "startTime": 1,
     "endTime": 1000
   },
@@ -375,7 +375,7 @@
       "309265401",
       "-383432312"
     ],
-    "interval": 208,
+    "interval": 416,
     "startTime": 1,
     "endTime": 1000
   },
@@ -397,7 +397,7 @@
       "309265401",
       "238059328"
     ],
-    "interval": 24,
+    "interval": 48,
     "startTime": 1,
     "endTime": 1000
   },
@@ -418,7 +418,7 @@
       "309265400",
       "3092655395#1"
     ],
-    "interval": 208,
+    "interval": 416,
     "startTime": 1,
     "endTime": 1000
   },
@@ -438,7 +438,7 @@
       "383432312",
       "238059324"
     ],
-    "interval": 44,
+    "interval": 88,
     "startTime": 1,
     "endTime": 1000
   },
@@ -458,7 +458,7 @@
       "383432312",
       "238059328"
     ],
-    "interval": 362,
+    "interval": 724,
     "startTime": 1,
     "endTime": 1000
   }
