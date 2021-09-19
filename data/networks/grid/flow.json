@@ -17,7 +17,7 @@
       "-309265400",
       "-309265402"
     ],
-    "interval": 198,
+    "interval": 277,
     "startTime": 1,
     "endTime": 1000
   },
@@ -39,7 +39,7 @@
       "-309265400",
       "309265396#1"
     ],
-    "interval": 402,
+    "interval": 562,
     "startTime": 1,
     "endTime": 1000
   },
@@ -59,7 +59,7 @@
       "-238059324",
       "-383432312"
     ],
-    "interval": 24,
+    "interval": 33,
     "startTime": 1,
     "endTime": 1000
   },
@@ -81,7 +81,7 @@
       "-309265400",
       "-309265402"
     ],
-    "interval": 12,
+    "interval": 16,
     "startTime": 1,
     "endTime": 1000
   },
@@ -103,7 +103,7 @@
       "-309265400",
       "309265396#1"
     ],
-    "interval": 104,
+    "interval": 145,
     "startTime": 1,
     "endTime": 1000
   },
@@ -123,7 +123,7 @@
       "-238059328",
       "238059324"
     ],
-    "interval": 104,
+    "interval": 145,
     "startTime": 1,
     "endTime": 1000
   },
@@ -144,7 +144,7 @@
       "-309265400",
       "-309265402"
     ],
-    "interval": 244,
+    "interval": 341,
     "startTime": 1,
     "endTime": 1000
   },
@@ -165,7 +165,7 @@
       "-309265400",
       "309265396#1"
     ],
-    "interval": 511,
+    "interval": 715,
     "startTime": 1,
     "endTime": 1000
   },
@@ -186,7 +186,7 @@
       "309265401",
       "-383432312"
     ],
-    "interval": 511,
+    "interval": 715,
     "startTime": 1,
     "endTime": 1000
   },
@@ -207,7 +207,7 @@
       "309265401",
       "238059328"
     ],
-    "interval": 244,
+    "interval": 341,
     "startTime": 1,
     "endTime": 1000
   },
@@ -227,7 +227,7 @@
       "22941893",
       "3092655395#1"
     ],
-    "interval": 26,
+    "interval": 36,
     "startTime": 1,
     "endTime": 1000
   },
@@ -247,7 +247,7 @@
       "23148196",
       "-309265402"
     ],
-    "interval": 273,
+    "interval": 382,
     "startTime": 1,
     "endTime": 1000
   },
@@ -267,7 +267,7 @@
       "23148196",
       "309265396#1"
     ],
-    "interval": 28,
+    "interval": 39,
     "startTime": 1,
     "endTime": 1000
   },
@@ -288,7 +288,7 @@
       "309265400",
       "309265401"
     ],
-    "interval": 273,
+    "interval": 382,
     "startTime": 1,
     "endTime": 1000
   },
@@ -310,7 +310,7 @@
       "309265401",
       "-383432312"
     ],
-    "interval": 582,
+    "interval": 814,
     "startTime": 1,
     "endTime": 1000
   },
@@ -332,7 +332,7 @@
       "309265401",
       "238059328"
     ],
-    "interval": 273,
+    "interval": 382,
     "startTime": 1,
     "endTime": 1000
   },
@@ -353,7 +353,7 @@
       "309265400",
       "3092655395#1"
     ],
-    "interval": 582,
+    "interval": 814,
     "startTime": 1,
     "endTime": 1000
   },
@@ -375,7 +375,7 @@
       "309265401",
       "-383432312"
     ],
-    "interval": 104,
+    "interval": 145,
     "startTime": 1,
     "endTime": 1000
   },
@@ -397,7 +397,7 @@
       "309265401",
       "238059328"
     ],
-    "interval": 12,
+    "interval": 16,
     "startTime": 1,
     "endTime": 1000
   },
@@ -418,7 +418,7 @@
       "309265400",
       "3092655395#1"
     ],
-    "interval": 104,
+    "interval": 145,
     "startTime": 1,
     "endTime": 1000
   },
@@ -438,7 +438,7 @@
       "383432312",
       "238059324"
     ],
-    "interval": 22,
+    "interval": 30,
     "startTime": 1,
     "endTime": 1000
   },
@@ -458,7 +458,7 @@
       "383432312",
       "238059328"
     ],
-    "interval": 181,
+    "interval": 253,
     "startTime": 1,
     "endTime": 1000
   }
