@@ -97,10 +97,10 @@ if __name__ == '__main__':
     # for csv_path in experiment_root_path.rglob('*-emission.csv'):
     #     Path(csv_path).unlink()
 
-    # shutil.make_archive(experiment_root_path,
-    #                             'gztar',
-    #                             os.path.dirname(experiment_root_path),
-    #                             experiment_root_path.name)
-    # shutil.rmtree(experiment_root_path)
+    shutil.make_archive(experiment_root_path,
+                                'gztar',
+                                os.path.dirname(experiment_root_path),
+                                experiment_root_path.name)
+    shutil.rmtree(experiment_root_path)
 
     print('Experiment folder: {0}'.format(experiment_root_path))
