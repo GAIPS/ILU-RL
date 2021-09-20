@@ -121,6 +121,8 @@ class DQN(AgentWorker,AgentInterface):
                                     discount=params.discount_factor,
                                     logger=agent_logger)
 
+
+
         # Observations counter.
         self._obs_counter = 0
 

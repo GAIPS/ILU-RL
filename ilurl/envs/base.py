@@ -247,7 +247,7 @@ class TrafficLightEnv(Env):
         return {tlid: tuple([sta for sta in state]) for tlid, state in self._cached_state.items()}
 
 
-    def _rl_actions(self, state):
+    def _rl_actions(self, state, test=False):
         """ Return the selected action(s) given the state of the environment.
 
         Parameters:
@@ -261,7 +261,7 @@ class TrafficLightEnv(Env):
         actions: dict
 
         """
-        this_actions = self.tsc.act(state) # Delegate to Multi-Agent System.
+        this_actions = self.tsc.act(state, test=test) # Delegate to Multi-Agent System.
 
         # Transform action index
         if self.ts_type == 'centralized':
@@ -354,7 +354,7 @@ class TrafficLightEnv(Env):
 
         return tuple(ret)
 
-    def apply_rl_actions(self, rl_actions):
+    def apply_rl_actions(self, rl_actions, test=False):
         """ Specify the actions to be performed.
 
         Parameters:
@@ -417,15 +417,16 @@ class TrafficLightEnv(Env):
 
                     # Every five time steps is a possible candidate for action
                     state = self.get_state()
-
+                    # print("\nCurrent State: ", state)
                     # Select new action.
                     if self.ts_type != 'random':
                         if rl_actions is None:
-                            this_actions = self._rl_actions(state)
+                            this_actions = self._rl_actions(state, test=test)
                         else:
                             this_actions = rl_actions
                     else:
                         this_actions = {}
+
 
                     if self.ts_type == 'centralized':
                         this_actions = dict(zip(self.tls_ids, this_actions))
@@ -437,10 +438,13 @@ class TrafficLightEnv(Env):
                     def switch(x):
                         return int(state[x][1]) >= (self.max_green + self.yellow)
 
+
                     for tlid in self.tls_ids:
                         if keep(tlid):
+                            # print("\nKEEP Contraint for ", tlid)
                             this_actions[tlid] = int(state[tlid][0])
                         elif switch(tlid):
+                            # print("\nSWITCH Contraint for ", tlid)
                             num_phases = self.mdp_params.phases_per_traffic_light[tlid]
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
                         elif self.ts_type == 'random' and np.random.rand() < 0.5:
@@ -448,7 +452,7 @@ class TrafficLightEnv(Env):
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
 
 
-
+                    # print("\nActual action: ", sorted(this_actions.items()))
                     if self.ts_type != "centralized":
                         self.actions_log[N] = this_actions
                     self.states_log[N] = state
@@ -483,7 +487,7 @@ class TrafficLightEnv(Env):
                             tlid: ctrl(sta, this_actions[tlid])
                             for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
                         }
-
+                        # print("\n Control actions: ", controller_actions)
                         self._apply_tsc_actions(controller_actions)
 
                         self.update_active_phases(this_actions)

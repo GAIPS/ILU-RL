@@ -160,7 +160,7 @@ class Experiment:
             #     self.env.reset()
             #     self.env.k.simulation.eng.reset()
 
-            state, reward, done, _ = self.env.step(rl_actions(state))
+            state, reward, done, _ = self.env.step(rl_actions(state), test=emit)
 
             step_ids = self.env.k.vehicle.get_ids()
             step_speeds = [s for s in self.env.k.vehicle.get_speed(step_ids) if s > 0]

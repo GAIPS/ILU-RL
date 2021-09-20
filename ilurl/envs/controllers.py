@@ -63,7 +63,7 @@ class MaxPressure:
     def ts_type(self):
         return self._ts_type
 
-    def act(self, state, tc):
+    def act(self, state, tc, test=False):
         # 1) Get pressure values.
         pressure = state.feature_map(filter_by=('pressure',),
                                      split=True,

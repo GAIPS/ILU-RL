@@ -40,7 +40,6 @@ class AgentClient(object):
         args = (params,)
         func_call = ('init', args)
         self.pipe.send(func_call)
-
         # Synchronize.
         self.pipe.recv()
 

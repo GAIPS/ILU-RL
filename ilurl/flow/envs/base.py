@@ -278,7 +278,7 @@ class Env(gym.Env):
 
             self.initial_state[veh_id] = (type_id, edge, lane, pos, speed)
 
-    def step(self, rl_actions):
+    def step(self, rl_actions, test=False):
         """Advance the environment by one step.
 
         Assigns actions to autonomous and human-driven agents (i.e. vehicles,
@@ -348,7 +348,7 @@ class Env(gym.Env):
 
             # self.k.vehicle.choose_routes(routing_ids, routing_actions)
 
-            self.apply_rl_actions(rl_actions)
+            self.apply_rl_actions(rl_actions, test=test)
 
             self.additional_command()
 
@@ -585,7 +585,7 @@ class Env(gym.Env):
                         a_max=subspace.high)
         return rl_actions
 
-    def apply_rl_actions(self, rl_actions=None):
+    def apply_rl_actions(self, rl_actions=None, test=False):
         """Specify the actions to be performed by the rl agent(s).
 
         If no actions are provided at any given step, the rl agents default to

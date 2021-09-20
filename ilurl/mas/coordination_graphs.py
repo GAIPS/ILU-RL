@@ -21,12 +21,14 @@ class CoordinationGraphsMAS(MASInterface):
 
         # Load agent parameters from config file (train.config).
         agent_type, agent_params = config_parser.parse_agent_params()
-
+        self.epsilon_init = agent_params.epsilon_init
+        self.epsilon_final = agent_params.epsilon_final
+        self.epsilon_schedule_timesteps = agent_params.epsilon_schedule_timesteps
+        self.current_timestep = 0
         # Create agents.
         self.agents = {}
         for agent in network.coordination_graph["agents"]:
             self.agents[agent] = CGAgent(agent, list(range(mdp_params.num_actions[agent])))
-
 
         edges = {}
         num_variables = len(mdp_params.features)
@@ -34,7 +36,7 @@ class CoordinationGraphsMAS(MASInterface):
         # State space.
         # Period is a "Global" state space
         has_period = mdp_params.time_period is not None
-        states_depth = None # Assign only when discretize_state_space
+        states_depth = None  # Assign only when discretize_state_space
         for link in network.coordination_graph["connections"]:
             agent_params_ = deepcopy(agent_params)
             num_phases = mdp_params.phases_per_traffic_light[link[0]] + mdp_params.phases_per_traffic_light[link[1]]
@@ -54,7 +56,6 @@ class CoordinationGraphsMAS(MASInterface):
                 # the portion of the cycle length allocated for each of the phases.
                 agent_params_.num_phases = num_phases
 
-
             # states_rank = num_phases * num_variables + int(has_period)
             states_rank = num_phases * num_variables + 2 * 2
             agent_params_.states = Bounds(states_rank, states_depth)
@@ -71,7 +72,7 @@ class CoordinationGraphsMAS(MASInterface):
             agent_params_.discount_factor = mdp_params.discount_factor
 
             edge = AgentClient(AgentFactory.get(agent_type),
-                        params=agent_params_)
+                               params=agent_params_)
 
             edge.agent1 = link[0]
             edge.agent2 = link[1]
@@ -84,15 +85,13 @@ class CoordinationGraphsMAS(MASInterface):
             self.agents[link[0]].edges.append(edge)
             self.agents[link[0]].dependant_agents.append(link[1])
             self.agents[link[0]].payout_functions.append(qTable)
-            self.agents[link[0]].qtable = qTable
 
             self.agents[link[1]].edges.append(edge)
             self.agents[link[1]].dependant_agents.append(link[0])
             self.agents[link[1]].payout_functions.append(qTable)
-            self.agents[link[1]].qtable = qTable
-
 
         self.edges = edges
+
 
     @property
     def stop(self):
@@ -115,15 +114,20 @@ class CoordinationGraphsMAS(MASInterface):
         for (tid, agent) in self.edges.items():
             agent.receive()
 
-    def act(self, state):
+    def act(self, state, test=False):
         # Send requests.
         for (tid, agent) in self.edges.items():
             concat_state = state[agent.agent1] + state[agent.agent2]
             agent.act(concat_state)
             agent.receive()
 
-        #VE
-        choices = variable_elimination(self.agents)
+        self.current_timestep += 5
+        # VE
+        # print("\nQTables:")
+        # print(self.agents['intersection_1_1'].name)
+        # print(self.agents['intersection_1_1'].payout_functions[0].table)
+        choices = variable_elimination(self.agents, epsilon=self.getEpsilon(),  test=test)
+        # print("\nActions: ", sorted(choices.items()))
         # choices = self.tuple_to_int_actions(actions)
         # Retrieve requests.
 
@@ -131,15 +135,16 @@ class CoordinationGraphsMAS(MASInterface):
 
     def tuple_to_int_actions(self, actions):
 
-        return {tid: actions[agent.agent1] * 2^1 + actions[agent.agent2] * 2^2
-         for (tid, agent) in self.edges.items()}
-
-
+        return {tid: actions[agent.agent1] * 2 ** 1 + actions[agent.agent2] * 2 ** 0
+                for (tid, agent) in self.edges.items()}
 
     def softmax(self, x):
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum(axis=0)
 
+    def getEpsilon(self):
+        return self.epsilon_init - ((self.epsilon_init - self.epsilon_final) * (
+                    self.current_timestep / self.epsilon_schedule_timesteps))
 
     def network(self):
         for (tid, agent) in self.edges.items():
@@ -150,7 +155,6 @@ class CoordinationGraphsMAS(MASInterface):
 
         return choices
 
-
     def update(self, s, a, r, s1):
         # Send requests.
 
@@ -159,6 +163,7 @@ class CoordinationGraphsMAS(MASInterface):
             concat_s = s[agent.agent1] + s[agent.agent2]
             concat_s1 = s1[agent.agent1] + s1[agent.agent2]
             summed_r = r[agent.agent1] + r[agent.agent2]
+            # print("\nRewards: Agent1: %f, Agent2: %f, Sum: %f" % (r[agent.agent1], r[agent.agent2], summed_r))
             agent.update(concat_s, a[tid], summed_r, concat_s1)
 
         # Synchronize.
@@ -170,10 +175,10 @@ class CoordinationGraphsMAS(MASInterface):
             agent1 = self.agents[self.edges[edge].agent1]
             agent2 = self.agents[self.edges[edge].agent2]
             payoutFunction = ActionTable([agent1, agent2], qTables[edge])
-            agent1.qtable = payoutFunction
-            agent1.payout_functions.append(payoutFunction)
-            agent2.payout_functions.append(payoutFunction)
-            agent2.qtable = payoutFunction
+            # agent1.qtable = payoutFunction
+            agent1.payout_functions = [payoutFunction]
+            agent2.payout_functions = [payoutFunction]
+            # agent2.qtable = payoutFunction
 
     def save_checkpoint(self, path):
         # Send requests.

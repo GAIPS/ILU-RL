@@ -1,10 +1,11 @@
 import copy
 import json
+import random
 from itertools import product
 from ilurl.mas.CGAgent import CGAgent
 from ilurl.mas.ActionTable import ActionTable
 
-def variable_elimination(agents, order=None, locked_actions={}, debug=False):
+def variable_elimination(agents, order=None, locked_actions={}, debug=False, epsilon=0, test=False):
 
     if order is not None:
         elimination_agents = [agents[agent_name] for agent_name in order if agent_name not in locked_actions.keys()]
@@ -31,7 +32,14 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False):
                     _sum += function.get_value(actions)
                 if _sum >= _max[1]:
                     _max = (agent_action, _sum)
-            agent.best_response.set_action(_max[0])
+
+            if not test and random.random() < epsilon:
+                # action = random.choice([n for n in agent.possible_actions if n != _max[0]]) # Select random suboptimal action
+                action = random.choice(agent.possible_actions) # Select random suboptimal action
+
+                agent.best_response.set_action(action)
+            else:
+                agent.best_response.set_action(_max[0])
             continue
 
         res = []
@@ -61,8 +69,22 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False):
                     _max = (agent_action, _sum)
 
             # Save new payout and best response
-            agent.best_response.set_value(action_dict, _max[0])
-            new_function.set_value(action_dict, _max[1])
+            if not test and random.random() < epsilon:
+                #action = random.choice([n for n in agent.possible_actions if n != _max[0]]) # Select random suboptimal action
+                action = random.choice(agent.possible_actions) # Select random suboptimal action
+
+                agent.best_response.set_value(action_dict, action)
+                _sum = 0
+                for function in agent.payout_functions: # Get value for new action
+                    _sum += function.get_value(
+                        dict({agent.name: random.choice([n for n in agent.possible_actions if n != _max[0]])},
+                             **action_dict))
+
+                new_function.set_value(action_dict, _sum)
+
+            else:
+                agent.best_response.set_value(action_dict, _max[0])
+                new_function.set_value(action_dict, _max[1])
 
         # Delete all payout functions that involve the parent agent from all the dependant agents
         # And add the new payout functions to dependants
@@ -91,8 +113,7 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False):
         print("\nVariable Elimination Result:")
         for key, value in sorted(actions.items(), key=lambda x: x[0]):
             print("{} : {}".format(key, value), end=', ')
-
-    cleanup(agents)
+    # cleanup(agents)
 
     return actions
 
