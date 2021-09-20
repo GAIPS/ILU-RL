@@ -614,7 +614,7 @@ class TrafficLightEnv(Env):
 
         # Choose Phase:
         # Always same inital state 0 (no yellow).
-        self.min_green = 15
+        self.min_green = 5
         self.max_green = 90
         self.yellow = 5
 
