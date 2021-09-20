@@ -1,7 +1,7 @@
 import json
 
-flowFile = "../../data/networks/grid/flow.json"
-CHANGE = 2
+flowFile = "../../data/networks/2_1/flow.json"
+CHANGE = 5
 
 with open(flowFile) as f:
   data = json.load(f)
