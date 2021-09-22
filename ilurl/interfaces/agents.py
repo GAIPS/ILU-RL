@@ -30,17 +30,6 @@ class AgentInterface(abc.ABC):
 
         """
 
-    @abc.abstractmethod
-    def get_network(self, ):
-        """ Returns the Q-values given a state.
-
-             Parameters:
-             ----------
-             * s: tuple
-                 state representation.
-
-         """
-
 
     @abc.abstractmethod
     def update(self, s, a, r, s1): 

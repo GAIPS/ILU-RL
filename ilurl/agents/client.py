@@ -47,11 +47,11 @@ class AgentClient(object):
 
     # TODO: make decorator (or simplify = *args) the stuff below.
 
-    def get_network(self):
-        args = ()
-        func_call = ('get_network', args)
-        self.pipe.send(func_call)
 
+    def forward_pass(self, state):
+        args = (state,)
+        func_call = ('forward_pass', args)
+        self.pipe.send(func_call)
 
     def get_stop(self):
         args = ()

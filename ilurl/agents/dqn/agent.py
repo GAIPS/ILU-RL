@@ -132,8 +132,8 @@ class DQN(AgentWorker,AgentInterface):
     def set_stop(self, stop):
         self._stop = stop
 
-    def get_network(self):
-        return self.network._layers[-1].q_values
+    def forward_pass(self, state):
+        return self.network(tf.constant([state]))
 
     def act(self, s):
         s = double_to_single_precision(np.array(s))

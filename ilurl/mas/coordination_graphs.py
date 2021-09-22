@@ -116,20 +116,31 @@ class CoordinationGraphsMAS(MASInterface):
 
     def act(self, state, test=False):
         # Send requests.
+        #print("\nQTables:")
+
         for (tid, agent) in self.edges.items():
             concat_state = state[agent.agent1] + state[agent.agent2]
             agent.act(concat_state)
             agent.receive()
 
+            qTable = self.forward_pass(tid, concat_state)
+            #print(tid)
+            #print(qTable[tid][0:2])
+            #print(qTable[tid][2:4])
+
+            agent1 = self.agents[self.edges[tid].agent1]
+            agent2 = self.agents[self.edges[tid].agent2]
+            payoutFunction = ActionTable([agent1, agent2], qTable[tid])
+            # agent1.qtable = payoutFunction
+            agent1.payout_functions = [payoutFunction]
+            agent2.payout_functions = [payoutFunction]
+
+
         self.current_timestep += 5
         # VE
-        # print("\nQTables:")
-        # print(self.agents['intersection_1_1'].name)
-        # print(self.agents['intersection_1_1'].payout_functions[0].table)
         choices = variable_elimination(self.agents, epsilon=self.getEpsilon(),  test=test)
-        # print("\nActions: ", sorted(choices.items()))
-        # choices = self.tuple_to_int_actions(actions)
-        # Retrieve requests.
+        #print("\nActions: ", sorted(choices.items()))
+
 
         return choices
 
@@ -146,14 +157,11 @@ class CoordinationGraphsMAS(MASInterface):
         return self.epsilon_init - ((self.epsilon_init - self.epsilon_final) * (
                     self.current_timestep / self.epsilon_schedule_timesteps))
 
-    def network(self):
-        for (tid, agent) in self.edges.items():
-            agent.get_network()
+    def forward_pass(self, tid, state):
 
-        choices = {tid: self.softmax(agent.receive()[0])
-                   for (tid, agent) in self.edges.items()}
+        self.edges[tid].forward_pass(state)
 
-        return choices
+        return {tid: self.softmax(self.edges[tid].receive()[0])}
 
     def update(self, s, a, r, s1):
         # Send requests.
@@ -163,22 +171,13 @@ class CoordinationGraphsMAS(MASInterface):
             concat_s = s[agent.agent1] + s[agent.agent2]
             concat_s1 = s1[agent.agent1] + s1[agent.agent2]
             summed_r = r[agent.agent1] + r[agent.agent2]
-            # print("\nRewards: Agent1: %f, Agent2: %f, Sum: %f" % (r[agent.agent1], r[agent.agent2], summed_r))
+            #print("\nRewards: Agent1: %f, Agent2: %f, Sum: %f" % (r[agent.agent1], r[agent.agent2], summed_r))
             agent.update(concat_s, a[tid], summed_r, concat_s1)
 
         # Synchronize.
         for (tid, agent) in self.edges.items():
             agent.receive()
 
-        qTables = self.network()
-        for edge in qTables:
-            agent1 = self.agents[self.edges[edge].agent1]
-            agent2 = self.agents[self.edges[edge].agent2]
-            payoutFunction = ActionTable([agent1, agent2], qTables[edge])
-            # agent1.qtable = payoutFunction
-            agent1.payout_functions = [payoutFunction]
-            agent2.payout_functions = [payoutFunction]
-            # agent2.qtable = payoutFunction
 
     def save_checkpoint(self, path):
         # Send requests.

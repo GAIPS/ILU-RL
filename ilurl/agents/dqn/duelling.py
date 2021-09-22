@@ -35,5 +35,4 @@ class DuellingMLP(snt.Module):
     advantages -= tf.reduce_mean(advantages, axis=-1, keepdims=True)  # [B, A]
 
     q_values = value + advantages  # [B, A]
-    self.q_values = q_values.numpy()
     return q_values
