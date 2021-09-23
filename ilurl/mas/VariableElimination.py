@@ -5,12 +5,10 @@ from itertools import product
 from ilurl.mas.CGAgent import CGAgent
 from ilurl.mas.ActionTable import ActionTable
 
-def variable_elimination(agents, order=None, locked_actions={}, debug=False, epsilon=0, test=False):
+def variable_elimination(agents, debug=False, epsilon=0, test=False):
 
-    if order is not None:
-        elimination_agents = [agents[agent_name] for agent_name in order if agent_name not in locked_actions.keys()]
-    else:
-        elimination_agents = [agent for agent in list(agents.values()) if agent.name not in locked_actions.keys()]
+
+    elimination_agents = list(agents.values())
 
         # First Pass
     for agent in elimination_agents:
@@ -26,7 +24,7 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False, eps
             agent.best_response = ActionTable([])
             for agent_action in agent.possible_actions:
                 _sum = 0
-                actions = dict({agent.name: agent_action}, **locked_actions)
+                actions = {agent.name: agent_action}
                 # Maximizing the sum of every local payout function
                 for function in agent.payout_functions:
                     _sum += function.get_value(actions)
@@ -42,13 +40,7 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False, eps
                 agent.best_response.set_action(_max[0])
             continue
 
-        res = []
-        for dependant_agent in dependant_agents:
-            if dependant_agent.name in locked_actions.keys():
-                res.append([locked_actions[dependant_agent.name]])
-            else:
-                res.append(dependant_agent.possible_actions)
-        action_product = list(product(*res))
+        action_product = list(product(*[dependant_agent.possible_actions for dependant_agent in dependant_agents]))
 
         new_function = ActionTable(dependant_agents)
         agent.best_response = ActionTable(dependant_agents)
@@ -105,8 +97,7 @@ def variable_elimination(agents, order=None, locked_actions={}, debug=False, eps
     # Second Pass, Reverse Order, excluding the last agent
     # last_agent = list(elimination_agents)[-1]
     # actions = {last_agent.name: str(last_agent.payout_functions[0].table.argmax().data[()])}
-    if locked_actions:
-        actions = locked_actions
+
     for agent in list(elimination_agents)[::-1]:
         actions[agent.name] = int(agent.best_response.get_value(actions))
     if debug:

@@ -417,7 +417,7 @@ class TrafficLightEnv(Env):
 
                     # Every five time steps is a possible candidate for action
                     state = self.get_state()
-                    # print("\nCurrent State: ", state)
+                    print("\nCurrent State: ", state)
                     # Select new action.
                     if self.ts_type != 'random':
                         if rl_actions is None:
@@ -441,10 +441,10 @@ class TrafficLightEnv(Env):
 
                     for tlid in self.tls_ids:
                         if keep(tlid):
-                            # print("\nKEEP Contraint for ", tlid)
+                            print("\nKEEP Contraint for ", tlid)
                             this_actions[tlid] = int(state[tlid][0])
                         elif switch(tlid):
-                            # print("\nSWITCH Contraint for ", tlid)
+                            print("\nSWITCH Contraint for ", tlid)
                             num_phases = self.mdp_params.phases_per_traffic_light[tlid]
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
                         elif self.ts_type == 'random' and np.random.rand() < 0.5:
@@ -618,7 +618,7 @@ class TrafficLightEnv(Env):
 
         # Choose Phase:
         # Always same inital state 0 (no yellow).
-        self.min_green = 5
+        self.min_green = 10
         self.max_green = 90
         self.yellow = 5
 

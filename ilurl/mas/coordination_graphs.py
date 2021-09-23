@@ -37,117 +37,84 @@ class CoordinationGraphsMAS(MASInterface):
         # Period is a "Global" state space
         has_period = mdp_params.time_period is not None
         states_depth = None  # Assign only when discretize_state_space
+
+        link =  network.coordination_graph["connections"][0]
+        agent_params_ = deepcopy(agent_params)
+        num_phases = mdp_params.phases_per_traffic_light[link[0]] + mdp_params.phases_per_traffic_light[link[1]]
+        actions_depth = mdp_params.num_actions[link[0]] * mdp_params.num_actions[link[1]]
+        agent_params_.actions = Bounds(rank=1,
+                                       depth=actions_depth)
+
+        states_rank = num_phases * num_variables + 2 * 2
+        agent_params_.states = Bounds(states_rank, states_depth)
+        agent_params_.exp_path = exp_path
+
+        agent_params_.name = "global_agent"
+        agent_params_.seed = seed
+        agent_params_.discount_factor = mdp_params.discount_factor
+
+        self.dqn_agent = AgentClient(AgentFactory.get(agent_type),
+                           params=agent_params_)
+
         for link in network.coordination_graph["connections"]:
-            agent_params_ = deepcopy(agent_params)
-            num_phases = mdp_params.phases_per_traffic_light[link[0]] + mdp_params.phases_per_traffic_light[link[1]]
-            # Action space.
-            if mdp_params.action_space == 'discrete':
-                # Discrete action space.
-                # In the discrete action space each agent is allowed to pick
-                # the signal plan(s) from a set of candidate signal plans given
-                # a priori to the system by a user. The candidate signal plans
-                # are defined in data/networks/{NETWORK_NAME}/tls_config.json
-                actions_depth = mdp_params.num_actions[link[0]] * mdp_params.num_actions[link[1]]
-                agent_params_.actions = Bounds(rank=1,
-                                               depth=actions_depth)
-            else:
-                # Continuous action space.
-                # In the continuous action space each agent is allowed to select
-                # the portion of the cycle length allocated for each of the phases.
-                agent_params_.num_phases = num_phases
 
-            # states_rank = num_phases * num_variables + int(has_period)
-            states_rank = num_phases * num_variables + 2 * 2
-            agent_params_.states = Bounds(states_rank, states_depth)
-            # Experience path.
-            agent_params_.exp_path = exp_path
-
-            # Name.
-            agent_params_.name = link[0] + "_" + link[1]
-
-            # Seed.
-            agent_params_.seed = seed
-
-            # Discount factor (gamma).
-            agent_params_.discount_factor = mdp_params.discount_factor
-
-            edge = AgentClient(AgentFactory.get(agent_type),
-                               params=agent_params_)
-
-            edge.agent1 = link[0]
-            edge.agent2 = link[1]
-
-            qTable = ActionTable([self.agents[link[0]], self.agents[link[1]]])
-
-            # Create agent client.
-            edges[link[0] + "_" + link[1]] = edge
-
-            self.agents[link[0]].edges.append(edge)
             self.agents[link[0]].dependant_agents.append(link[1])
-            self.agents[link[0]].payout_functions.append(qTable)
-
-            self.agents[link[1]].edges.append(edge)
             self.agents[link[1]].dependant_agents.append(link[0])
-            self.agents[link[1]].payout_functions.append(qTable)
 
-        self.edges = edges
+        self.edges = network.coordination_graph["connections"]
 
 
     @property
     def stop(self):
-        # Send requests.
-        for (tid, agent) in self.edges.items():
-            agent.get_stop()
-
-        # Retrieve requests.
-        stops = [agent.stop for (_, agent) in self.edges.items()]
-
-        return all(stops)
+        self.dqn_agent.get_stop()
+        stop = self.dqn_agent.stop
+        # stops = [agent.stop for (_, agent) in self.edges.items()]
+        return stop
 
     @stop.setter
     def stop(self, stop):
-        # Send requests.
-        for (tid, agent) in self.edges.items():
-            agent.set_stop(stop)
-
-        # Synchronize.
-        for (tid, agent) in self.edges.items():
-            agent.receive()
+        self.dqn_agent.set_stop(stop)
+        self.dqn_agent.receive()
 
     def act(self, state, test=False):
         # Send requests.
-        #print("\nQTables:")
+        print("\nQTables:")
 
-        for (tid, agent) in self.edges.items():
-            concat_state = state[agent.agent1] + state[agent.agent2]
-            agent.act(concat_state)
-            agent.receive()
 
-            qTable = self.forward_pass(tid, concat_state)
-            #print(tid)
-            #print(qTable[tid][0:2])
-            #print(qTable[tid][2:4])
+        for (tid, agent) in  self.agents.items():
+            agent.payout_functions = []
 
-            agent1 = self.agents[self.edges[tid].agent1]
-            agent2 = self.agents[self.edges[tid].agent2]
-            payoutFunction = ActionTable([agent1, agent2], qTable[tid])
+
+        for (agent1, agent2) in self.edges:
+            concat_state = state[agent1] + state[agent2]
+            self.dqn_agent.act(concat_state)
+            self.dqn_agent.receive()
+
+            qTable = self.forward_pass(concat_state)
+            print(agent1 + "_" + agent2)
+            print(qTable[0:2])
+            print(qTable[2:4])
+
+            agent1 = self.agents[agent1]
+            agent2 = self.agents[agent2]
+            payoutFunction = ActionTable([agent1, agent2], qTable)
             # agent1.qtable = payoutFunction
-            agent1.payout_functions = [payoutFunction]
-            agent2.payout_functions = [payoutFunction]
+            agent1.payout_functions.append(payoutFunction)
+            agent2.payout_functions.append(payoutFunction)
 
 
         self.current_timestep += 5
         # VE
         choices = variable_elimination(self.agents, epsilon=self.getEpsilon(),  test=test)
-        #print("\nActions: ", sorted(choices.items()))
+        print("\nActions: ", sorted(choices.items()))
 
 
         return choices
 
-    def tuple_to_int_actions(self, actions):
+    def tuple_to_int_actions(self, action1, action2):
 
-        return {tid: actions[agent.agent1] * 2 ** 1 + actions[agent.agent2] * 2 ** 0
-                for (tid, agent) in self.edges.items()}
+        return action1 * 2 ** 1 + action2 * 2 ** 0
+
 
     def softmax(self, x):
         e_x = np.exp(x - np.max(x))
@@ -157,48 +124,34 @@ class CoordinationGraphsMAS(MASInterface):
         return self.epsilon_init - ((self.epsilon_init - self.epsilon_final) * (
                     self.current_timestep / self.epsilon_schedule_timesteps))
 
-    def forward_pass(self, tid, state):
+    def forward_pass(self, state):
 
-        self.edges[tid].forward_pass(state)
+        self.dqn_agent.forward_pass(state)
 
-        return {tid: self.softmax(self.edges[tid].receive()[0])}
+        return self.softmax(self.dqn_agent.receive()[0])
 
     def update(self, s, a, r, s1):
         # Send requests.
 
-        a = self.tuple_to_int_actions(a)
-        for (tid, agent) in self.edges.items():
-            concat_s = s[agent.agent1] + s[agent.agent2]
-            concat_s1 = s1[agent.agent1] + s1[agent.agent2]
-            summed_r = r[agent.agent1] + r[agent.agent2]
-            #print("\nRewards: Agent1: %f, Agent2: %f, Sum: %f" % (r[agent.agent1], r[agent.agent2], summed_r))
-            agent.update(concat_s, a[tid], summed_r, concat_s1)
-
-        # Synchronize.
-        for (tid, agent) in self.edges.items():
-            agent.receive()
-
+        for (agent1, agent2) in self.edges:
+            concat_s = s[agent1] + s[agent2]
+            concat_s1 = s1[agent1] + s1[agent2]
+            #summed_r = sum(r.values())
+            summed_r = r[agent1] + r[agent2]
+            print("\nRewards: %s, %s:  %f" % (agent1, agent2, summed_r))
+            action = self.tuple_to_int_actions(a[agent1], a[agent2])
+            self.dqn_agent.update(concat_s, action, summed_r, concat_s1)
+            self.dqn_agent.receive()
 
     def save_checkpoint(self, path):
-        # Send requests.
-        for (tid, agent) in self.edges.items():
-            agent.save_checkpoint(path)
-
-        # Synchronize.
-        for (tid, agent) in self.edges.items():
-            agent.receive()
+        self.dqn_agent.save_checkpoint(path)
+        self.dqn_agent.receive()
 
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
-        # Send requests.
-        for (tid, agent) in self.edges.items():
-            agent.load_checkpoint(chkpts_dir_path, chkpt_num)
-
-        # Synchronize.
-        for (tid, agent) in self.edges.items():
-            agent.receive()
+        self.dqn_agent.load_checkpoint(chkpts_dir_path, chkpt_num)
+        self.dqn_agent.receive()
 
     def terminate(self):
-        # Send terminate request for each agent.
+        # Send terminate request for the agent.
         # (also waits for termination)
-        for (tid, agent) in self.edges.items():
-            agent.terminate()
+        self.dqn_agent.terminate()
