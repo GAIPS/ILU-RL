@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+import numpy as np
+
 from ilurl.params import Bounds
 from ilurl.loaders.parser import config_parser
 from ilurl.agents.client import AgentClient
@@ -91,7 +93,26 @@ class DecentralizedMAS(MASInterface):
         for (tid, agent) in self.agents.items():
             agent.receive()
 
-    def act(self, state):
+    def softmax(self, x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum(axis=0)
+
+    # def network2(self, state):
+    #     for (tid, agent) in self.agents.items():
+    #         agent.get_network2(state[tid])
+    #
+    #     choices = {tid: self.softmax(agent.receive()[0])
+    #                for (tid, agent) in self.agents.items()}
+    #
+    #     return choices
+
+    def act(self, state, test=False):
+
+        # print("\nQTables:")
+        # for qtable in qTables2:
+        #     print(qtable)
+        #     print(qTables2[qtable])
+
         # Send requests.
         for (tid, agent) in self.agents.items():
             agent.act(state[tid])
@@ -99,12 +120,14 @@ class DecentralizedMAS(MASInterface):
         # Retrieve requests.
         choices = {tid: agent.receive()
                     for (tid, agent) in self.agents.items()}
+        #print("\nActions: ", sorted(choices.items()))
 
         return choices
 
     def update(self, s, a, r, s1):
         # Send requests.
         for (tid, agent) in self.agents.items():
+            #print("\nAgent %s, reward: %f" % (tid, r[tid]))
             agent.update(s[tid], a[tid], r[tid], s1[tid])
 
         # Synchronize.
