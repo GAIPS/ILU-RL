@@ -78,7 +78,7 @@ class CoordinationGraphsMAS(MASInterface):
 
     def act(self, state, test=False):
         # Send requests.
-        print("\nQTables:")
+        #print("\nQTables:")
 
 
         for (tid, agent) in  self.agents.items():
@@ -91,9 +91,9 @@ class CoordinationGraphsMAS(MASInterface):
             self.dqn_agent.receive()
 
             qTable = self.forward_pass(concat_state)
-            print(agent1 + "_" + agent2)
-            print(qTable[0:2])
-            print(qTable[2:4])
+            #print(agent1 + "_" + agent2)
+            #print(qTable[0:2])
+            #print(qTable[2:4])
 
             agent1 = self.agents[agent1]
             agent2 = self.agents[agent2]
@@ -106,7 +106,7 @@ class CoordinationGraphsMAS(MASInterface):
         self.current_timestep += 5
         # VE
         choices = variable_elimination(self.agents, epsilon=self.getEpsilon(),  test=test)
-        print("\nActions: ", sorted(choices.items()))
+        #print("\nActions: ", sorted(choices.items()))
 
 
         return choices
@@ -138,7 +138,7 @@ class CoordinationGraphsMAS(MASInterface):
             concat_s1 = s1[agent1] + s1[agent2]
             #summed_r = sum(r.values())
             summed_r = r[agent1] + r[agent2]
-            print("\nRewards: %s, %s:  %f" % (agent1, agent2, summed_r))
+            #print("\nRewards: %s, %s:  %f" % (agent1, agent2, summed_r))
             action = self.tuple_to_int_actions(a[agent1], a[agent2])
             self.dqn_agent.update(concat_s, action, summed_r, concat_s1)
             self.dqn_agent.receive()
