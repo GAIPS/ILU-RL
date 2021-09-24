@@ -20,6 +20,8 @@ def maximizeAgent(agent, action_dict):
     return _max
 
 
+
+
 def variable_elimination(agents, debug=False, epsilon=0, test=False):
     elimination_agents = list(agents.values())
 
@@ -35,7 +37,8 @@ def variable_elimination(agents, debug=False, epsilon=0, test=False):
             _max = maximizeAgent(agent, {})
 
             if not test and random.random() < epsilon:
-                action = random.choice(agent.possible_actions)  # Select random action
+                action = random.choice([n for n in agent.possible_actions if n != _max[0]]) # Select random suboptimal action
+                #action = random.choice(agent.possible_actions)  # Select random action
                 agent.best_response.set_action(action)
             else:
                 agent.best_response.set_action(_max[0])
@@ -54,7 +57,8 @@ def variable_elimination(agents, debug=False, epsilon=0, test=False):
 
             # Save new payout and best response
             if not test and random.random() < epsilon:
-                action = random.choice(agent.possible_actions)  # Select random action
+                action = random.choice([n for n in agent.possible_actions if n != _max[0]]) # Select random suboptimal action
+                #action = random.choice(agent.possible_actions)  # Select random action
                 agent.best_response.set_value(action_dict, action)
                 _sum = 0
                 for function in agent.payout_functions:  # Get value for new action

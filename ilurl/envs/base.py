@@ -417,7 +417,7 @@ class TrafficLightEnv(Env):
 
                     # Every five time steps is a possible candidate for action
                     state = self.get_state()
-                    #print("\nCurrent State: ", state)
+                    print("\nCurrent State: ", state)
                     # Select new action.
                     if self.ts_type != 'random':
                         if rl_actions is None:
