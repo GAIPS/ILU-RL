@@ -94,8 +94,8 @@ if __name__ == '__main__':
     # 9) Clean up and compress files.
     print('\nCleaning and compressing files...\n')
     experiment_root_path = Path(experiment_root_path)
-    # for csv_path in experiment_root_path.rglob('*-emission.csv'):
-    #     Path(csv_path).unlink()
+    for csv_path in experiment_root_path.rglob('*-emission.csv'):
+        Path(csv_path).unlink()
 
     shutil.make_archive(experiment_root_path,
                                 'gztar',
