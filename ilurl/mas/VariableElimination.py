@@ -7,7 +7,7 @@ from ilurl.mas.ActionTable import ActionTable
 
 
 def maximizeAgent(agent, action_dict):
-    _max = ("-1", -1)
+    _max = ("-1", float("-inf"))
     # Figure out the max and maxArg of current agent actions
     for agent_action in agent.possible_actions:
         _sum = 0
