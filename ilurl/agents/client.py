@@ -78,6 +78,11 @@ class AgentClient(object):
         func_call = ('save_checkpoint', args)
         self.pipe.send(func_call)
 
+    def save_checkpoint(self, path, chkpt_num):
+        args = (path, chkpt_num)
+        func_call = ('save_checkpoint', args)
+        self.pipe.send(func_call)
+
     def load_checkpoint(self, chkpts_dir_path, chkpt_num):
         args = (chkpts_dir_path, chkpt_num)
         func_call = ('load_checkpoint', args)

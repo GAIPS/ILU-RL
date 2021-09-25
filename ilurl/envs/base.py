@@ -34,16 +34,19 @@ from ilurl.mas.decentralized import DecentralizedMAS
 from ilurl.mas.centralized import CentralizedAgent
 from ilurl.mas.coordination_graphs import CoordinationGraphsMAS
 
+
 def delay(x):
     if x >= 1.0:
         return 0.0
     else:
-        return np.exp(-5.0*x)
+        return np.exp(-5.0 * x)
+
 
 class TrafficLightEnv(Env):
     """
         Environment used to train traffic light systems.
     """
+
     def __init__(self,
                  env_params,
                  sim_params,
@@ -71,7 +74,7 @@ class TrafficLightEnv(Env):
 
         # Keeps the internal value of sim step.
         self.sim_step = sim_params.sim_step
-        assert self.sim_step == 1 # step size must equal 1.
+        assert self.sim_step == 1  # step size must equal 1.
 
         # Problem formulation params.
         self.mdp_params = mdp_params
@@ -86,9 +89,9 @@ class TrafficLightEnv(Env):
             self.tsc = CoordinationGraphsMAS(mdp_params, exp_path, seed, network)
         elif self.ts_type in ('max_pressure', 'webster'):
             self.tsc = get_ts_controller(self.ts_type, network.phases_per_tls,
-                                        self.tls_phases, self.cycle_time)
+                                         self.tls_phases, self.cycle_time)
         elif self.ts_type in ('static', 'actuated', 'random'):
-            pass # Nothing to do here.
+            pass  # Nothing to do here.
         else:
             raise ValueError(f'Unknown ts_type:{self.ts_type}')
 
@@ -105,7 +108,7 @@ class TrafficLightEnv(Env):
         self._cached_state = {tlid: tuple([float(0) for _ in range(np + 2)])
                               for tlid, np in network.phases_per_tls.items()}
 
-        self._duration = defaultdict(lambda : 0)
+        self._duration = defaultdict(lambda: 0)
         self._duration_counter = -1
 
         # Continuous action space signal plans.
@@ -113,7 +116,7 @@ class TrafficLightEnv(Env):
 
         self._reset()
 
-    #ABCMeta
+    # ABCMeta
     def action_space(self):
         return self.mdp_params.action_space
 
@@ -202,7 +205,6 @@ class TrafficLightEnv(Env):
 
     #     return joined_action
 
-
     def update_observation_space(self):
         """ Query kernel to retrieve vehicles' information
         and send it to ilurl.State object for state computation.
@@ -215,12 +217,12 @@ class TrafficLightEnv(Env):
         """
         # Query kernel and retrieve vehicles' data.
         data = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
-                    for p, data in self.tls_phases[nid].items()}
-                        for nid in self.tls_ids}
+                      for p, data in self.tls_phases[nid].items()}
+                for nid in self.tls_ids}
 
         state = {}
         max_speed = self.k.network.max_speed()
-        for tlid, phases_dict  in data.items():
+        for tlid, phases_dict in data.items():
             duration = self.duration[tlid]
             duration_active = self.time_counter - self.duration[tlid]
             phase_active = self.active_phases[tlid]
@@ -230,7 +232,7 @@ class TrafficLightEnv(Env):
             # order by phase(num) and get values (counts).
             # Computes and stores delays for the current time step.
             for pid, vehs in phases_dict.items():
-                this_delay = sum([delay(veh.speed /  max_speed) for veh in vehs])
+                this_delay = sum([delay(veh.speed / max_speed) for veh in vehs])
                 delay_list.append(round(float(this_delay), 4))
 
             state[tlid] = phase_features + tuple(delay_list)
@@ -246,7 +248,6 @@ class TrafficLightEnv(Env):
         """
         return {tlid: tuple([sta for sta in state]) for tlid, state in self._cached_state.items()}
 
-
     def _rl_actions(self, state, test=False):
         """ Return the selected action(s) given the state of the environment.
 
@@ -261,7 +262,7 @@ class TrafficLightEnv(Env):
         actions: dict
 
         """
-        this_actions = self.tsc.act(state, test=test) # Delegate to Multi-Agent System.
+        this_actions = self.tsc.act(state, test=test)  # Delegate to Multi-Agent System.
 
         # Transform action index
         if self.ts_type == 'centralized':
@@ -275,7 +276,7 @@ class TrafficLightEnv(Env):
                 num_phases = self.mdp_params.phases_per_traffic_light[tid]
                 curr_action = action_index % num_phases
                 joined_action.append(curr_action)
-                action_index  //= num_phases
+                action_index //= num_phases
 
             this_actions = joined_action
         return this_actions
@@ -298,8 +299,8 @@ class TrafficLightEnv(Env):
         def fn(tid):
 
             if self.ts_type in ('rl', 'random') and \
-                (dur == 1 or self.time_counter == 1) and \
-                self.mdp_params.action_space == 'continuous':
+                    (dur == 1 or self.time_counter == 1) and \
+                    self.mdp_params.action_space == 'continuous':
                 # Calculate cycle length allocations for the
                 # new cycle (continuous action space).
 
@@ -315,7 +316,7 @@ class TrafficLightEnv(Env):
                 # all the phases in order to ensure a minimum green time for all phases.
                 # The remainder 80% are allocated by the agent.
                 phases_durations = np.around(0.2 * available_time * (1 / num_phases) + \
-                                    current_action * 0.8 * available_time, decimals=0)
+                                             current_action * 0.8 * available_time, decimals=0)
 
                 # Convert phases allocations into a signal plan.
                 counter = 0
@@ -351,7 +352,6 @@ class TrafficLightEnv(Env):
             else:
                 raise ValueError(f'Unknown ts_type:{self.ts_type}')
 
-
         return tuple(ret)
 
     def apply_rl_actions(self, rl_actions, test=False):
@@ -368,7 +368,7 @@ class TrafficLightEnv(Env):
         if is_controller_periodic(self.ts_type):
 
             if self.ts_type in ('rl', 'random') and \
-                (self.duration == 0 or self.time_counter == 1):
+                    (self.duration == 0 or self.time_counter == 1):
                 # New cycle.
 
                 # Get the number of the current cycle.
@@ -397,12 +397,12 @@ class TrafficLightEnv(Env):
 
             if self.ts_type == 'webster':
                 kernel_data = {nid: {p: build_vehicles(nid, data['incoming'], self.k.vehicle)
-                                for p, data in self.tls_phases[nid].items()}
-                                    for nid in self.tls_ids}
+                                     for p, data in self.tls_phases[nid].items()}
+                               for nid in self.tls_ids}
                 self.webster_timings = self.tsc.act(kernel_data)
 
-            if self.ts_type  == 'static':
-                pass # Nothing to do here.
+            if self.ts_type == 'static':
+                pass  # Nothing to do here.
 
             self._apply_tsc_actions(self._periodic_control_actions())
 
@@ -411,13 +411,12 @@ class TrafficLightEnv(Env):
             # TODO: Choose Phase is aperiodic.
 
             # Get the number of the current cycle.
-            N = int((self.step_counter + 1)/ 5)
-            if self.ts_type in ('rl', 'centralized', 'cg')  and N > 0:
-                if ((self.step_counter) % 5  == 0):
+            N = int((self.step_counter + 1) / 10)
+            if self.ts_type in ('rl', 'centralized', 'cg') and N > 0:
+                if ((self.step_counter) % 10 == 0):
 
                     # Every five time steps is a possible candidate for action
                     state = self.get_state()
-                    #print("\nCurrent State: ", state)
                     # Select new action.
                     if self.ts_type != 'random':
                         if rl_actions is None:
@@ -427,32 +426,28 @@ class TrafficLightEnv(Env):
                     else:
                         this_actions = {}
 
-
                     if self.ts_type == 'centralized':
                         this_actions = dict(zip(self.tls_ids, this_actions))
+
                     # Enforce actions constraints.
                     # 1) Prevent switching to a new phase before min_green.
                     # 2) Prevent keeping a phase after max_green.
                     def keep(x):
                         return int(state[x][1]) <= (self.min_green + self.yellow)
+
                     def switch(x):
                         return int(state[x][1]) >= (self.max_green + self.yellow)
 
-
                     for tlid in self.tls_ids:
                         if keep(tlid):
-                            #print("\nKEEP Contraint for ", tlid)
                             this_actions[tlid] = int(state[tlid][0])
                         elif switch(tlid):
-                            #print("\nSWITCH Contraint for ", tlid)
                             num_phases = self.mdp_params.phases_per_traffic_light[tlid]
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
                         elif self.ts_type == 'random' and np.random.rand() < 0.5:
                             num_phases = self.mdp_params.phases_per_traffic_light[tlid]
                             this_actions[tlid] = int(state[tlid][0] + 1) % num_phases
 
-
-                    # print("\nActual action: ", sorted(this_actions.items()))
                     if self.ts_type != "centralized":
                         self.actions_log[N] = this_actions
                     self.states_log[N] = state
@@ -474,7 +469,7 @@ class TrafficLightEnv(Env):
                             if int(x[0]) != u: return True
                             # First cycle ignore yellow transitions
                             if self.step_counter <= self.min_green: return False
-                            if int(x[1])  == self.min_green: return True
+                            if int(x[1]) == self.min_green: return True
                             return False
 
                         def ctrl(x, u):
@@ -487,7 +482,6 @@ class TrafficLightEnv(Env):
                             tlid: ctrl(sta, this_actions[tlid])
                             for tlid, sta in self._cached_state.items() if fn(sta, this_actions[tlid])
                         }
-                        # print("\n Control actions: ", controller_actions)
                         self._apply_tsc_actions(controller_actions)
 
                         self.update_active_phases(this_actions)
@@ -547,10 +541,7 @@ class TrafficLightEnv(Env):
                 self.update_active_phases(this_actions)
 
         if self.ts_type == 'actuated':
-                raise NotImplementedError # Nothing to do here.
-
-
-
+            raise NotImplementedError  # Nothing to do here.
 
     def _apply_tsc_actions(self, controller_actions):
         """ For each TSC shift phase or keep phase.
@@ -575,7 +566,6 @@ class TrafficLightEnv(Env):
                 next_phase = self.k.traffic_light.state_to_phase[tlid][next_state]
                 ctrl_log[tlid] = (next_state, next_phase)
         self.controller_log[self.time_counter] = ctrl_log
-
 
     def _current_rl_action(self):
         """ Returns current action. """
@@ -613,15 +603,14 @@ class TrafficLightEnv(Env):
         # the beggining of the cycle, i.e. it measures (in seconds)
         # for how long the current configuration has been going on.
         self._duration_counter = 0
-        self._duration = defaultdict(lambda : 0)
-        self._active_phases = defaultdict(lambda : 0)
+        self._duration = defaultdict(lambda: 0)
+        self._active_phases = defaultdict(lambda: 0)
 
         # Choose Phase:
         # Always same inital state 0 (no yellow).
         self.min_green = 10
         self.max_green = 90
         self.yellow = 5
-
 
         # Stores the state index.
         starting_control = {}
