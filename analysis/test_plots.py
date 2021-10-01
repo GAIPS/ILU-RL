@@ -888,18 +888,6 @@ def main(experiment_root_folder=None):
 
         df_concat = pd.concat(dfs_a)
 
-        # if train_config['train_args']['tls_type'] == 'centralized':
-        #     NUM_ACTIONS = 7
-        #     tls_names = list(json_data['rewards'][id][0][0].keys())
-        #     df_temp = pd.DataFrame(columns=tls_names, dtype=int)
-        #     for index, row in df_concat.iterrows():
-        #         action1 = row[0] % NUM_ACTIONS
-        #         action2 = (row[0] // NUM_ACTIONS) % NUM_ACTIONS
-        #         action3 = ((row[0] // NUM_ACTIONS) // NUM_ACTIONS) % NUM_ACTIONS
-        #         df_temp = df_temp.append(
-        #             pd.DataFrame({tls_names[0]: action1, tls_names[1]: action2, tls_names[2]: action3}, index=[index]))
-        # df_concat = df_temp
-
         by_row_index = df_concat.groupby(df_concat.index)
         df_actions = by_row_index.mean()
 
@@ -910,15 +898,81 @@ def main(experiment_root_folder=None):
             plt.plot(df_actions[col].rolling(window=40).mean(), label=col)
 
         plt.xlabel('Cycle')
-        plt.ylabel('Action')
+        plt.ylabel('Phase')
         # plt.title('Actions per intersection')
         plt.legend()
 
-        plt.ylim(-0.2,6.2)
-        plt.yticks(ticks=[0,1,2,3,4,5,6], labels=['(30,70)', '(36,63)', '(43,57)', '(50,50)', '(57,43)', '(63,37)', '(70,30)'])
+        plt.ylim(-0.2,1.2)
+        plt.yticks(ticks=[0,1], labels=['0', '1'])
 
         plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
         plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+        plt.close()
+
+    """
+           Actions
+
+           WARNING: This might require different processing here. As an example,
+               the actions taken by the DQN actions (discrete action agent)
+               differ from the ones taken by the DDPG agent (continuous action
+               agent).
+       """
+    if agent_type in ('DDPG', 'MPO'):
+        # Continuous action-schema.
+        # TODO: This only works for two-phased intersections.
+        dfs_a = [pd.DataFrame([{i: round(a[0], 4) for (i, a) in t.items()}
+                               for t in run])
+                 for run in json_data['actions'][id]]
+        df_concat = pd.concat(dfs_a)
+
+        by_row_index = df_concat.groupby(df_concat.index)
+        df_actions = by_row_index.mean()
+
+        fig = plt.figure()
+        fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+        # window_size = min(len(df_actions)-1, 40)
+
+        for col in df_actions.columns:
+            plt.plot(df_actions[col], label=col)  # .rolling(window=window_size).mean()
+
+        plt.xlabel('Cycle')
+        plt.ylabel('Action (phase-1 allocation)')
+        # plt.title('Actions per intersection')
+        plt.legend()
+
+        plt.ylim(0.0, 1.0)
+
+        plt.savefig('{0}/actions_per_intersection.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions_per_intersection.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+
+        plt.close()
+
+    else:
+        # Discrete action-schema.
+        dfs_a = [pd.DataFrame(run) for run in json_data['actions'][id]]
+        df_concat = pd.concat(dfs_a)
+
+        by_row_index = df_concat.groupby(df_concat.index)
+        df_actions = by_row_index.mean()
+        df_actions = df_actions.mean(axis=1)
+
+        fig = plt.figure()
+        fig.set_size_inches(FIGURE_X, FIGURE_Y)
+
+        plt.plot(df_actions.rolling(window=40).mean())
+
+        plt.xlabel('Cycle')
+        plt.ylabel('Phase')
+        # plt.title('Actions per intersection')
+        plt.legend()
+
+        plt.ylim(-0.2, 1.2)
+        plt.yticks(ticks=[0, 1], labels=['0', '1'])
+
+        plt.savefig('{0}/actions.pdf'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
+        plt.savefig('{0}/actions.png'.format(output_folder_path), bbox_inches='tight', pad_inches=0)
 
         plt.close()
 
